@@ -187,7 +187,7 @@ $$
 s = \frac{1 - SoH_{min}}{k_{SoH}}, \qquad SoH(k) = \max\left(\min(SoH_{min}, SoH_0),\ SoH_0 - s\,(k - k_0)\right)
 $$
 
-Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 − s · k). Die Eignungsprüfung nutzt den SoH am Ende der Vergleichsdauer, k\_end = k\_0 + K\_EV · D/12 (umschaltbar auf Start). K\_EV sind die jährlichen E-Auto-Kilometer.
+Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 − s · k). Die Kurve beginnt beim aktuellen Kilometerstand des Kandidaten (bei Neuwagen 0), ein bekannter SoH\_0 gilt an diesem Stand. Die Eignungsprüfung nutzt den SoH am Ende der Vergleichsdauer, k\_end = Kilometerstand + K\_EV · D/12 (umschaltbar auf Start). K\_EV sind die jährlichen E-Auto-Kilometer.
 
 ### 3. Eignung eines Wegs
 
@@ -233,7 +233,7 @@ Die monatlichen Kilometer k\_i werden mit dem Anteil x\_m (0 bis 100 %) dem E-Au
 
 ### 7. Preise über die Vergleichsdauer
 
-Die Vergleichsdauer D wird in Jahre y = 1 bis ⌈D/12⌉ zerlegt, q\_y ist der Anteil des Jahres y an D. Die Mengen gelten in jedem Jahr gleich.
+Die Vergleichsdauer D wird in Jahre y = 1 bis ⌈D/12⌉ zerlegt, q\_y ist der Anteil des Jahres y an D in Jahren, q\_y = min(12, D − 12(y−1)) / 12, sodass Σ q\_y = D/12 gilt. Die Mengen gelten in jedem Jahr gleich.
 
 $$
 F_b = \sum_y q_y\,(1+g_b)^{y-1}, \qquad F_s = \sum_y q_y\,(1+g_s)^{y-1}, \qquad F_m = \frac{D}{12}

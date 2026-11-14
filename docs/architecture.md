@@ -179,8 +179,8 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 
 | Modul | Wichtige Dateien | Öffentliche Schnittstelle |
 | --- | --- | --- |
-| `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data)`, `checkWarnings(scenario)` |
-| `src/core` | `compute.ts`, `calc/`, `optimizer/`, `math/`, `trace.ts` | `computeOffer(scenario, offer, priceCase, trace?)` |
+| `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts`, `result.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `OfferResultSchema`, `TraceEntrySchema`, `SliderPricesSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data)`, `checkWarnings(scenario)` |
+| `src/core` | `compute.ts`, `calc/`, `optimizer/`, `math/`, `trace.ts`, `hash.ts` | `computeOffer(scenario, offer, priceCase, { sliderPrices?, trace? })`, `hashResult(value)` |
 | `src/worker` | `core.worker.ts` | ` compute({  ``generation, scenario, sliderPrices?` `})`, `explain({ scenario, offerId, priceCase })` über Comlink |
 | `src/storage` | `repository.ts`, `exportImport.ts` | `loadAll()`, `save(scenario)`, `exportFile(ids)`, `parseImport(file)`, `writeImport(scenarios, mode)` |
 | `src/state` | `store.ts`, `scenarioSlice.ts`, `resultSlice.ts`, `uiSlice.ts`, `listeners.ts`, `coreClient.ts` | `useAppSelector`, `useAppDispatch`, Thunk `requestCompute()` mit Debounce |
@@ -192,7 +192,7 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 
 Die Dateien in `src/core/calc` bilden die Abschnitte 1 bis 8 der Berechnungslogik der Spezifikation eins zu eins ab: `range.ts`, `soh.ts`, `suitability.ts`, `energy.ts`, `workdays.ts`, `extraMileage.ts`, `prices.ts`, `costs.ts`.
 
-`src/core/optimizer` setzt den Algorithmus der Spezifikation in Schritten um: `thresholds.ts` (Schwellen-SoH je Option), `optionSets.ts` (Rasterwerte mit gleicher Optionsmenge), `knapsack.ts` (dynamische Programmierung), `warranty.ts` (Garantie-Budget), `select.ts` (Zielkosten und Gleichstandsregel). `bruteForce.ts` liegt unter `src/core/optimizer/__tests__` und wird nicht ausgeliefert.
+`src/core/optimizer` setzt den Algorithmus der Spezifikation in Schritten um: `problem.ts` (Szenario, Kandidat und Preisfall werden zu allgemeinen Entscheidungsgruppen, unabhängig vom Angebot), `thresholds.ts` (Schwellen-SoH je Option), `optionSets.ts` (Rasterwerte mit gleicher Optionsmenge), `knapsack.ts` (dynamische Programmierung auf den Entscheidungsgruppen), `warranty.ts` (Garantie-Budget), `select.ts` (Zielkosten und Gleichstandsregel). Brute Force und Q4 laufen auf der Ebene der Entscheidungsgruppen, nicht auf ganzen Szenarien. `bruteForce.ts` liegt unter `src/core/optimizer/__tests__` und wird nicht ausgeliefert.
 
 ## 6. Laufzeitsicht
 
@@ -332,12 +332,31 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Gerechnet wird in float64 nur mit den Grundrechenarten sowie `min`, `max`, `floor` und `ceil`, die IEEE 754 in allen Engines gleich rundet. Potenzen liefert `src/core/math/detPow.ts`: ganzzahlige Exponenten per Quadrieren und Multiplizieren, Zwölftel-Exponenten wie (1 − w)^(D/12) über eine zwölfte Wurzel mit Newton-Verfahren und fester Schrittzahl. Damit sind Ergebnisse in allen Browsern bitgleich (ADR-10).
 - Gerundet wird nur in der Anzeige über `src/i18n/format.ts`, nie im Kern.
 - Die Testfälle der Spezifikation sind von Hand gerundet und werden darum mit Toleranz verglichen: je Erwartungswert ± eine halbe Einheit seiner letzten angegebenen Stelle, zum Beispiel 0,2501 ± 0,00005 und 31,1 km ± 0,05 km. Der Determinismus-Test (Q5) vergleicht exakt.
-- Jede Formelfunktion schreibt in ein optionales `Trace`-Objekt (Formel-ID nach Spezifikation, Eingaben, Ergebnis). Daraus entsteht die Ansicht Rechenweg.
+- Jede Formelfunktion schreibt in ein optionales `Trace`-Objekt (Formel-ID nach Spezifikation, Eingaben, Ergebnis). Daraus entsteht die Ansicht Rechenweg. Jeder Eintrag kann über `resultPath` auf ein Feld des Ergebnisses verweisen (Q6).
+- Ergebnis, Trace-Eintrag und Preis-Regler-Werte sind Zod-Schemas in `src/domain/result.ts`, damit Kern, Worker, Zustand und Oberfläche dieselben Typen nutzen.
+- Formel-IDs haben die Form `F<Abschnitt>.<Name>` (Abschnitt der Berechnungslogik 1 bis 8), Schritte des Optimierers `OPT.<Name>`:
+
+| Abschnitt | IDs |
+| --- | --- |
+| 1 Reichweite | F1.w, F1.wStar, F1.R, F1.RStar |
+| 2 SoH | F2.slope, F2.soh, F2.kEnd |
+| 3 Eignung | F3.u, F3.phi, F3.n, F3.suitable, F3.reserveKm, F3.reservePct, F3.trafficLight |
+| 4 Energie | F4.c, F4.E, F4.Egrid, F4.evDayCost, F4.iceDayLitres, F4.maintKm |
+| 5 Arbeitstage | F5.f, F5.c, F5.days |
+| 6 Zusatzstrecke | F6.share |
+| 7 Preise | F7.qy, F7.Fb, F7.Fs, F7.Fm |
+| 8 Gesamtkosten | F8.purchase, F8.lease, F8.extraKm, F8.underKm, F8.energy, F8.maintenance, F8.kIce, F8.iceOdometer |
+| Optimierer | OPT.threshold, OPT.optionSet, OPT.budget, OPT.target, OPT.select, OPT.budgetExtraCost, OPT.yearsToKmLimit |
+
+- Dynamische Programmierung: Achse sind die jährlichen E-Auto-Kilometer in Zellen von 1 km (Konstante `DP_CELL_KM`). Der Kilometerwert jeder Option wird auf eine ganze Zelle aufgerundet, damit jede Bedingung auf gerundeten Werten (SoH über den Rasterwert, Garantie-Budget, Leasingstufe) auch für den exakten Wert gilt. Ausgewiesen werden K\_EV, Kosten und Reserve des gewählten Plans mit exakten Werten. Brute Force löst dieselbe diskretisierte Aufgabe, Q4 vergleicht die Kosten mit kleiner absoluter Toleranz.
+- Gleichstand: Alle Zellen mit Zielkosten ≤ Minimum + 0,01 € bilden die Kandidaten. Dann gewinnt die größere kleinste Reserve über alle besuchten Wege und zwölf Monate, danach die kleinere E-Auto-Strecke.
+- Ungeeignet: Ein Angebot ist geeignet, wenn mindestens ein Rasterwert eine zulässige Lösung hat. Sonst wird der Grund beim SoH der kleinsten erzwungenen E-Auto-Strecke berechnet. Der Streng-Modus verlangt zusätzlich, dass jeder besuchte Weg im gewählten Rasterwert zulässig ist.
+- Die Jahresanteile q\_y werden in Jahren gemessen: q\_y = min(12, D − 12(y−1)) / 12. Wo die Spezifikation 52 schreibt, gilt der Parameter Arbeitswochen pro Jahr.
 
 ### 8.5 Neuberechnung und Nebenläufigkeit
 
 - Worker-Schnittstelle über Comlink: ` compute(request: {  ``generation, scenario, sliderPrices?` `}): Promise<ComputeResult | { status: "superseded" }>`.
-- `sliderPrices` enthält die Werte des Preis-Reglers aus `uiSlice.ts` und wird nicht gespeichert. Ist der Regler aktiv, rechnet der Worker zusätzlich den Preisfall `slider`. „Als Szenario speichern“ legt die Werte als neues Szenario ab.
+- `sliderPrices` enthält die Werte des Preis-Reglers aus `uiSlice.ts` (`petrol`, `electricity`, `petrolEscalationPct`, `electricityEscalationPct`, Schema `SliderPricesSchema`) und wird nicht gespeichert. Der Kern erhält sie als Option von `computeOffer`. Ist der Regler aktiv, rechnet der Worker zusätzlich den Preisfall `slider`. „Als Szenario speichern“ legt die Werte als neues Szenario ab.
 - Der Hauptlauf rechnet ohne Trace. Öffnet der Nutzer den Rechenweg, rechnet `explain({ scenario, offerId, priceCase })` genau dieses Angebot mit Trace nach. Der Store hält nur den Trace des geöffneten Angebots.
 - Der Thunk requestCompute() in src/state wartet nach der letzten Eingabe 300 ms und sendet dann mit hochgezählter `generation`.
 - Der Worker merkt sich die höchste empfangene `generation`. Zwischen zwei Angeboten gibt er mit einem Macrotask (`MessageChannel`) die Kontrolle ab, damit neue Aufrufe ankommen, und bricht ab, wenn seine `generation` veraltet ist.
