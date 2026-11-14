@@ -17,6 +17,7 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "bench": "vitest bench --run",
+    "bench:browser": "playwright test -c playwright.bench.config.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
