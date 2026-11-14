@@ -15,6 +15,10 @@ export default defineConfig({
           environment: 'node',
           include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.ts'],
           exclude: ['src/ui/**'],
+          // The property tests (Q4: 100,000 cases) and the Q1 workload run
+          // about 4 times slower on a CI runner than on a laptop, and the default
+          // of 5 s is not enough there.
+          testTimeout: 30_000,
           benchmark: { include: ['src/**/*.bench.ts', 'tests/**/*.bench.ts'] },
         },
       },

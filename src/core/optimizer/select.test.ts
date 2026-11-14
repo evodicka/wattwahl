@@ -391,7 +391,9 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
       }),
       { numRuns: 100000 },
     );
-  });
+    // About 2.3 s on a laptop and about 8 s on the CI runner; the limit is the
+    // "under a minute in CI" of architecture chapter 10.
+  }, 60_000);
 });
 
 describe('S09: a solver shared by several offers', () => {

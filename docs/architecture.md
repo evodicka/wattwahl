@@ -457,7 +457,7 @@ Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die We
 | Q1 | Performance | 10 Kandidaten mit Kauf und 4 Leasingstufen, 3 Preisfälle, Preis-Regler aus: Ergebnis in ≤ 5 s am Mittelklasse-Handy, ≤ 2 s am Desktop | Playwright-Messung, Handy mit CPU-Drosselung, Abnahme am echten Gerät | **Erfüllt** in der Messung (S11, 11.1): Desktop 0,8 bis 1,7 s, gedrosselt 3,4 s. Offen: fertige App (S24), echtes Handy (S26) |
 | Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung | Offen (S24), braucht Worker und Oberfläche (S14, S17) |
 | Q3 | Korrektheit | Testfälle 1 bis 18 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13 und 16 bis 18 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04). Offen: Testfall 14 (S13, S22) und Testfall 15 Oberfläche (S17) |
-| Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,5 s (G2) |
+| Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,3 s lokal und etwa 8 s im CI (G2) |
 | Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11). Offen: Prüfung im CI (S24) |
 | Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder | **Erfüllt** im Kern (S10): jede Zahl eines Ergebnisses hat genau einen Eintrag mit demselben Wert. Oberfläche offen (S21) |
 | Q7 | Robustheit | Import einer beschädigten oder fremden Datei ändert keinen gespeicherten Datensatz und nennt die Fehlerstelle | Vitest und Playwright | Offen (S13 Unit-Teil, S22 End-to-End) |
@@ -466,7 +466,7 @@ Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die We
 | Q10 | Barrierefreiheit | Alle Bereiche per Tastatur bedienbar, Kontrast WCAG AA | axe-Prüfung in Playwright | Offen (S16 bis S23 je Bereich, S24 gesamt) |
 | Q11 | Wartbarkeit | Ein Import von `src/ui` nach `src/core` schlägt im Lint fehl | ESLint im CI | **Erfüllt** (S01): Lint-Test mit Fixture, ein Import von `src/ui` nach `src/core` schlägt fehl |
 
-Q4 nutzt 100.000 Fälle (bei G2 festgelegt). Der Lauf dauert etwa 2,5 s und bleibt damit weit unter der Grenze von einer Minute im CI.
+Q4 nutzt 100.000 Fälle (bei G2 festgelegt). Der Lauf dauert auf einem Laptop etwa 2,3 s und auf dem CI-Runner etwa 8 s und bleibt damit unter der Grenze von einer Minute. Weil Vitest Tests standardmäßig nach 5 s abbricht, hat dieser Test eine eigene Frist von 60 s, und die Einheitentests insgesamt 30 s.
 
 ## 11. Risiken und technische Schulden
 
@@ -488,7 +488,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 **Bei G2 festgelegte Werte** (aus dem Benchmark, siehe 11.1):
 
 - Bundle-Budget im CI: 250 KB gzip für die Start-Chunks (Haupt-Bundle und Worker zusammen), Diagramme und andere nachgeladene Chunks zählen nicht. Die Prüfung kommt in S24 und wird dort anhand der fertigen App geschärft.
-- Anzahl der Fälle in Q4: 100.000 (Lauf etwa 2,5 s).
+- Anzahl der Fälle in Q4: 100.000 (Lauf etwa 2,3 s lokal, etwa 8 s im CI).
 - DP-Zelle: 1 km (`DP_CELL_KM`).
 
 **Weiter offen:** Maximale Importgröße (Platzhalter 5 MB), festzulegen in S13.
