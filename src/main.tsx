@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 import { i18n } from './i18n';
 import { App } from './ui';
+import './ui/theme.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
