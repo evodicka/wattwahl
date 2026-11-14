@@ -1,10 +1,12 @@
 import {
   CandidateComputeSchema,
+  ScenarioComputeSchema,
   createCandidateTemplate,
   createLeaseTierTemplate,
   createScenarioTemplate,
   type Candidate,
   type CandidateCompute,
+  type ScenarioCompute,
   type Scenario,
 } from '../../src/domain';
 
@@ -90,4 +92,9 @@ export function exampleScenario(): Scenario {
   };
   scenario.candidates = [exampleCandidate()];
   return scenario;
+}
+
+/** The example scenario as the core sees it (without candidates, required fields set). */
+export function exampleScenarioCompute(): ScenarioCompute {
+  return ScenarioComputeSchema.parse(exampleScenario());
 }

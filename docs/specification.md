@@ -444,7 +444,7 @@ Jeder Parameter ist in der Oberfläche änderbar. "Platzhalter" heißt: Der Wert
 
 | Parameter | Standard | Einheit | Hinweis |
 | --- | --- | --- | --- |
-| Vergleichsdauer D | 48 | Monate |  |
+| Vergleichsdauer D | 48 | Monate | höchstens 1.200 (100 Jahre) |
 | Untere Ladegrenze | 10 | % |  |
 | Obere Ladegrenze | 80 | % | gilt für Heim und Arbeit |
 | Sicherheitspuffer | 10 | % | Platzhalter |
