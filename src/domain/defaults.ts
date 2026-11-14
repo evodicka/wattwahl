@@ -246,7 +246,7 @@ function setPath(target: object, path: string, value: unknown): void {
     node = node[key] as Record<string, unknown>;
   }
   if (!(last in node)) throw new Error(`Unknown default path: ${path}`);
-  node[last] =Array.isArray(value) ? [...value] : value;
+  node[last] = Array.isArray(value) ? [...value] : value;
 }
 
 /** Empty scenario: required fields are `null`, every other field has its default. */
