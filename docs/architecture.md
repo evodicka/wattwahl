@@ -179,7 +179,7 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 
 | Modul | Wichtige Dateien | Öffentliche Schnittstelle |
 | --- | --- | --- |
-| `src/domain` | `schema.ts`, `defaults.ts`, `migrations.ts`, `validation.ts` | `ScenarioSchema`, `CandidateComputeSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data)`, `checkWarnings(scenario)` |
+| `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data)`, `checkWarnings(scenario)` |
 | `src/core` | `compute.ts`, `calc/`, `optimizer/`, `math/`, `trace.ts` | `computeOffer(scenario, offer, priceCase, trace?)` |
 | `src/worker` | `core.worker.ts` | ` compute({  ``generation, scenario, sliderPrices?` `})`, `explain({ scenario, offerId, priceCase })` über Comlink |
 | `src/storage` | `repository.ts`, `exportImport.ts` | `loadAll()`, `save(scenario)`, `exportFile(ids)`, `parseImport(file)`, `writeImport(scenarios, mode)` |
@@ -305,7 +305,9 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Die Entitäten aus dem Abschnitt Datenmodell der Spezifikation sind Zod-Schemas in `src/domain/schema.ts`. TypeScript-Typen entstehen nur über `z.infer`, es gibt keine parallel gepflegten Interfaces.
 - Das Szenario ist das Aggregat: Es wird als Ganzes geladen, gespeichert, exportiert und an den Worker übergeben.
 - IDs sind UUIDs aus `crypto.randomUUID()` und werden nur in `src/state` erzeugt, nie im Rechenkern. Auch beim Import vergibt src/state die neuen IDs, bevor src/storage schreibt.
-- Angebote haben keine eigene UUID. Die `offerId` wird abgeleitet: `<candidateId>:purchase` für den Kauf, `<candidateId>:lease:<leaseTierId>` für eine Leasingstufe.
+- Angebote haben keine eigene UUID. Die `offerId` wird abgeleitet: `<candidateId>:purchase` für den Kauf, `<candidateId>:lease:<leaseTierId>` für eine Leasingstufe. Die `leaseTierId` ist die UUID der Leasingstufe (von src/state vergeben), nicht ihre Kilometerstufe, damit die `offerId` stabil bleibt, wenn der Nutzer die Stufe ändert.
+- Prozentwerte werden wie eingegeben gespeichert (15 bedeutet 15 %), nur der Rechenkern rechnet sie in Anteile um. Zeitpunkte sind ISO-Strings und die Erstzulassung ist `{ month, year }` mit ganzen Zahlen, denn der Kern kennt kein `Date` und Szenarien reisen als JSON.
+- Werte, die in der Parameterliste und in einer Entität der Spezifikation vorkommen, stehen an der Entität: Benzinpreise, Preissteigerung Benzin und Wartung des Verbrenners am Bestandsfahrzeug, freie Tage an der Arbeitsstätte. Wertverlust und Wartung des E-Autos sind Parameter, die der Kandidat überschreiben kann.
 - Standardwerte der Parameterliste stehen in `src/domain/defaults.ts`. Jeder Wert trägt das Kennzeichen `placeholder`, `required` oder `fixed`, damit die Oberfläche Annahmen markieren kann.
 
 ### 8.2 Persistenz und Migration
@@ -345,7 +347,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 ### 8.6 Eingabe und Validierung
 
 - Zahlenfelder speichern `number`. `parseDecimal` akzeptiert Komma und Punkt und liefert bei ungültiger Eingabe einen Fehler statt `NaN`.
-- Typ und Bereich prüft das Speicherschema ScenarioSchema, es lässt leere Pflichtfelder zu. Pflichtfelder prüft der Kern je Kandidat mit dem strengen Rechenschema CandidateComputeSchema. Plausibilitätswarnungen (kalt > mild, > 200 kWh, Weg > 300 km) sind eigene Funktionen in `src/domain/validation.ts` und blockieren nicht. Die Oberfläche ruft sie beim Verlassen eines Feldes direkt auf, ohne Worker.
+- Typ und Bereich prüft das Speicherschema ScenarioSchema, es lässt leere Pflichtfelder (`null`) zu. Pflichtfelder prüft der Kern mit den strengen Rechenschemas: je Kandidat mit CandidateComputeSchema, für Fahrprofil und Parameter mit ScenarioComputeSchema (das Szenario ohne Kandidaten). Feldübergreifende Regeln (Minimum ≤ Mittel ≤ Maximum, Wegsumme > 0, freie Tage ≤ Arbeitstage, T\_kalt < T\_mild) stehen nur in den Rechenschemas. Das Speicherschema prüft nur Typ, Bereich und Struktur (höchstens vier Leasingstufen, je Kilometerstufe eine), damit ein gespeicherter Zwischenstand immer ladbar bleibt. Plausibilitätswarnungen (kalt > mild, > 200 kWh, Weg > 300 km) sind eigene Funktionen in `src/domain/validation.ts` und blockieren nicht. Die Oberfläche ruft sie beim Verlassen eines Feldes direkt auf, ohne Worker.
 - Der Kern prüft jeden Kandidaten einzeln gegen das Rechenschema. Ein fehlerhafter Kandidat erhält den Status `incomplete` mit Feldpfaden, die anderen werden normal berechnet.
 
 ### 8.7 Texte und Formatierung
