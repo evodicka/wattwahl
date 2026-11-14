@@ -1,6 +1,6 @@
 # Wattwahl – Design-Briefing für Claude Design (D1)
 
-Nov 14, 2026 · @Eduard Vodicka · Status: Entwurf zur Freigabe
+Nov 14, 2026 · @Eduard Vodicka · Status: freigegeben, Mockups erstellt (D3)
 
 Dieses Briefing ist die Eingabe für Claude Design in den Schritten D2 (Design-System) und D3 (Mockups). Es fasst Spezifikation und Architektur 8.8 zusammen und ersetzt sie nicht: Bei Abweichungen gilt die Spezifikation. Feldnamen und Einheiten sind die der Spezifikation, die technischen Schlüssel stehen in `src/domain/schema.ts`.
 
@@ -92,14 +92,14 @@ Jedes Feld nennt seine Einheit. Pflichtfelder sind markiert. Validierung beim Ve
 | Allgemein | Name, Notiz | Text | Name Pflicht |
 | Allgemein | Zustand | neu oder gebraucht | Pflicht |
 | Allgemein | Erstzulassung | Monat und Jahr | nur bei gebraucht |
-| Allgemein | Laufleistung | km | neu: 0, gebraucht: ≥ 0 |
+| Allgemein | Laufleistung | km | nur bei gebraucht, ≥ 0. Bei neu ausgeblendet (Wert 0) |
 | Akku | Netto-Akkukapazität | kWh | > 0, Warnung über 200 |
 | Akku | SoH aktuell | % | optional, nur gebraucht, 50 bis 100 |
 | Reichweite | Stadt mild, Stadt kalt | km | > 0 |
 | Reichweite | Autobahn mild, Autobahn kalt | km | > 0 |
 | Reichweite | Kombiniert mild, Kombiniert kalt | km | > 0, Warnung wenn kalt > mild |
-| Garantie | Fahrzeuggarantie: Restjahre, Restkilometer | Jahre, km | 0 = abgelaufen |
-| Garantie | Akkugarantie: Restjahre, Restkilometer | Jahre, km | 0 = abgelaufen |
+| Garantie | Fahrzeuggarantie: Garantiedauer, Garantie-Kilometer | Jahre, km | normale Garantie ab Erstzulassung. Bei gebraucht rechnet die App die Restgarantie selbst. 0 = keine Garantie |
+| Garantie | Akkugarantie: Garantiedauer, Garantie-Kilometer | Jahre, km | wie Fahrzeuggarantie |
 | Preis | Kaufpreis | € | Pflicht, > 0 |
 | Preis | Wertverlust (überschreibt Standard) | % pro Jahr | optional |
 | Preis | Wartung und Reifen (überschreibt Standard) | €/km | optional |
@@ -274,42 +274,70 @@ Jede Zeile der Tabellen „Bedienung“ und „Auswertung und Visualisierung“ 
 
 | Nr | Zeile der Spezifikation | Briefing | Mockup |
 | --- | --- | --- | --- |
-| P01 | Bedienung: Fahrprofil | 4.1 | |
-| P02 | Bedienung: Kandidaten | 4.2 | |
-| P03 | Bedienung: Parameter | 4.3 | |
-| P04 | Bedienung: Ergebnis | 5.1 bis 5.3 | |
-| P05 | Bedienung: Szenarien und Daten | 4.5 | |
-| P06 | Auswertung: Kostenvergleich | 5.2 | |
-| P07 | Auswertung: Reichweitenreserve | 5.2 | |
-| P08 | Auswertung: Zuordnungsplan | 5.2 | |
-| P09 | Auswertung: Garantie | 5.2, Z13, Z17 | |
-| P10 | Auswertung: Rechenweg | 5.2, Z14 | |
-| P11 | Auswertung: Szenariovergleich | 5.2, 4.5 | |
-| P12 | Ergebnistabelle (Spalten, Sortierung, ausgegraut, Klick) | 5.1, Z02, Z03 | |
-| P13 | Preis-Simulation (Regler, sofortige Neuberechnung, als Szenario speichern) | 5.3, Z04 | |
-| P14 | Darstellungsregeln: Farben und Ampelschwellen einstellbar, Ampel nie nur Farbe | 2, 4.3 | |
-| P15 | Darstellungsregeln: Zahlenformate | 2 | |
-| P16 | Darstellungsregeln: Szenario, Preisfall, Dauer, Stand | 2, 5 | |
-| P17 | Eingabe: Gruppen nach EV Database, Einheit je Feld | 4.2 | |
-| P18 | Eingabe: Vorlage, Duplizieren | 4.2 | |
-| P19 | Eingabe: Handy in Schritten, Desktop untereinander | 4.2 | |
-| P20 | Eingabe: ungeeignete und unvollständige Kandidaten bleiben mit Grund | 4.2, Z02, Z03 | |
-| P21 | Eingabe: Parameter änderbar, Änderung markiert | 4.3, Z15 | |
-| P22 | Szenarien: Anlegen, Umbenennen, Duplizieren, Löschen mit Bestätigung | 4.5, Z19 | |
-| P23 | Szenarien: Vergleich von zwei oder mehr Szenarien | 4.5, 5.2 | |
-| P24 | Gestaltung: Umbruch 900 px, Seitenleiste, untere Navigation | 2, 3 | |
-| P25 | Gestaltung: 44 px, Einheit am Feldende | 2 | |
-| P26 | Gestaltung: Hell und Dunkel, WCAG AA | 2, 8 | |
-| P27 | Gestaltung: Deutsch, Dezimalkomma, Sprachdatei | 2 | |
-| P28 | Datenübertragung: Export, Import, Auswahl, Fehlermeldung, Erinnerung | 4.5, Z10 bis Z12 | |
-| P29 | Plattformgrenzen: Installationshinweis iOS, Speicher voll | Z07, Z09 | |
-| P30 | Offline und Updates: Update-Hinweis | Z08 | |
-| P31 | Transparenz der Annahmen | 4.3, Z14 | |
-| P32 | Robustheit: Fehler je Bereich, Feldvalidierung | Z05, Z06 | |
+| P01 | Bedienung: Fahrprofil | 4.1 | D1, M1 |
+| P02 | Bedienung: Kandidaten | 4.2 | D2, D3, M2 bis M6 |
+| P03 | Bedienung: Parameter | 4.3 | D4, M7 |
+| P04 | Bedienung: Ergebnis | 5.1 bis 5.3 | D5, D6, M8, M9 |
+| P05 | Bedienung: Szenarien und Daten | 4.5 | D7, M10 |
+| P06 | Auswertung: Kostenvergleich | 5.2 | D5, M8 |
+| P07 | Auswertung: Reichweitenreserve | 5.2 | D6, M9 |
+| P08 | Auswertung: Zuordnungsplan | 5.2 | D6, M9 |
+| P09 | Auswertung: Garantie | 5.2, Z13, Z17 | D6, M9, D8, M11 |
+| P10 | Auswertung: Rechenweg | 5.2, Z14 | D6, M9 |
+| P11 | Auswertung: Szenariovergleich | 5.2, 4.5 | D7, M10 (verlinkt in D6, M9) |
+| P12 | Ergebnistabelle (Spalten, Sortierung, ausgegraut, Klick) | 5.1, Z02, Z03 | D5, M8 |
+| P13 | Preis-Simulation (Regler, sofortige Neuberechnung, als Szenario speichern) | 5.3, Z04 | D5, M8, D8, M11 |
+| P14 | Darstellungsregeln: Farben und Ampelschwellen einstellbar, Ampel nie nur Farbe | 2, 4.3 | D4, M7, D5, D6 |
+| P15 | Darstellungsregeln: Zahlenformate | 2 | alle Boards |
+| P16 | Darstellungsregeln: Szenario, Preisfall, Dauer, Stand | 2, 5 | D5, D6, D7, M8, M9, M10 |
+| P17 | Eingabe: Gruppen nach EV Database, Einheit je Feld | 4.2 | D3, M3, M4, M5 |
+| P18 | Eingabe: Vorlage, Duplizieren | 4.2 | D2, D3, M2 |
+| P19 | Eingabe: Handy in Schritten, Desktop untereinander | 4.2 | D3 (Desktop), M3 bis M6 (Handy) |
+| P20 | Eingabe: ungeeignete und unvollständige Kandidaten bleiben mit Grund | 4.2, Z02, Z03 | D2, D5, D8, M2, M8, M11 |
+| P21 | Eingabe: Parameter änderbar, Änderung markiert | 4.3, Z15 | D4, M7, D8, M11 |
+| P22 | Szenarien: Anlegen, Umbenennen, Duplizieren, Löschen mit Bestätigung | 4.5, Z19 | D7, M10, D8, M11 |
+| P23 | Szenarien: Vergleich von zwei oder mehr Szenarien | 4.5, 5.2 | D7, M10 |
+| P24 | Gestaltung: Umbruch 900 px, Seitenleiste, untere Navigation | 2, 3 | alle Boards |
+| P25 | Gestaltung: 44 px, Einheit am Feldende | 2 | alle Boards |
+| P26 | Gestaltung: Hell und Dunkel, WCAG AA | 2, 8 | alle Boards (Tweak „theme“) |
+| P27 | Gestaltung: Deutsch, Dezimalkomma, Sprachdatei | 2 | alle Boards |
+| P28 | Datenübertragung: Export, Import, Auswahl, Fehlermeldung, Erinnerung | 4.5, Z10 bis Z12 | D7, M10, D8, M11 |
+| P29 | Plattformgrenzen: Installationshinweis iOS, Speicher voll | Z07, Z09 | D8, M11 |
+| P30 | Offline und Updates: Update-Hinweis | Z08 | D8, M11 |
+| P31 | Transparenz der Annahmen | 4.3, Z14 | D4, M7, D6, M9, D8 |
+| P32 | Robustheit: Fehler je Bereich, Feldvalidierung | Z05, Z06 | D8, M11 |
 
 ## 10. Offene Punkte
 
 - Der Nutzer liest das Briefing gegen und gibt es frei (Validierung D1).
 - Die Feldnamen sind mit `src/domain/schema.ts` abgeglichen: Jedes Feld aus Abschnitt 4 hat dort einen Schlüssel, das Schema führt keine zusätzlichen Eingabefelder. Spätere Abweichungen gehen zurück an die Spezifikation, nicht ins Design.
-- Ob der Szenariovergleich im Ergebnis-Bereich wohnt oder nur unter „Szenarien und Daten“, entscheidet das Mockup (P11).
+- Szenariovergleich: entschieden, er liegt nur unter „Szenarien und Daten“ und ist im Ergebnis-Bereich verlinkt (P11).
 - Die Gruppierung der Parameter in Abschnitt 4.3 ist ein Vorschlag, die Spezifikation legt sie nicht fest.
+
+## 11. Board-Verzeichnis (D3)
+
+Design-System (D2): https://claude.ai/artifact/XcCjLPUnuS8iSXQ73k7Z5f
+Mockups (D3): https://claude.ai/artifact/XLGoB4DrazZ4gj6HiqsBFy
+
+| Kennung | Board | Inhalt |
+| --- | --- | --- |
+| D1 | Fahrprofil | 1280 px |
+| D2 | Kandidaten | Liste mit vier Zuständen (geeignet, knapp, unvollständig, ungeeignet) |
+| D3 | Kandidatenformular | Alle Gruppen untereinander, Leasingangebote |
+| D4 | Parameter | Alle Parameter, Annahme-Markierung, Ampelfarben |
+| D5 | Ergebnis | Tabelle, Kostenvergleich, Preis-Regler |
+| D6 | Ergebnis, Detailansichten | Reserve-Heatmap, Zuordnungsplan, Garantie, Rechenweg |
+| D7 | Szenarien und Daten | Liste, Szenariovergleich, Export, Import |
+| D8 | Zustände | Z01 bis Z20 |
+| M1 bis M2 | Fahrprofil, Kandidaten | 390 px |
+| M3 bis M6 | Kandidatenformular in vier Schritten | Allgemein und Preis, Akku und Reichweite, Garantie, Leasing |
+| M7 bis M10 | Parameter, Ergebnis, Ergebnis-Details, Szenarien und Daten | 390 px |
+| M11 | Zustände | Z01 bis Z20 |
+
+Jedes Board hat einen Tweak „theme“ (hell, dunkel). Die Zahlen sind konsistent aus den Testfällen der Spezifikation abgeleitet, Preise und Modelle sind frei gewählt. Der Kandidatenbereich der Handy-Zustände zeigt Z16 (Pflichteingabe) im Feld „Heimstrompreis“.
+
+## 12. Änderungen aus dem Design-Review
+
+- Laufleistung erscheint im Kandidatenformular nur bei „Gebraucht“.
+- Garantie: Eingabe der normalen Garantie (Jahre, Kilometer). Die Restgarantie bei Gebrauchten berechnet die App. **Das weicht von Spezifikation (Datenmodell, Garantie) und Schema ab und braucht eine Entscheidung vor G3**: Spezifikation, `src/domain/schema.ts` und Rechenkern rechnen heute mit Restjahren und Restkilometern.
+- Zuordnungsplan: Statt Buchstaben zeigt er Symbole (Blitz E-Auto, Zapfsäule Verbrenner, Gebäude je Arbeitsstätte). Die Namen in der Legende („Büro Innenstadt“, „Werk Nord“) kommen aus dem Namen der Arbeitsstätten im Fahrprofil und ändern sich mit ihm. Die Mockups zeigen sie fest, die Umsetzung (S20/S21) liest sie aus dem Szenario.
