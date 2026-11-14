@@ -165,17 +165,17 @@ Alle Größen werden pro Kandidat, pro Monat m und pro Weg w (Arbeitsstätte A o
 
 Die Mild- und Kaltwerte werden linear nach der Temperatur gemischt. Für die Kostenrechnung gilt die Monatstemperatur T\_m, für die Eignungsprüfung zusätzlich die Kältereserve ΔT, damit kältere Tage innerhalb des Monats abgedeckt sind.
 
-```latex
+$$
 w_m = \min\left(1,\ \max\left(0,\ \frac{T_m - T_{kalt}}{T_{mild} - T_{kalt}}\right)\right)
-```
+$$
 
-```latex
+$$
 w_m^{*} = \min\left(1,\ \max\left(0,\ \frac{T_m - \Delta T - T_{kalt}}{T_{mild} - T_{kalt}}\right)\right)
-```
+$$
 
-```latex
+$$
 R_j(m) = R_j^{kalt} + w_m \left(R_j^{mild} - R_j^{kalt}\right), \quad j \in \{\text{Stadt}, \text{Autobahn}, \text{kombiniert}\}
-```
+$$
 
 Zuordnung auf die Straßenarten: Stadt = Stadt, Land = kombiniert, Autobahn = Autobahn × (1 − a) mit dem Autobahn-Abschlag a. Die Prüfwerte R\*\_i(m) nutzen w\*\_m statt w\_m.
 
@@ -183,9 +183,9 @@ Zuordnung auf die Straßenarten: Stadt = Stadt, Land = kombiniert, Autobahn = Au
 
 Die Alterung ist linear über die Laufleistung und endet bei SoH\_min. Bei Gebrauchten mit bekanntem SoH\_0 startet sie bei diesem Wert und der Kilometerstand k\_0 ist der Startpunkt.
 
-```latex
+$$
 s = \frac{1 - SoH_{min}}{k_{SoH}}, \qquad SoH(k) = \max\left(\min(SoH_{min}, SoH_0),\ SoH_0 - s\,(k - k_0)\right)
-```
+$$
 
 Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 − s · k). Die Eignungsprüfung nutzt den SoH am Ende der Vergleichsdauer, k\_end = k\_0 + K\_EV · D/12 (umschaltbar auf Start). K\_EV sind die jährlichen E-Auto-Kilometer.
 
@@ -193,19 +193,19 @@ Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 �
 
 Der nutzbare Anteil ist u = (80 % − 10 %) · (1 − Puffer). Der Bedarf eines Wegs in Kapazitätsanteilen ist die Summe der Teilstrecken d\_{w,i} geteilt durch die Prüfreichweiten.
 
-```latex
+$$
 \varphi_{w,m} = \sum_i \frac{d_{w,i}}{R^{*}_i(m)\cdot SoH}, \qquad n_w = 2 - z_w
-```
+$$
 
 z\_w ist 1, wenn am Arbeitsplatz geladen werden kann, sonst 0. Mit Laden vor Ort zählt nur eine Strecke gegen die Reichweite, ohne Laden Hin- und Rückweg.
 
-```latex
+$$
 \text{geeignet} \iff n_w \cdot \varphi_{w,m} \le u
-```
+$$
 
-```latex
+$$
 \text{Reserve}_{km} = d_w \left(\frac{u}{\varphi_{w,m}} - n_w\right), \qquad \text{Reserve}_{\%} = \frac{u}{n_w \, \varphi_{w,m}} - 1
-```
+$$
 
 d\_w ist die einfache Weglänge in km. Ampel: grün ab 15 % Reserve, gelb von 0 bis 15 %, rot darunter (Schwelle einstellbar).
 
@@ -213,9 +213,9 @@ d\_w ist die einfache Weglänge in km. Ampel: grün ab 15 % Reserve, gelb von 0 
 
 Der Verbrauch wird aus Reichweite und Netto-Kapazität C abgeleitet. Er hängt nicht vom SoH ab, weil mit dem SoH Kapazität und Reichweite im gleichen Maße sinken.
 
-```latex
+$$
 c_i(m) = \frac{C}{R_i(m)}\ \text{[kWh/km]}, \qquad E_{w,m} = \sum_i d_{w,i}\, c_i(m), \qquad E^{Netz}_{w,m} = \frac{E_{w,m}}{\eta}
-```
+$$
 
 Pro Arbeitstag werden (2 − z\_w) · E^Netz zum Heimstrompreis bezahlt. Die Energie am Arbeitsplatz kostet 0 €. Der Verbrenner braucht pro Arbeitstag 2 · Σ d\_{w,i} · v\_i / 100 Liter (v\_i = Verbrauch in l/100 km). Wartung fällt mit 2 · d\_w km pro Tag und Auto an.
 
@@ -235,9 +235,9 @@ Die monatlichen Kilometer k\_i werden mit dem Anteil x\_m (0 bis 100 %) dem E-Au
 
 Die Vergleichsdauer D wird in Jahre y = 1 bis ⌈D/12⌉ zerlegt, q\_y ist der Anteil des Jahres y an D. Die Mengen gelten in jedem Jahr gleich.
 
-```latex
+$$
 F_b = \sum_y q_y\,(1+g_b)^{y-1}, \qquad F_s = \sum_y q_y\,(1+g_s)^{y-1}, \qquad F_m = \frac{D}{12}
-```
+$$
 
 g\_b und g\_s sind die jährlichen Preissteigerungen für Benzin und Strom. Kosten = Jahresmenge · Preis · F. Wartungskosten steigen nicht.
 
@@ -363,7 +363,36 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 
 Wattwahl ist eine rein clientseitige Progressive Web App ohne Server, die als statische Seite über GitHub Pages ausgeliefert wird. Alle Daten bleiben im Browser des jeweiligen Geräts.
 
-&#91;embedded content: Datenfluss · 7 Elemente, alles lokal\]
+**Datenfluss · 7 Elemente, alles lokal**
+
+```mermaid
+flowchart LR
+    subgraph browser["Browser auf dem Gerät"]
+        FORMS["<b>Formulare und<br/>Parameter</b>"]
+        WORKER["<b>Rechenkern im<br/>Web Worker</b>"]
+        RESULTS["<b>Ergebnisse und<br/>Vergleich</b>"]
+        IDB["<b>IndexedDB mit<br/>Szenarien</b>"]
+        EXCH["<b>Export und Import</b><br/>als JSON-Datei"]
+    end
+
+    PAGES["<b>GitHub Pages</b><br/>liefert nur Code"]
+    FILE["<b>JSON-Datei</b><br/>manuell übertragen"]
+
+    FORMS -->|Szenario| WORKER
+    WORKER -->|Ergebnisse| RESULTS
+    FORMS -->|speichert| IDB
+    IDB <-->|Export, Import| EXCH
+    EXCH -->|Datei| FILE
+    PAGES -->|App-Code| browser
+
+    classDef plain fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    classDef main fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
+    class FORMS,RESULTS,IDB,EXCH,PAGES,FILE plain
+    class WORKER main
+    style browser stroke-dasharray: 5 4
+```
+
+*Alle Daten und Berechnungen bleiben im Browser des Geräts.*
 
 Die Formulare speichern in IndexedDB und speisen den Rechenkern im Web Worker, der die Ergebnisansichten füllt. Nur die Export-Datei verlässt die App, und GitHub Pages liefert ausschließlich den Code.
 

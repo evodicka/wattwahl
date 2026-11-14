@@ -34,7 +34,63 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
-&#91;embedded content: Fahrplan · 3 Spuren, 7 Phasen, 4 Freigaben\]
+**Fahrplan · 3 Spuren, 7 Phasen, 4 Freigaben**
+
+```mermaid
+flowchart TD
+    P0["<b>Phase 0 · Fundament</b><br/>S01 Projektgerüst und Schichtgrenzen<br/>S02 Pipeline und GitHub Pages"]
+    G1{"G1 Adresse fest"}
+    P0 --> G1
+
+    subgraph core["Rechenkern"]
+        direction TB
+        P1["<b>Phase 1 · Domäne</b><br/>S03 Schemas, Standardwerte<br/>S04 Prüfung, S05 Migration"]
+        P2["<b>Phase 2 · Rechenkern</b><br/>S06 Potenzfunktion<br/>S07–S08 Formeln 1 bis 8<br/>S09 Optimierer<br/>S10 Angebotsrechnung"]
+        S11["<b>S11 Benchmark</b><br/>10 Kandidaten am Handy"]
+        G2{"G2 Kern frei"}
+        P1 --> P2 --> S11 --> G2
+    end
+
+    subgraph design["Design · Claude Design"]
+        direction TB
+        D1["<b>D1 Briefing</b><br/>Agent, aus Spezifikation"]
+        D2["<b>D2 Design-System</b><br/>Tokens Hell und Dunkel,<br/>Grundkomponenten"]
+        D3["<b>D3 Mockups</b><br/>5 Bereiche mit Zuständen<br/>bei 1280 und 390 px"]
+        G3{"G3 Design frei"}
+        D4["<b>D4 Übergabe</b><br/>Agent: Theme, Inventar"]
+        D1 --> D2 --> D3 --> G3 --> D4
+    end
+
+    subgraph app["App-Infrastruktur"]
+        direction TB
+        S1213["<b>S12–S13 Speicher</b><br/>Export und Import"]
+        S14["<b>S14 Worker, Zustand</b><br/>braucht S10 aus Phase 2"]
+        S15["<b>S15 Texte</b><br/>Sprachdatei, Formatierung"]
+        S1213 --> S14
+    end
+
+    G1 --> core
+    G1 --> design
+    G1 --> app
+
+    P5["<b>Phase 5 · Oberfläche</b><br/>S16 App-Shell und Theme<br/>S17–S22 die fünf Bereiche, parallel baubar<br/>S23 Offline, Updates und Sicherheit"]
+    P6["<b>Phase 6 · Qualität und Abnahme</b><br/>S24 Gesamtsuite und Messungen Q1–Q11<br/>S25 Doku und Release-Kandidat<br/>S26 Abnahme am iPhone und Android-Handy durch den Nutzer"]
+    G4{"G4 Abnahme"}
+
+    core --> P5
+    design --> P5
+    app --> P5
+    P5 --> P6 --> G4
+
+    classDef gate fill:#fdf0d5,stroke:#d97706,stroke-width:2px,color:#1a1a1a
+    classDef cd fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
+    classDef agent fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    class G1,G2,G3,G4 gate
+    class D2,D3 cd
+    class P0,P1,P2,S11,D1,D4,S1213,S14,S15,P5,P6 agent
+```
+
+*Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
 
 Claude Design arbeitet in D2 und D3, also parallel zu Phase 1 und 2. So liegen freigegebene Mockups vor, bevor der erste Bildschirm gebaut wird.
 

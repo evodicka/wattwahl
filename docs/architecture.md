@@ -63,7 +63,29 @@ Die Plattform ist durch die Spezifikation fest vorgegeben: statische Seite, kein
 
 Die App hat genau zwei technische Schnittstellen nach außen: das Laden des Codes von GitHub Pages und die Export-Datei.
 
-&#91;embedded content: Systemkontext · 4 Nachbarn, 1 System\]
+**Systemkontext · 4 Nachbarn, 1 System**
+
+```mermaid
+flowchart LR
+    HH["<b>Haushalt</b><br/>zwei Personen,<br/>Handy und Desktop"]
+    SYS["<b>E-Auto-Entscheidungshilfe</b><br/>PWA, läuft im Browser<br/><br/>Eignung je Weg und Monat<br/>Zuordnungsplan<br/>Gesamtkosten je Angebot<br/><br/>Daten lokal in IndexedDB"]
+    GH["<b>GitHub Pages</b><br/>statischer App-Code<br/>über HTTPS"]
+    EXP["<b>Export-Datei</b><br/>JSON mit Schemaversion<br/>Sicherung, Abgleich"]
+    EV["<b>EV Database</b><br/>Werte von Hand<br/>übernommen, keine API"]
+
+    HH -->|nutzt| SYS
+    GH -->|liefert Code| SYS
+    SYS <-->|Export, Import| EXP
+    EV -.->|liest ab| HH
+
+    classDef plain fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    classDef main fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
+    class HH,GH,EXP,EV plain
+    class SYS main
+    style EV stroke-dasharray: 4 4
+```
+
+*Nur App-Code kommt aus dem Netz, alle Daten bleiben auf dem Gerät. C4 Ebene 1 · Systemkontext.*
 
 Die EV Database ist nur eine Quelle für den Nutzer (gestrichelt). Die App ruft sie nicht auf und importiert nichts von dort.
 
@@ -111,7 +133,45 @@ Ein reiner, deterministischer Rechenkern läuft getrennt von der Oberfläche im 
 
 Die App ist ein Paket mit acht Modulen unter `src/`. Abhängigkeiten laufen nur in Pfeilrichtung und werden per ESLint geprüft.
 
-&#91;embedded content: Bausteine · 2 Container, 8 Module\]
+**Bausteine · 2 Container, 8 Module**
+
+```mermaid
+flowchart TB
+    subgraph main["Hauptthread · React-App"]
+        UI["<b>src/ui</b><br/>Bereiche, Formulare,<br/>Visx-Diagramme"]
+        I18N["<b>src/i18n</b><br/>de.json, react-i18next,<br/>Intl-Formatierung"]
+        PWA["<b>src/pwa</b><br/>Service-Worker-Registrierung<br/>Update-Hinweis"]
+        STATE["<b>src/state</b><br/>Redux-Slices, Autosave,<br/>Worker-Client, Debounce"]
+        STORAGE["<b>src/storage</b><br/>idb-Repository, Migration,<br/>Export und Import"]
+    end
+
+    subgraph worker["Web Worker"]
+        WORKER["<b>src/worker</b><br/>Comlink-Endpunkt,<br/>Generation, Abbruch"]
+        CORE["<b>src/core</b><br/>Formeln, Optimierer,<br/>Rechenweg, detPow"]
+    end
+
+    DOMAIN["<b>src/domain</b><br/>Zod-Schemas, Standardwerte, Migrationen, Plausibilitätswarnungen<br/>von allen Bausteinen importiert"]
+
+    UI --> I18N
+    UI --> PWA
+    UI --> STATE
+    STATE --> STORAGE
+    STATE -.->|Comlink| WORKER
+    WORKER --> CORE
+    STORAGE --> DOMAIN
+    CORE --> DOMAIN
+
+    classDef plain fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    classDef main fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
+    classDef tint fill:#f3f4f6,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    class UI,I18N,PWA,STATE,STORAGE,WORKER plain
+    class CORE main
+    class DOMAIN tint
+    style main stroke-dasharray: 6 4
+    style worker stroke-dasharray: 6 4
+```
+
+*Der Rechenkern hängt nur vom Domänenmodell ab. C4 Ebene 2 und 3 · Pfeil = darf importieren, gestrichelt = Thread-Grenze über Comlink.*
 
 Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `src/core` kennt weder React noch Browser-APIs und ist damit ohne DOM testbar.
 
@@ -140,7 +200,24 @@ Vier Abläufe prägen die Architektur: Neuberechnung nach einer Eingabe, App-Sta
 
 ### 6.1 Eingabe bis Ergebnis
 
-&#91;embedded content: Eingabe bis Ergebnis · 4 Beteiligte, 5 Nachrichten\]
+**Eingabe bis Ergebnis · 4 Beteiligte, 5 Nachrichten**
+
+```mermaid
+sequenceDiagram
+    participant F as Formular<br/>src/ui
+    participant S as Redux-Store<br/>src/state
+    participant D as IndexedDB<br/>src/storage
+    participant W as Web Worker<br/>src/worker, src/core
+
+    F->>S: Eingabe
+    S->>D: save() nach 300 ms
+    S->>+W: compute(gen n) nach 300 ms
+    Note over W: Angebot für Angebot:<br/>3 Preisfälle, Pause,<br/>veraltet: Abbruch
+    W-->>-S: Ergebnis (gen n)
+    S->>F: rendern, falls gen aktuell
+```
+
+*Nur das Ergebnis der neuesten Eingabe erreicht die Ansicht. Laufzeitszenario 6.1 · von der Eingabe bis zum Ergebnis.*
 
 Speichern und Rechnen starten unabhängig voneinander nach 300 ms Ruhe. Kommt während der Rechnung eine neue Eingabe, endet der alte Lauf beim nächsten Angebot mit `superseded` (8.5).
 
@@ -171,7 +248,36 @@ Speichern und Rechnen starten unabhängig voneinander nach 300 ms Ruhe. Kommt w�
 
 Es gibt genau eine Umgebung: GitHub Pages für die Dateien, das Endgerät des Nutzers für Rechnung und Speicherung.
 
-&#91;embedded content: Verteilung · 3 GitHub-Dienste, 4 Laufzeit-Knoten im Browser\]
+**Verteilung · 3 GitHub-Dienste, 4 Laufzeit-Knoten im Browser**
+
+```mermaid
+flowchart TB
+    REPO["<b>GitHub-Repository</b><br/>öffentlich, Hauptzweig<br/>nur Code und Testdaten"]
+    ACT["<b>GitHub Actions</b><br/>Lint, Typen, Vitest, fast-check<br/>Build, Playwright, Deploy"]
+    PAGES["<b>GitHub Pages</b><br/>statische Dateien, HTTPS<br/>feste Adresse = Origin"]
+
+    subgraph device["Endgerät · Browser (Chrome, Edge, Firefox, Safari)"]
+        SW["<b>Service Worker</b><br/>Precache aller Build-Dateien<br/>Update-Erkennung"]
+        MAIN["<b>Hauptthread</b><br/>React-App, Redux-Store<br/>Autosave"]
+        WW["<b>Web Worker</b><br/>Rechenkern und Optimierung<br/>über Comlink angebunden"]
+        IDB["<b>IndexedDB</b><br/>Szenarien und Einstellungen<br/>an den Origin gebunden"]
+    end
+
+    REPO -->|Push| ACT
+    ACT --> PAGES
+    PAGES -->|App-Code beim Laden und beim Update| SW
+    SW --> MAIN
+    MAIN <-.-> WW
+    MAIN <--> IDB
+
+    classDef plain fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
+    classDef main fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
+    class REPO,ACT,PAGES,SW,MAIN,WW plain
+    class IDB main
+    style device stroke-dasharray: 6 4
+```
+
+*Der Server liefert nur Dateien, gerechnet und gespeichert wird im Browser. Verteilung · Build bei GitHub, Laufzeit auf dem Endgerät.*
 
 Nach dem ersten Laden kommt die App aus dem Service-Worker-Cache. Die Daten in IndexedDB hängen an der Pages-Adresse, darum bleibt diese fest.
 
@@ -367,7 +473,6 @@ Fachbegriffe haben die Bedeutung aus der Spezifikation. Die Spalte Code-Bezeichn
 
 | Fachbegriff | Code-Bezeichner | Bedeutung |
 | --- | --- | --- |
-| Wattwahl | – | Name der Anwendung (Manifest, Titel, README) |
 | Szenario | `Scenario` | Alle Eingaben, kleinste speicher- und vergleichbare Einheit |
 | Bestandsfahrzeug, Verbrenner | `IceVehicle` | Vorhandenes Benzinauto, bleibt in der Flotte |
 | Kandidat | `Candidate` | E-Auto, das zum Kauf oder Leasing geprüft wird |
