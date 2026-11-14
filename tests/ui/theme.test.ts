@@ -31,38 +31,99 @@ const tokens = JSON.parse(
 ) as Tokens;
 const css = readFileSync(join(root, 'src/ui/theme.css'), 'utf8');
 
-const DARK_START = '@media (prefers-color-scheme: dark) {';
-const darkIndex = css.indexOf(DARK_START);
-const lightBlock = css.slice(0, darkIndex);
-const afterDark = css.slice(darkIndex);
-const darkEnd = afterDark.indexOf('\n}\n');
-const darkBlock = afterDark.slice(0, darkEnd);
-const baseBlock = afterDark.slice(darkEnd);
+type Block = { media: string | null; decls: [string, string][] };
 
-/** All values declared for a custom property in a block of CSS. */
-const declarations = (block: string, name: string): string[] =>
-  [...block.matchAll(new RegExp(`--${name}:\\s*([^;]+);`, 'g'))].map((m) =>
-    (m[1] ?? '').trim(),
-  );
+/**
+ * Splits theme.css into its rule blocks with a brace-depth scanner, so
+ * formatting changes do not matter. Each block keeps its enclosing @media
+ * condition (null outside of a media query) and its custom properties.
+ */
+const parseBlocks = (source: string): Block[] => {
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, '');
+  const blocks: Block[] = [];
+  const stack: string[] = [];
+  let start = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === '{') {
+      stack.push(text.slice(start, i).trim());
+      start = i + 1;
+    } else if (ch === '}') {
+      const body = text.slice(start, i);
+      const selector = stack.pop() ?? '';
+      if (!selector.startsWith('@')) {
+        const media = stack.find((s) => s.startsWith('@media')) ?? null;
+        const decls = [...body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(
+          (m) => [m[1] ?? '', (m[2] ?? '').trim()] as [string, string],
+        );
+        blocks.push({ media: media?.replace(/\s+/g, ' ') ?? null, decls });
+      }
+      start = i + 1;
+    }
+  }
+  return blocks;
+};
 
-const colorOf = (block: string, name: string): string => {
-  const [value] = declarations(block, name);
+const blocks = parseBlocks(css);
+const isDark = (b: Block) =>
+  b.media?.replace(/\s/g, '') === '@media(prefers-color-scheme:dark)';
+const lightDecls = blocks
+  .filter((b) => b.media === null)
+  .flatMap((b) => b.decls);
+const darkDecls = blocks.filter(isDark).flatMap((b) => b.decls);
+const otherDecls = blocks
+  .filter((b) => b.media !== null && !isDark(b))
+  .flatMap((b) => b.decls);
+
+/** All values declared for a custom property in a list of declarations. */
+const declarations = (decls: [string, string][], name: string): string[] =>
+  decls.filter(([n]) => n === `--${name}`).map(([, v]) => v);
+
+const colorOf = (decls: [string, string][], name: string): string => {
+  const [value] = declarations(decls, name);
   if (!value) throw new Error(`--${name} is missing`);
   return value;
 };
 
+/** Every custom property the design system defines. */
+const expectedNames = new Set([
+  ...tokens.color.tokens.map((t) => `--${t.name}`),
+  ...tokens.spacing.tokens.map((t) => `--${t.name}`),
+  ...tokens.radius.tokens.map((t) => `--${t.name}`),
+  ...tokens.shadow.tokens.map((t) => `--${t.name}`),
+  ...Object.keys(tokens.type.families).map((k) => `--font-${k}`),
+  ...tokens.type.groups.flatMap((g) =>
+    g.styles.flatMap((s) =>
+      ['family', 'size', 'line-height', 'weight'].map(
+        (p) => `--type-${s.name}-${p}`,
+      ),
+    ),
+  ),
+]);
+const darkNames = new Set(tokens.color.tokens.map((t) => `--${t.name}`));
+
 describe('D4: theme.css has every token exactly once', () => {
-  it('has a light, a dark and a base block', () => {
-    expect(darkIndex).toBeGreaterThan(0);
-    expect(darkEnd).toBeGreaterThan(0);
+  it('declares exactly the design system tokens outside of media queries', () => {
+    const names = lightDecls.map(([n]) => n);
+    expect(new Set(names)).toEqual(expectedNames);
+    expect(names).toHaveLength(expectedNames.size);
+  });
+
+  it('redeclares only the colors in the dark media query', () => {
+    const names = darkDecls.map(([n]) => n);
+    expect(new Set(names)).toEqual(darkNames);
+    expect(names).toHaveLength(darkNames.size);
+  });
+
+  it('has no other media query with tokens', () => {
+    expect(otherDecls).toEqual([]);
   });
 
   it.each(tokens.color.tokens.map((t) => [t.name, t] as const))(
     'color %s: one light and one dark value, equal to the design system',
     (name, token) => {
-      expect(declarations(lightBlock, name)).toEqual([token.value.light]);
-      expect(declarations(darkBlock, name)).toEqual([token.value.dark]);
-      expect(declarations(baseBlock, name)).toEqual([]);
+      expect(declarations(lightDecls, name)).toEqual([token.value.light]);
+      expect(declarations(darkDecls, name)).toEqual([token.value.dark]);
     },
   );
 
@@ -71,13 +132,13 @@ describe('D4: theme.css has every token exactly once', () => {
       (t) => [t.name, t.value] as const,
     ),
   )('size %s: one value, %s', (name, value) => {
-    expect(declarations(css, name)).toEqual([value]);
+    expect(declarations(lightDecls, name)).toEqual([value]);
   });
 
   it.each(tokens.shadow.tokens.map((t) => [t.name, t.value] as const))(
     'shadow %s: one value',
     (name, value) => {
-      expect(declarations(css, name)).toEqual([value]);
+      expect(declarations(lightDecls, name)).toEqual([value]);
     },
   );
 
@@ -86,7 +147,9 @@ describe('D4: theme.css has every token exactly once', () => {
     (key, stack) => {
       // Prettier writes CSS strings in single quotes, the export in double.
       const quotes = (value: string) => value.replaceAll("'", '"');
-      expect(declarations(css, `font-${key}`).map(quotes)).toEqual([stack]);
+      expect(declarations(lightDecls, `font-${key}`).map(quotes)).toEqual([
+        stack,
+      ]);
     },
   );
 
@@ -97,14 +160,16 @@ describe('D4: theme.css has every token exactly once', () => {
   )(
     'type style %s: family, size, line height and weight',
     (name, style, family) => {
-      expect(declarations(css, `type-${name}-family`)).toEqual([
+      expect(declarations(lightDecls, `type-${name}-family`)).toEqual([
         `var(--font-${family})`,
       ]);
-      expect(declarations(css, `type-${name}-size`)).toEqual([style.fontSize]);
-      expect(declarations(css, `type-${name}-line-height`)).toEqual([
+      expect(declarations(lightDecls, `type-${name}-size`)).toEqual([
+        style.fontSize,
+      ]);
+      expect(declarations(lightDecls, `type-${name}-line-height`)).toEqual([
         style.lineHeight,
       ]);
-      expect(declarations(css, `type-${name}-weight`)).toEqual([
+      expect(declarations(lightDecls, `type-${name}-weight`)).toEqual([
         String(style.fontWeight),
       ]);
     },
@@ -145,8 +210,8 @@ const pairs = (list: [string, string[]][], min: number) =>
   list.flatMap(([fg, bgs]) => bgs.map((bg) => [fg, bg, min] as const));
 
 describe.each([
-  ['light', lightBlock],
-  ['dark', darkBlock],
+  ['light', lightDecls],
+  ['dark', darkDecls],
 ] as const)('Q10: WCAG AA contrast in the %s theme', (_theme, block) => {
   it.each([...pairs(TEXT, 4.5), ...pairs(MARKS, 3)])(
     '%s on %s reaches %s:1',

@@ -1,6 +1,6 @@
 /*
  * Wattwahl design tokens (architecture 8.8), taken from the design system
- * released at G3: https://claude.ai/artifact/XcCjLPUnuS8iSXQ73k7Z5f
+ * released at G3 (see docs/design-inventory.md).
  * Source of truth is docs/design/tokens.json; tests/ui/theme.test.ts checks
  * that every token has exactly one custom property here, light and dark.
  * Light and dark follow prefers-color-scheme. User-chosen traffic light colors
