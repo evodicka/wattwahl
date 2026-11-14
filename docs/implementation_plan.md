@@ -258,9 +258,11 @@ Am Ende von Phase 2 bestehen alle 18 Testfälle der Spezifikation gegen den Kern
 - Öffentliche Kernfunktion nach Architektur 5.1: ein Angebot je Preisfall, inklusive Preis-Regler-Fall.
 - Prüfung jedes Kandidaten gegen das Rechenschema, Status „unvollständig“ mit Feldpfaden, Status „ungeeignet“ mit Grund.
 - Ergebnis mit allen Feldern aus Schritt 6 des Algorithmus und den Spalten der Ergebnistabelle.
+- Umschaltung des SoH-Zeitpunkts der Eignungsprüfung (Spezifikation Abschnitt 2, „umschaltbar auf Start“): Ende der Vergleichsdauer (k\_end, Standard) oder Start (aktueller Kilometerstand). Dafür ein Parameter im Schema und die Auswahl des Prüf-Kilometerstands vor dem Aufruf von `sohAt` in der Angebotsrechnung; `sohKEnd` aus S07 bleibt unverändert.
 
 **Validierung**
 
+- Mit der Umschaltung auf Start nutzt die Eignungsprüfung den SoH beim aktuellen Kilometerstand; der Rechenweg zeigt `F2.soh` mit diesem Kilometerstand und enthält keinen `F2.kEnd`-Eintrag. Mit k\_end (Standard) bleiben die Ergebnisse der bisherigen Testfälle unverändert.
 - Q6: Ein Test läuft über alle Zahlen des Ergebnisses und findet zu jeder einen Rechenweg-Eintrag mit Formel-ID.
 - Ein Szenario mit einem unvollständigen und einem vollständigen Kandidaten liefert für den zweiten ein normales Ergebnis.
 - Q5 vorab in Node: Dieselbe Eingabe ergibt zweimal einen identischen Ergebnis-Hash.

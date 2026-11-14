@@ -12,6 +12,7 @@ export function specTolerance(literal: string): {
 } {
   const parsed = parseDecimal(literal);
   if (!parsed.ok) throw new Error(`Not a spec number: "${literal}"`);
+  // A literal without decimals ("94") counts as 0 decimals, i.e. ± 0.5.
   const decimals = (literal.split(',')[1] ?? '').length;
   return { value: parsed.value, half: 0.5 * Math.pow(10, -decimals) };
 }
