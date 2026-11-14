@@ -52,5 +52,14 @@ export {
   purchaseOfferId,
 } from './offerId';
 export type { Offer } from './offerId';
+export {
+  DecimalResultSchema,
+  NumberFieldResultSchema,
+  WarningSchema,
+  checkWarnings,
+  parseDecimal,
+  parseNumberField,
+} from './validation';
+export type { DecimalResult, NumberFieldResult, Warning } from './validation';
 export { DEFAULT_DEVICE_SETTINGS, DeviceSettingsSchema } from './settings';
 export type { DeviceSettings } from './settings';

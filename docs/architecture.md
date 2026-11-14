@@ -346,7 +346,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 
 ### 8.6 Eingabe und Validierung
 
-- Zahlenfelder speichern `number`. `parseDecimal` akzeptiert Komma und Punkt und liefert bei ungültiger Eingabe einen Fehler statt `NaN`.
+- Zahlenfelder speichern `number`. `parseDecimal` akzeptiert Komma und Punkt (Punkt mit genau drei Ziffern danach ist ein Tausenderpunkt, Regeln in der Spezifikation, Abschnitt Validierung) und liefert bei ungültiger Eingabe einen Fehlercode statt `NaN`. Die Oberfläche übersetzt den Code in einen Text der Sprachdatei.
 - Typ und Bereich prüft das Speicherschema ScenarioSchema, es lässt leere Pflichtfelder (`null`) zu. Pflichtfelder prüft der Kern mit den strengen Rechenschemas: je Kandidat mit CandidateComputeSchema, für Fahrprofil und Parameter mit ScenarioComputeSchema (das Szenario ohne Kandidaten). Feldübergreifende Regeln (Minimum ≤ Mittel ≤ Maximum, Wegsumme > 0, freie Tage ≤ Arbeitstage, T\_kalt < T\_mild) stehen nur in den Rechenschemas. Das Speicherschema prüft nur Typ, Bereich und Struktur (höchstens vier Leasingstufen, je Kilometerstufe eine), damit ein gespeicherter Zwischenstand immer ladbar bleibt. Plausibilitätswarnungen (kalt > mild, > 200 kWh, Weg > 300 km) sind eigene Funktionen in `src/domain/validation.ts` und blockieren nicht. Die Oberfläche ruft sie beim Verlassen eines Feldes direkt auf, ohne Worker.
 - Der Kern prüft jeden Kandidaten einzeln gegen das Rechenschema. Ein fehlerhafter Kandidat erhält den Status `incomplete` mit Feldpfaden, die anderen werden normal berechnet.
 
