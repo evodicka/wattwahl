@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { type Candidate, type LeaseTier, type Scenario } from './schema';
 
-export const UNITS = [
+const UNITS = [
   'months',
   'percent',
   'km',
@@ -242,9 +242,11 @@ function setPath(target: object, path: string, value: unknown): void {
   const last = keys.pop() as string;
   let node = target as Record<string, unknown>;
   for (const key of keys) {
+    if (!(key in node)) throw new Error(`Unknown default path: ${path}`);
     node = node[key] as Record<string, unknown>;
   }
-  node[last] = Array.isArray(value) ? [...value] : value;
+  if (!(last in node)) throw new Error(`Unknown default path: ${path}`);
+  node[last] =Array.isArray(value) ? [...value] : value;
 }
 
 /** Empty scenario: required fields are `null`, every other field has its default. */

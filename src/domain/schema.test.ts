@@ -144,6 +144,19 @@ describe('S03: parameter list', () => {
     }
   });
 
+  it('only names paths that exist in the scenario template', () => {
+    const template = createScenarioTemplate({ id: ID_A, name: 'Template' });
+    for (const entry of PARAMETER_DEFAULTS) {
+      if (entry.path.startsWith('settings.')) continue;
+      const exists = entry.path.split('.').reduce<unknown>((node, key) => {
+        expect(node, entry.path).toBeTypeOf('object');
+        expect(key in (node as object), entry.path).toBe(true);
+        return (node as Record<string, unknown>)[key];
+      }, template);
+      expect(exists, entry.path).not.toBeUndefined();
+    }
+  });
+
   it('keeps the export reminder in the device settings', () => {
     expect(DEFAULT_DEVICE_SETTINGS.exportReminderDays).toBe(
       PARAMETER_DEFAULTS.find((e) => e.path === 'settings.exportReminderDays')
@@ -171,7 +184,7 @@ describe('S03: empty template', () => {
     expect(CandidateComputeSchema.safeParse(candidate).success).toBe(false);
   });
 
-  it('pre-fills lease tiers with the four spec presets', () => {
+  it('offers the four spec presets and builds a tier template from one', () => {
     expect(LEASE_TIER_PRESETS).toEqual([10000, 15000, 20000, 25000]);
     expect(createLeaseTierTemplate(ID_A, 10000).tierKmPerYear).toBe(10000);
   });
@@ -221,6 +234,22 @@ describe('S03: edge cases of the spec are rejected', () => {
     expect(
       computeIssuePaths(ScenarioComputeSchema.safeParse(scenario)),
     ).toEqual(['parameters.electricityPrice']);
+  });
+
+  it('a traffic light threshold above 100 %', () => {
+    const scenario = profile();
+    scenario.parameters.trafficLightGreenFromPct = 101;
+    expect(
+      computeIssuePaths(ScenarioComputeSchema.safeParse(scenario)),
+    ).toEqual(['parameters.trafficLightGreenFromPct']);
+  });
+
+  it('an ICE consumption of 0 l/100 km on any road type', () => {
+    const scenario = profile();
+    scenario.iceVehicle.consumptionLPer100Km.rural = 0;
+    expect(
+      computeIssuePaths(ScenarioComputeSchema.safeParse(scenario)),
+    ).toEqual(['iceVehicle.consumptionLPer100Km.rural']);
   });
 
   it('a commute sum of 0', () => {
