@@ -427,7 +427,7 @@ Die Pipeline in GitHub Actions bricht bei Lint-, Typ- oder Testfehler ab und ver
 
 ## 9. Architekturentscheidungen
 
-ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abgestimmt. ADR-03 und ADR-10 wurden in einer zweiten Runde festgelegt.
+ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abgestimmt, ADR-16 bei der Freigabe G2 nach dem Benchmark. ADR-03 und ADR-10 wurden in einer zweiten Runde festgelegt.
 
 | ADR | Entscheidung | Kontext | Verworfene Alternativen | Konsequenz |
 | --- | --- | --- | --- | --- |
@@ -446,26 +446,27 @@ ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abge
 | 13 | vite-plugin-pwa (Workbox) | Offline-Betrieb und Update-Hinweis | Eigener Service Worker | Precache-Liste aus dem Build, Update-Prompt ohne eigenen Cache-Code |
 | 14 | Ein Paket mit Schichten und ESLint-Importgrenzen | Rechenkern muss frei von UI bleiben | pnpm-Workspace mit getrennten Paketen | Einfaches Setup, Grenzen nur so stark wie die Lint-Regel |
 | 15 | Vitest, fast-check und Playwright | 18 Testfälle, DP gegen Brute Force, Offline und Viewports | Nur Vitest, ohne Property-Tests | Drei Werkzeuge im CI, Playwright braucht Browser-Installation im Runner |
+| 16 | Q1 nach dem Benchmark (G2): DP-Zelle bleibt 1 km, Ergebnisse je Kandidat werden nicht wiederverwendet | Q1 ist gemessen und erfüllt (11.1). Gröbere Zellen und Teilneuberechnung sind als Hebel dokumentiert | Sofort 5 km Zellen, Ergebnisse unveränderter Kandidaten behalten | Genaueste Rechnung, größter Aufwand pro Lauf. Reserve gegenüber den Grenzen ist begrenzt (Firefox 83 % von 2 s, gedrosselt 68 % von 5 s), der Handy-Test in S26 entscheidet, ob ein Hebel nötig wird |
 
 ## 10. Qualitätsanforderungen
 
-Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die Werte stammen aus den nicht-funktionalen Anforderungen der Spezifikation.
+Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die Werte stammen aus den nicht-funktionalen Anforderungen der Spezifikation. Die Spalte „Nachweis“ nennt, was davon bereits belegt ist (Stand nach S11 und der Freigabe G2). Sie wird mit jedem Schritt nachgeführt, und „Offen“ heißt, dass der Nachweis noch aussteht.
 
-| ID | Qualität | Szenario | Prüfung |
-| --- | --- | --- | --- |
-| Q1 | Performance | 10 Kandidaten mit Kauf und 4 Leasingstufen, 3 Preisfälle, Preis-Regler aus: Ergebnis in ≤ 5 s am Mittelklasse-Handy, ≤ 2 s am Desktop | Playwright-Messung, Handy mit CPU-Drosselung, Abnahme am echten Gerät |
-| Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung |
-| Q3 | Korrektheit | Testfälle 1 bis 18 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI |
-| Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 1.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI |
-| Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich |
-| Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder |
-| Q7 | Robustheit | Import einer beschädigten oder fremden Datei ändert keinen gespeicherten Datensatz und nennt die Fehlerstelle | Vitest und Playwright |
-| Q8 | Persistenz | Nach Neuladen, Schließen des Browsers und Geräteneustart ist der Stand vollständig da | Playwright mit persistentem Kontext, Geräteneustart manuell |
-| Q9 | Offline | Die installierte App startet und rechnet ohne Netz | Playwright offline, Installation manuell auf iPhone und Android |
-| Q10 | Barrierefreiheit | Alle Bereiche per Tastatur bedienbar, Kontrast WCAG AA | axe-Prüfung in Playwright |
-| Q11 | Wartbarkeit | Ein Import von `src/ui` nach `src/core` schlägt im Lint fehl | ESLint im CI |
+| ID | Qualität | Szenario | Prüfung | Nachweis |
+| --- | --- | --- | --- | --- |
+| Q1 | Performance | 10 Kandidaten mit Kauf und 4 Leasingstufen, 3 Preisfälle, Preis-Regler aus: Ergebnis in ≤ 5 s am Mittelklasse-Handy, ≤ 2 s am Desktop | Playwright-Messung, Handy mit CPU-Drosselung, Abnahme am echten Gerät | **Erfüllt** in der Messung (S11, 11.1): Desktop 0,8 bis 1,7 s, gedrosselt 3,4 s. Offen: fertige App (S24), echtes Handy (S26) |
+| Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung | Offen (S24), braucht Worker und Oberfläche (S14, S17) |
+| Q3 | Korrektheit | Testfälle 1 bis 18 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13 und 16 bis 18 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04). Offen: Testfall 14 (S13, S22) und Testfall 15 Oberfläche (S17) |
+| Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,5 s (G2) |
+| Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11). Offen: Prüfung im CI (S24) |
+| Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder | **Erfüllt** im Kern (S10): jede Zahl eines Ergebnisses hat genau einen Eintrag mit demselben Wert. Oberfläche offen (S21) |
+| Q7 | Robustheit | Import einer beschädigten oder fremden Datei ändert keinen gespeicherten Datensatz und nennt die Fehlerstelle | Vitest und Playwright | Offen (S13 Unit-Teil, S22 End-to-End) |
+| Q8 | Persistenz | Nach Neuladen, Schließen des Browsers und Geräteneustart ist der Stand vollständig da | Playwright mit persistentem Kontext, Geräteneustart manuell | Offen (S24 automatisiert, S26 am Gerät) |
+| Q9 | Offline | Die installierte App startet und rechnet ohne Netz | Playwright offline, Installation manuell auf iPhone und Android | Offen (S23, S24 automatisiert, S26 am Gerät) |
+| Q10 | Barrierefreiheit | Alle Bereiche per Tastatur bedienbar, Kontrast WCAG AA | axe-Prüfung in Playwright | Offen (S16 bis S23 je Bereich, S24 gesamt) |
+| Q11 | Wartbarkeit | Ein Import von `src/ui` nach `src/core` schlägt im Lint fehl | ESLint im CI | **Erfüllt** (S01): Lint-Test mit Fixture, ein Import von `src/ui` nach `src/core` schlägt fehl |
 
-Q4 nutzt 1.000 Fälle als Platzhalter. Die Zahl wird so gewählt, dass der CI-Lauf unter einer Minute bleibt.
+Q4 nutzt 100.000 Fälle (bei G2 festgelegt). Der Lauf dauert etwa 2,5 s und bleibt damit weit unter der Grenze von einer Minute im CI.
 
 ## 11. Risiken und technische Schulden
 
@@ -473,22 +474,72 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 
 | Risiko | Wirkung | Maßnahme |
 | --- | --- | --- |
-| Optimierung überschreitet 5 s am Handy | Q1 verfehlt, Live-Neuberechnung wirkt träge | Früher Benchmark mit 10 Kandidaten. Optionsmengen teilen, Kostentabellen als `Float64Array`, nur geänderte Angebote neu rechnen als Ausbaustufe |
+| Optimierung überschreitet 5 s am Handy | Q1 verfehlt, Live-Neuberechnung wirkt träge | Früher Benchmark mit 10 Kandidaten ist gelaufen und erfüllt Q1 (11.1). Optionsmengen werden geteilt und die Kostentabellen sind `Float64Array`. Weitere Hebel mit gemessener Wirkung stehen in 11.1, falls der Handy-Test in S26 sie braucht |
 | Abbruch nur zwischen Angeboten | Bei sehr großen Angeboten läuft eine veraltete Rechnung zu Ende | Angebote sind klein genug, Messung in Q2. Bei Bedarf Abbruchpunkte zusätzlich je Rasterwert |
 | Safari löscht Daten nicht installierter Seiten nach etwa 7 Tagen | Verlust aller Szenarien auf dem iPhone | Installationshinweis beim ersten Start, Export-Erinnerung, `navigator.``storage.persist()` |
 | Eigene Potenzfunktion `detPow` weicht von `Math.pow` ab oder ist langsamer | Abweichung von den Handrechnungen, längere Rechenzeit | Property-Test gegen `Math.pow` mit relativer Toleranz 1e-12, Laufzeit in Q1 mitmessen |
-| Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (Grenzwert festzulegen) |
+| Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (250 KB gzip für die Start-Chunks, 11.1) |
 | Fehlerhafte Schema-Migration | Gespeicherte Szenarien unlesbar | Beispieldatei je Schemaversion im Repository, Migrationstest im CI, alter Datensatz bleibt bis zur erfolgreichen Prüfung erhalten |
 | Änderung der Domain oder Entfernen der Custom Domain | Neuer Origin, Browser-Speicher leer | Domain festschreiben, vor jedem Umzug exportieren. Ein Umbenennen des Repositorys ändert den Origin nicht |
 | Lint-Regeln sind die einzige Schichtgrenze | Versehentliche UI-Importe im Kern | Regel im CI verpflichtend, Q11 als Test |
 
-**Technische Schulden zum Start:** keine. Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst zurückgestellt und wird erst nach dem Benchmark entschieden.
+**Technische Schulden zum Start:** keine. Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst nicht gebaut. Der Benchmark zeigt, dass Q1 auch ohne sie erfüllt ist, und 11.1 beschreibt, wann und wie sie nachgezogen wird.
 
-**Offene Werte**, festzulegen nach dem ersten Benchmark:
+**Bei G2 festgelegte Werte** (aus dem Benchmark, siehe 11.1):
 
-- Bundle-Budget im CI (Grenzwert)
-- Maximale Importgröße (Platzhalter 5 MB)
-- Anzahl der Fälle in Q4 (Platzhalter 1.000, CI-Lauf unter einer Minute)
+- Bundle-Budget im CI: 250 KB gzip für die Start-Chunks (Haupt-Bundle und Worker zusammen), Diagramme und andere nachgeladene Chunks zählen nicht. Die Prüfung kommt in S24 und wird dort anhand der fertigen App geschärft.
+- Anzahl der Fälle in Q4: 100.000 (Lauf etwa 2,5 s).
+- DP-Zelle: 1 km (`DP_CELL_KM`).
+
+**Weiter offen:** Maximale Importgröße (Platzhalter 5 MB), festzulegen in S13.
+
+### 11.1 Q1-Messung (S11) und Optimierungspfade
+
+Gemessen wurde das Messszenario aus `tests/fixtures/q1Scenario.ts`: 10 Kandidaten, je Kauf und vier Leasingstufen, drei Preisfälle, also 150 Ergebnisse, alle mit berechnetem Plan. Die Messung lief auf einem Entwicklungsrechner (Mac) mit Node 26 und den aktuellen Browsern, im Hauptthread, ohne Preis-Regler. Je Umgebung gab es vier Läufe, der erste ist kalt, die anderen drei sind warm. Wiederholen lässt sich die Messung mit `npm run bench` (Node) und `npm run bench:browser` (Browser, nicht im CI).
+
+| Umgebung | kalt | warm (Median) | Grenze (Q1) | kalt in % der Grenze |
+| --- | --- | --- | --- | --- |
+| Node 26 | 937 ms | 845 ms | | |
+| Chromium | 899 ms | 841 ms | 2 s | 45 % |
+| Firefox | 1.655 ms | 1.617 ms | 2 s | 83 % |
+| WebKit | 842 ms | 778 ms | 2 s | 42 % |
+| Chromium, CPU 4× gedrosselt (Handy-Näherung) | 3.397 ms | 3.304 ms | 5 s | 68 % |
+
+Die Drosselung ist nur eine Näherung. Maßgeblich ist die Messung am echten Handy in S26. Der Ergebnis-Hash (Q5) war in Node, Chromium, Firefox und WebKit gleich. Die Messung lief ohne Worker, im fertigen System kommt das Kopieren von Szenario und Ergebnissen hinzu. Es ist klein gegenüber den 840 ms, wird aber in S14 und S24 nachgemessen.
+
+**Wohin die Zeit geht** (warm, Node):
+
+| Anteil | Zeit |
+| --- | --- |
+| Prüfung des Szenarios und der Kandidaten | 0,6 ms |
+| Probleme aufbauen (30 Stück) | 5 ms |
+| Erstes Angebot eines Problems, hier läuft die DP (30 Stück) | 690 bis 698 ms |
+| Übrige Angebote eines Problems, die DP ist geteilt (120 Stück) | 124 bis 130 ms |
+| Zum Vergleich: ganzer Lauf ohne geteilte DP | 3,6 s |
+
+Die DP bestimmt also fast die gesamte Zeit, und das Teilen der DP zwischen den Angeboten eines Kandidaten (`ComputeCache`) spart den Faktor 4,3. `detPow` wird in einem Lauf 1.500-mal aufgerufen und braucht etwa 44 ns je Aufruf, zusammen etwa 0,07 ms, also weniger als 0,01 %.
+
+**Größe** (gzip): die App heute 67,9 KB (React), die Domäne mit Zod 35,2 KB, der Kern mit Domäne und Zod 42,8 KB. Der Kern selbst ist also nur etwa 7,5 KB groß, den größten Block bildet Zod.
+
+**Optimierungspfade.** Q1 ist erfüllt, deshalb ist keiner gebaut. Sie sind nach Wirkung und Aufwand geordnet für den Fall, dass der Handy-Test (S26) oder spätere Szenarien mehr Reserve brauchen:
+
+1. **Gröbere DP-Zelle** (`DP_CELL_KM` in `src/core/optimizer/problem.ts`, eine Konstante). Gemessen mit demselben Szenario:
+
+   | Zelle | warm | größte Abweichung der Gesamtkosten | mittlere Abweichung |
+   | --- | --- | --- | --- |
+   | 1 km | 800 ms | 0 | 0 |
+   | 2 km | 407 ms | 1,25 € | 0,14 € |
+   | 5 km | 194 ms | 6,49 € | 1,23 € |
+   | 10 km | 101 ms | 19,54 € | 5,06 € |
+   | 25 km | 48 ms | 11,89 € | 5,27 € |
+
+   Die Gesamtkosten liegen bei etwa 50.000 €, die Abweichung bleibt also bis 25 km unter 0,05 %. Die Laufzeit fällt fast linear mit der Zellgröße. Der Preis: Bei gröberen Zellen unterscheidet sich der gewählte Plan in vielen Angeboten (bei 5 km in 90 von 150), weil Pläne nahezu gleich teuer sind, und die Rundung der Optionen auf ganze Zellen wird gröber. Das Garantie-Budget, die Leasingkosten und die Regel „kleinere E-Auto-Strecke“ rechnen weiter mit den exakten Kilometern, aber die DP sieht je Zelle nur den günstigsten Plan. Erste Stufe wäre 5 km (rund viermal schneller). Brute Force und Q4 laufen mit der Zellgröße als Parameter und prüfen sie mit.
+2. **Nur geänderte Kandidaten neu rechnen.** Ergebnisse je Kandidat und Preisfall behalten, solange Kandidat, Fahrprofil und Parameter gleich sind (Schlüssel aus dem Inhalt, im Worker). Eine Änderung an einem Kandidaten kostet dann ein Zehntel: etwa 85 ms in Node und etwa 340 ms bei vierfacher Drosselung (Schätzung aus dem Zehntel, nicht gebaut). Änderungen am Fahrprofil oder an Parametern betreffen alle Kandidaten und bringen nichts. Der `ComputeCache` ist der Ort dafür.
+3. **Zusätzliche Reserve bei aktivem Garantie-Budget.** Die DP rechnet alle Zellen, weil die Mehrkosten gegenüber dem Gesamtoptimum gebraucht werden. Wer auf diese Anzeige verzichtet, kann bei der Budgetgrenze abschneiden. Nicht gemessen, kostet ein Ergebnisfeld (`costs.budgetExtraCost`).
+4. **Gleiche Wochentage zusammenfassen.** Wochentage mit gleichen erwarteten Tagen und gleichen Optionen (im Beispiel Montag, Mittwoch und Freitag) würden eine Gruppe mit Vielfachheit. Das spart Gruppen, vergrößert aber die Optionszahl je Gruppe, der Gewinn ist deshalb klein und unsicher. Nicht gemessen.
+5. **Zod im Start-Bundle verkleinern.** Falls das Bundle-Budget knapp wird: Zod nur dort laden, wo gerechnet oder importiert wird, oder ein kleineres Schema-Paket (ADR-09 hat Valibot verworfen). Hat mit Q1 nichts zu tun.
+
+Als Entscheidung gilt (ADR-16): keiner dieser Pfade wird jetzt gebaut. Reicht die Reserve am echten Handy nicht, ist Pfad 1 der erste Schritt, weil er eine Konstante ist.
 
 ## 12. Glossar
 

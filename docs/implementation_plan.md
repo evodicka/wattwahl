@@ -245,7 +245,7 @@ Am Ende von Phase 2 bestehen alle 18 Testfälle der Spezifikation gegen den Kern
 **Validierung**
 
 - Testfälle 10, 11, 12, 13, 16 und 18 bestehen.
-- Q4: Dynamische Programmierung und Brute Force liefern auf zufälligen kleinen Fällen dieselben Kosten (Anzahl der Fälle: Platzhalter 1.000, CI-Lauf unter einer Minute).
+- Q4: Dynamische Programmierung und Brute Force liefern auf zufälligen kleinen Fällen dieselben Kosten (Anzahl der Fälle: 100.000, bei G2 festgelegt, CI-Lauf unter einer Minute).
 - Gleichstandsregel: ein konstruierter Fall mit zwei kostengleichen Plänen wählt den mit größerer kleinster Reserve, danach den mit kürzerer E-Auto-Strecke.
 - Die Brute-Force-Referenz ist nicht im Produktions-Build enthalten.
 
