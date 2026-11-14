@@ -61,5 +61,18 @@ export {
   parseNumberField,
 } from './validation';
 export type { DecimalResult, NumberFieldResult, Warning } from './validation';
+export {
+  MIGRATIONS,
+  MigrationResultSchema,
+  UpgradeResultSchema,
+  createMigrator,
+  migrate,
+  upgradeScenario,
+} from './migrations';
+export type {
+  MigrationResult,
+  MigrationStep,
+  UpgradeResult,
+} from './migrations';
 export { DEFAULT_DEVICE_SETTINGS, DeviceSettingsSchema } from './settings';
 export type { DeviceSettings } from './settings';
