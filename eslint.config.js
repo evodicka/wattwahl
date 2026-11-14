@@ -109,6 +109,13 @@ export default tseslint.config(
               message:
                 'src/core must not import packages (8.4). Only src/domain is allowed.',
             },
+            {
+              // Test-only code such as the brute-force reference must not reach
+              // the production build. Test files and __tests__ itself are exempt.
+              regex: '(^|/)__tests__(/|$)',
+              message:
+                'Production code in src/core must not import from __tests__ (architecture 5.2).',
+            },
           ],
         },
       ],

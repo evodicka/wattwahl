@@ -114,6 +114,22 @@ describe('calculation core bans (8.4)', () => {
     ).toEqual([]);
   });
 
+  it('rejects production code that imports from __tests__ (brute force stays out of the build)', async () => {
+    const ids = await ruleIds(
+      "import { bruteForce } from './__tests__/bruteForce';\nexport const x = bruteForce;\n",
+      'src/core/optimizer/__lint_fixture__.ts',
+    );
+    expect(ids).toEqual(['no-restricted-imports']);
+  });
+
+  it('allows test files to import from __tests__', async () => {
+    const code =
+      "import { bruteForce } from './__tests__/bruteForce';\nvoid bruteForce;\n";
+    expect(
+      await ruleIds(code, 'src/core/optimizer/__lint_fixture__.test.ts'),
+    ).toEqual([]);
+  });
+
   it('does not apply the core bans outside src/core', async () => {
     const code = 'export const x = Math.pow(2, 3) + Date.now();\n';
     expect(await ruleIds(code, 'src/ui/__lint_fixture__.ts')).toEqual([]);
