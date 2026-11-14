@@ -1,11 +1,15 @@
-import type { CandidateCompute, ScenarioCompute, Weekday } from '../../domain';
+import type {
+  CandidateCompute,
+  ScenarioCompute,
+  UnsuitableReason,
+} from '../../domain';
 import {
   effectiveDepreciationPct,
   leaseCost,
   purchaseCost,
 } from '../calc/costs';
 import type { Trace } from '../trace';
-import { WAYS, type GroupInfo, type Problem, type Way } from './problem';
+import { WAYS, type GroupInfo, type Problem } from './problem';
 import type { Selection } from './types';
 import {
   isExpired,
@@ -19,32 +23,6 @@ type LeaseTier = CandidateCompute['leaseTiers'][number];
 /** The two kinds of offer the optimizer prices; a candidate has one purchase and up to four leases. */
 export type OfferTerms =
   { kind: 'purchase' } | { kind: 'lease'; tier: LeaseTier };
-
-/** Why no plan works (spec "Ungeeignet"); months run 0 (January) to 11. */
-export type UnsuitableReason =
-  | {
-      kind: 'both';
-      weekday: Weekday;
-      month: number;
-      /** Reserve of each way in km at `soh`; negative where the EV cannot drive. */
-      reserveKm: { a: number; b: number };
-      soh: number;
-    }
-  | {
-      kind: 'strict';
-      way: Way;
-      month: number;
-      reserveKm: number;
-      soh: number;
-    }
-  | {
-      /**
-       * Every way is drivable at the best SoH, but driving them lowers the SoH
-       * (more EV km, less capacity) below what they need.
-       */
-      kind: 'coupling';
-      soh: number;
-    };
 
 export type PlanEntry = {
   info: GroupInfo;
@@ -63,6 +41,16 @@ export type OptimizerOutcome =
       variableCost: number;
       /** Variable cost plus purchase or lease cost. */
       targetCost: number;
+      /**
+       * Yearly quantities of the plan: grid kWh, litres of petrol, km of the
+       * petrol car (K_ICE) and of the EV (K_EV), for the cost parts of the result.
+       */
+      quantities: {
+        gridKwh: number;
+        litres: number;
+        iceKm: number;
+        evKm: number;
+      };
       budget: WarrantyBudget;
       budgetExtraCost: number;
       budgetExceeded: boolean;
@@ -122,6 +110,23 @@ function explain(
   // No "both" day is blocked at the best SoH: the plans fail only because
   // driving them lowers the SoH.
   return worst ?? { kind: 'coupling', soh };
+}
+
+/** Sums the yearly quantities of the chosen option of every group. */
+function sumQuantities(
+  problem: Problem,
+  optionIndex: readonly number[],
+): { gridKwh: number; litres: number; iceKm: number; evKm: number } {
+  const total = { gridKwh: 0, litres: 0, iceKm: 0, evKm: 0 };
+  problem.groups.forEach((group, index) => {
+    const option = group.options[optionIndex[index] as number];
+    if (!option) throw new RangeError(`Bad option for group ${group.key}.`);
+    total.evKm += option.km;
+    total.gridKwh += option.quantities?.gridKwh ?? 0;
+    total.litres += option.quantities?.litres ?? 0;
+    total.iceKm += option.quantities?.iceKm ?? 0;
+  });
+  return total;
 }
 
 /**
@@ -185,6 +190,7 @@ export function optimizeOffer(
       ).choice,
     })),
     evKmPerYear: selection.evKmPerYear,
+    quantities: sumQuantities(problem, selection.optionIndex),
     variableCost: selection.variableCost,
     targetCost: selection.targetCost,
     budget,

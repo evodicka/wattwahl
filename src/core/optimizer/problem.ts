@@ -36,6 +36,7 @@ import {
   type WayCheck,
 } from '../calc/suitability';
 import { attendanceFactors, expectedDays } from '../calc/workdays';
+import type { Trace } from '../trace';
 import { createSolver, type Solver } from './select';
 import type { Group, Option } from './types';
 
@@ -77,7 +78,7 @@ export type Problem = {
   /** Smallest reserve in percent over both ways and all months at a SoH. */
   reserveAtSoh: (soh: number) => number;
   /** Suitability of one way in one month at a SoH (section 3). */
-  checkWayAt: (way: Way, month: number, soh: number) => WayCheck;
+  checkWayAt: (way: Way, month: number, soh: number, trace?: Trace) => WayCheck;
 };
 
 /**
@@ -108,29 +109,32 @@ export function buildProblem(
   scenario: ScenarioCompute,
   candidate: CandidateCompute,
   prices: ResolvedPrices,
+  trace?: Trace,
 ): Problem {
   const { iceVehicle, workplaces, extraMileage, parameters } = scenario;
   const comparisonMonths = parameters.comparisonMonths;
-  const fb = petrolFactor(prices.petrolEscalationPct, comparisonMonths);
+  const fb = petrolFactor(prices.petrolEscalationPct, comparisonMonths, trace);
   const fs = electricityFactor(
     prices.electricityEscalationPct,
     comparisonMonths,
+    trace,
   );
-  const fm = maintenanceFactor(comparisonMonths);
+  const fm = maintenanceFactor(comparisonMonths, trace);
   const evPerKm = effectiveEvMaintenancePerKm(candidate, parameters);
   const icePerKm = iceVehicle.maintenancePerKm;
-  const u = usableShare(parameters);
+  const u = usableShare(parameters, trace);
   const trips = {
-    a: tripsCounted(workplaces.a.chargesFreeAtWork),
-    b: tripsCounted(workplaces.b.chargesFreeAtWork),
+    a: tripsCounted(workplaces.a.chargesFreeAtWork, trace),
+    b: tripsCounted(workplaces.b.chargesFreeAtWork, trace),
   };
 
   const months = Array.from({ length: 12 }, (_, month) => {
     const tempC = parameters.monthlyTempC[month] as number;
     const range = roadRanges(
       candidate.rangeKm,
-      mixWeight(tempC, parameters.tempColdC, parameters.tempMildC),
+      mixWeight(tempC, parameters.tempColdC, parameters.tempMildC, trace),
       parameters.highwayDiscountPct,
+      trace,
     );
     const checkRange = checkRanges(
       candidate.rangeKm,
@@ -139,32 +143,40 @@ export function buildProblem(
         parameters.coldReserveK,
         parameters.tempColdC,
         parameters.tempMildC,
+        trace,
       ),
       parameters.highwayDiscountPct,
+      trace,
     );
-    const c = consumption(candidate.netCapacityKwh, range);
+    const c = consumption(candidate.netCapacityKwh, range, trace);
     const wayCosts = (way: Way) => {
       const commute = workplaces[way].commute;
       const km = maintenanceKmPerDay(
         commute.city + commute.rural + commute.highway,
+        trace,
       );
       const grid = gridEnergy(
-        wayEnergy(commute, c),
+        wayEnergy(commute, c, trace),
         parameters.chargingEfficiencyPct,
+        trace,
+      );
+      const litres = iceDayLitres(
+        commute,
+        iceVehicle.consumptionLPer100Km,
+        trace,
       );
       return {
         // Cost over the comparison period of one working day of this kind,
         // counted once per year; options multiply it by the expected days.
         ev:
-          evDayCost(trips[way], grid, prices.electricityPrice) * fs +
+          evDayCost(trips[way], grid, prices.electricityPrice, trace) * fs +
           fm * evPerKm * km,
-        ice:
-          iceDayLitres(commute, iceVehicle.consumptionLPer100Km) *
-            prices.petrolPrice *
-            fb +
-          fm * icePerKm * km,
+        ice: litres * prices.petrolPrice * fb + fm * icePerKm * km,
         evKm: km,
-        threshold: sohThreshold(commute, checkRange, trips[way], u),
+        // Per working day: kWh from the grid, litres of petrol.
+        gridKwh: trips[way] * grid,
+        litres,
+        threshold: sohThreshold(commute, checkRange, trips[way], u, trace),
       };
     };
     return { range, checkRange, c, a: wayCosts('a'), b: wayCosts('b') };
@@ -179,7 +191,11 @@ export function buildProblem(
     }
   }
 
-  const attendance = attendanceFactors(workplaces, parameters.workWeeksPerYear);
+  const attendance = attendanceFactors(
+    workplaces,
+    parameters.workWeeksPerYear,
+    trace,
+  );
   const groups: Group[] = [];
   const info: GroupInfo[] = [];
   const add = (group: Group, entry: GroupInfo) => {
@@ -193,6 +209,7 @@ export function buildProblem(
       workplaces,
       parameters.workWeeksPerYear,
       attendance,
+      trace,
     );
     for (let month = 0; month < 12; month++) {
       const m = months[month] as (typeof months)[0];
@@ -206,12 +223,22 @@ export function buildProblem(
         cost: weight * (m[evWay].ev + (iceWay ? m[iceWay].ice : 0)),
         needs: pairIndex(evWay, month),
         choice,
+        quantities: {
+          gridKwh: weight * m[evWay].gridKwh,
+          litres: iceWay ? weight * m[iceWay].litres : 0,
+          iceKm: iceWay ? weight * m[iceWay].evKm : 0,
+        },
       });
       const rest = (iceWay: Way, weight: number): Option => ({
         km: 0,
         cost: weight * m[iceWay].ice,
         needs: null,
         choice: 'rest',
+        quantities: {
+          gridKwh: 0,
+          litres: weight * m[iceWay].litres,
+          iceKm: weight * m[iceWay].evKm,
+        },
       });
       const states: [PresenceState, number, Option[]][] = [
         [
@@ -257,32 +284,31 @@ export function buildProblem(
         const split = splitExtraMileage(extraKm, share);
         const evKm = split.ev.city + split.ev.rural + split.ev.highway;
         const iceKm = split.ice.city + split.ice.rural + split.ice.highway;
-        const electricity =
-          gridEnergy(
-            wayEnergy(split.ev, m.c),
-            parameters.chargingEfficiencyPct,
-          ) *
-          prices.electricityPrice *
-          fs;
-        const petrol =
-          ((split.ice.city * iceVehicle.consumptionLPer100Km.city +
+        const gridKwh = gridEnergy(
+          wayEnergy(split.ev, m.c),
+          parameters.chargingEfficiencyPct,
+        );
+        const litres =
+          (split.ice.city * iceVehicle.consumptionLPer100Km.city +
             split.ice.rural * iceVehicle.consumptionLPer100Km.rural +
             split.ice.highway * iceVehicle.consumptionLPer100Km.highway) /
-            100) *
-          prices.petrolPrice *
-          fb;
+          100;
         return {
           km: evKm,
-          cost: electricity + petrol + fm * (evPerKm * evKm + icePerKm * iceKm),
+          cost:
+            gridKwh * prices.electricityPrice * fs +
+            litres * prices.petrolPrice * fb +
+            fm * (evPerKm * evKm + icePerKm * iceKm),
           needs: null,
           choice: `share:${share}`,
+          quantities: { gridKwh, litres, iceKm },
         };
       });
       add({ key: `extra:${month}`, options }, { kind: 'extra', month });
     }
   }
 
-  const curve = sohCurve(parameters, candidate);
+  const curve = sohCurve(parameters, candidate, trace);
   const sohForKmPerYear = (kmPerYear: number): number =>
     sohAt(
       curve,
@@ -291,15 +317,23 @@ export function buildProblem(
         : candidate.mileageKm,
     );
 
-  const checkWayAt = (way: Way, month: number, soh: number): WayCheck =>
-    checkWay({
-      distanceKm: workplaces[way].commute,
-      checkRangeKm: (months[month] as (typeof months)[0]).checkRange,
-      soh,
-      u,
-      chargesFreeAtWork: workplaces[way].chargesFreeAtWork,
-      greenFromPct: parameters.trafficLightGreenFromPct,
-    });
+  const checkWayAt = (
+    way: Way,
+    month: number,
+    soh: number,
+    wayTrace?: Trace,
+  ): WayCheck =>
+    checkWay(
+      {
+        distanceKm: workplaces[way].commute,
+        checkRangeKm: (months[month] as (typeof months)[0]).checkRange,
+        soh,
+        u,
+        chargesFreeAtWork: workplaces[way].chargesFreeAtWork,
+        greenFromPct: parameters.trafficLightGreenFromPct,
+      },
+      wayTrace,
+    );
 
   const reserveAtSoh = (soh: number): number => {
     let smallest = Infinity;

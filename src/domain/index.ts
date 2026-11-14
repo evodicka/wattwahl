@@ -78,9 +78,23 @@ export type {
 export {
   FORMULA_IDS,
   FormulaIdSchema,
+  OfferResultSchema,
+  PlanCellSchema,
+  PlanChoiceSchema,
+  ReserveCellSchema,
   SliderPricesSchema,
   TraceEntrySchema,
+  UnsuitableReasonSchema,
 } from './result';
-export type { FormulaId, SliderPrices, TraceEntry } from './result';
+export type {
+  FormulaId,
+  OfferResult,
+  OkOfferResult,
+  ReserveCell,
+  SliderPrices,
+  TraceEntry,
+  UnsuitableReason,
+  WayKey,
+} from './result';
 export { DEFAULT_DEVICE_SETTINGS, DeviceSettingsSchema } from './settings';
 export type { DeviceSettings } from './settings';
