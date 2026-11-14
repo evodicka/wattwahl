@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "Wattwahl",
+    "separator": " · ",
     "nav": {
       "label": "Bereiche",
       "fahrprofil": "Fahrprofil",
@@ -247,7 +248,13 @@
   },
   "kandidaten": {
     "title": "Kandidaten",
-    "summary": "{{candidates}} Kandidaten · {{leases}} Leasingangebote · Ergebnisse rechnen live neu",
+    "summary": {
+      "candidates_one": "{{count}} Kandidat",
+      "candidates_other": "{{count}} Kandidaten",
+      "leases_one": "{{count}} Leasingangebot",
+      "leases_other": "{{count}} Leasingangebote",
+      "live": "Ergebnisse rechnen live neu"
+    },
     "new": "Neuer Kandidat",
     "fromTemplate": "Aus Vorlage …",
     "listHint": "Ungeeignete und unvollständige Kandidaten bleiben in der Liste und nennen den Grund.",
@@ -533,7 +540,9 @@
     "list": {
       "title": "Szenarien",
       "compareCheckbox": "{{name}} im Vergleich",
-      "meta": "{{candidates}} Kandidaten · {{months}} Monate · geändert {{date}}",
+      "metaCandidates_one": "{{count}} Kandidat",
+      "metaCandidates_other": "{{count}} Kandidaten",
+      "metaChanged": "geändert {{date}}",
       "fromSlider": "Aus dem Preis-Regler gespeichert",
       "copyOf": "Kopie von {{name}}",
       "hint": "Ein neues Szenario startet leer oder als Kopie des aktiven. Löschen fragt nach.",
@@ -551,12 +560,16 @@
     "export": {
       "title": "Export",
       "intro": "Die Exportdatei ist die einzige Sicherung. Sie enthält Schemaversion und Datum im Dateinamen.",
-      "last": "Letzter Export: {{date}}, vor {{days}} Tagen",
+      "lastDate": "Letzter Export: {{date}}",
+      "lastAgo_one": "vor {{count}} Tag",
+      "lastAgo_other": "vor {{count}} Tagen",
       "never": "Noch nie exportiert",
-      "reminderBadge": "Erinnerung ab {{days}} Tagen",
+      "reminderBadge_one": "Erinnerung ab {{count}} Tag",
+      "reminderBadge_other": "Erinnerung ab {{count}} Tagen",
       "all": "Alle Szenarien exportieren",
       "one": "Nur „{{name}}“ exportieren",
-      "reminderTitle": "Letzter Export vor {{days}} Tagen",
+      "reminderTitle_one": "Letzter Export vor {{count}} Tag",
+      "reminderTitle_other": "Letzter Export vor {{count}} Tagen",
       "reminderBody": "Der Export ist die einzige Sicherung."
     },
     "import": {
@@ -569,7 +582,8 @@
       "errorTitle": "Import nicht möglich",
       "errorBody": "{{location}}: {{problem}}. Es wurde nichts überschrieben.",
       "replaceTitle": "Alle Szenarien ersetzen?",
-      "replaceBody": "Die {{count}} vorhandenen Szenarien werden gelöscht. Exportiere sie vorher."
+      "replaceBody_one": "Das vorhandene Szenario wird gelöscht. Exportiere es vorher.",
+      "replaceBody_other": "Die {{count}} vorhandenen Szenarien werden gelöscht. Exportiere sie vorher."
     },
     "empty": {
       "title": "Noch kein Szenario",
