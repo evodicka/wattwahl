@@ -67,7 +67,9 @@ export type TraceEntry = z.infer<typeof TraceEntrySchema>;
 
 /**
  * Prices of the price slider (architecture 8.5): the fifth price case `slider`.
- * Held in the UI state and never stored with a scenario.
+ * Held in the UI state and never stored with a scenario. The schema sets no
+ * upper bound: the slider UI is expected to clamp prices and escalations to
+ * its own range.
  */
 export const SliderPricesSchema = z.object({
   petrol: z.number().min(0),

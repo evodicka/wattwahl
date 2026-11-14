@@ -1,10 +1,9 @@
+import { ROAD_TYPES } from '../../domain';
 import type { Trace } from '../trace';
 import { fraction, type PerRoad } from './units';
 
 // Spec "Berechnungslogik" section 6: the extra mileage of a month is split
 // between the EV (share x) and the petrol car (the rest).
-
-const ROADS = ['city', 'rural', 'highway'] as const;
 
 export type ExtraMileageSplit = { ev: PerRoad; ice: PerRoad };
 
@@ -26,7 +25,7 @@ export function splitExtraMileage(
     highway: kmPerMonth.highway - ev.highway,
   };
   if (trace) {
-    for (const road of ROADS) {
+    for (const road of ROAD_TYPES) {
       trace.add({
         formula: 'F6.share',
         inputs: { road, kmPerMonth: kmPerMonth[road], evSharePct },

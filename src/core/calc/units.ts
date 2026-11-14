@@ -1,4 +1,4 @@
-import type { RoadType } from '../../domain';
+import { ROAD_TYPES, type RoadType } from '../../domain';
 
 /** The one place that turns stored percent values into fractions (architecture 8.1). */
 export const fraction = (percent: number): number => percent / 100;
@@ -23,8 +23,6 @@ export function finiteRatio(num: number, den: number): number {
 /** A value per road type, e.g. km or km/100 l. */
 export type PerRoad = Record<RoadType, number>;
 
-const ROADS = ['city', 'rural', 'highway'] as const;
-
 /**
  * Trace inputs of a per-road value: `city`, `rural`, `highway`, or with a
  * prefix `cCity`, `cRural`, `cHighway`.
@@ -34,7 +32,7 @@ export function roadInputs(
   prefix?: string,
 ): Record<string, number> {
   const inputs: Record<string, number> = {};
-  for (const road of ROADS) {
+  for (const road of ROAD_TYPES) {
     const key = prefix
       ? prefix + road.charAt(0).toUpperCase() + road.slice(1)
       : road;
