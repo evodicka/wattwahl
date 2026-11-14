@@ -12,6 +12,27 @@ export const NAMESPACES = [
   'ergebnis',
   'szenarien',
 ] as const satisfies readonly (keyof typeof de)[];
+// `satisfies` only checks that each entry exists; i18n.test.ts checks that the
+// list covers every namespace of de.json.
+
+/**
+ * Month keys in calendar order. The core numbers months 0 to 11, so
+ * `t(\`months.${MONTH_KEYS[month]}\`)` stays a typed key.
+ */
+export const MONTH_KEYS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+] as const satisfies readonly (keyof (typeof de)['common']['months'])[];
 
 /**
  * The app's i18next instance. The resource is bundled statically, so the
