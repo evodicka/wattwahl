@@ -1,6 +1,12 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { ROOT12_STEPS, detPow } from './detPow';
+import { MAX_EXPONENT, ROOT12_STEPS, detPow, root12 } from './detPow';
+
+const fromBits = (hex: string): number => {
+  const view = new DataView(new ArrayBuffer(8));
+  view.setBigUint64(0, BigInt(hex));
+  return view.getFloat64(0);
+};
 
 const relativeError = (actual: number, expected: number): number =>
   expected === 0 ? Math.abs(actual) : Math.abs(actual - expected) / expected;
@@ -42,12 +48,27 @@ describe('S06: detPow against Math.pow', () => {
     // Dense sweep over the reduced range [1, 4096) plus tiny and huge bases.
     const bases = [1e-300, 1e-12, 1e-6, 0.5, 1, 1.0000001, 2, 4095.999, 4096];
     for (let a = 1; a < 4096; a *= 1.013) bases.push(a, 1 / a);
+    const worstError = (steps: number): number =>
+      Math.max(
+        ...bases.map((base) =>
+          relativeError(root12(base, steps), Math.pow(base, 1 / 12)),
+        ),
+      );
+
+    expect(worstError(ROOT12_STEPS)).toBeLessThan(1e-14);
+    // Fewer steps visibly miss the bound, so the count is not arbitrary ...
+    expect(worstError(ROOT12_STEPS - 2)).toBeGreaterThan(1e-14);
+    // ... and one step less still passes, so ROOT12_STEPS keeps a margin.
+    expect(worstError(ROOT12_STEPS - 1)).toBeLessThan(1e-14);
+    // An extra step changes nothing beyond a last-bit wobble: it has converged.
     for (const base of bases) {
       expect(
-        relativeError(detPow(base, 1 / 12), Math.pow(base, 1 / 12)),
-      ).toBeLessThan(1e-14);
+        relativeError(
+          root12(base, ROOT12_STEPS + 1),
+          root12(base, ROOT12_STEPS),
+        ),
+      ).toBeLessThan(1e-15);
     }
-    expect(ROOT12_STEPS).toBeGreaterThan(0);
   });
 
   it('TC7: 40,000 EUR at 15 % over 48 months keeps the exact integer path', () => {
@@ -60,6 +81,26 @@ describe('S06: detPow against Math.pow', () => {
 });
 
 describe('S06: detPow is deterministic', () => {
+  // Golden IEEE 754 bit patterns. They pin the exact result, so a changed
+  // constant, operation order or fused multiply-add in any engine fails here.
+  // Each value is also within 4e-15 of Math.pow (checked when generated).
+  const golden: [number, number, string][] = [
+    [0.85, 1 / 12, '0x3fef91cd38f08728'],
+    [0.85, 5 / 12, '0x3fede7a24dfa79df'],
+    [0.85, 7 / 12, '0x3fed1b0d8ed6a772'],
+    [0.85, 4, '0x3fe0b4467381d7db'],
+    [0.97, 50, '0x3fcbe990f3c0e7fd'],
+    [1.03, 2.5, '0x3ff13a257c89c712'],
+    [0.5, 11 / 12, '0x3fe0f38f92d97965'],
+    [2, 1 / 12, '0x3ff0f38f92d97963'],
+    [1e-6, 7 / 12, '0x3f34b96be9c2da2e'],
+    [1234.5, 100 / 12, '0x4547eed5764039cf'],
+  ];
+
+  it.each(golden)('S06: detPow(%d, %d) is bit-exact', (base, exp, bits) => {
+    expect(Object.is(detPow(base, exp), fromBits(bits))).toBe(true);
+  });
+
   it('S06: two calls with the same input are bit-identical', () => {
     fc.assert(
       fc.property(
@@ -94,6 +135,12 @@ describe('S06: detPow edge cases', () => {
 
   it('S06: an exponent that is not a whole number of twelfths throws', () => {
     expect(() => detPow(0.85, 0.1)).toThrow(RangeError);
+  });
+
+  it('S06: exponents up to MAX_EXPONENT work, larger ones throw', () => {
+    expect(detPow(0.99, MAX_EXPONENT)).toBeCloseTo(Math.pow(0.99, 100), 12);
+    expect(() => detPow(0.99, MAX_EXPONENT + 1 / 12)).toThrow(RangeError);
+    expect(() => detPow(0.99, 1e7 + 0.0001)).toThrow(RangeError);
   });
 
   it('S06: a negative base, a negative exponent or NaN throws', () => {

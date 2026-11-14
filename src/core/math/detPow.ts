@@ -5,7 +5,10 @@
 /** Newton steps for the twelfth root; fixed so the result never depends on a tolerance. */
 export const ROOT12_STEPS = 5;
 
-const TWELVE_POW_TOLERANCE = 1e-9;
+/** Largest accepted exponent: 1200 months = 100 years. */
+export const MAX_EXPONENT = 100;
+
+const TWELFTHS_TOLERANCE = 1e-9;
 /** 4096 = 2^12, so the twelfth root of 4096^k is exactly 2^k. */
 const RANGE_STEP = 4096;
 
@@ -24,16 +27,18 @@ function intPow(base: number, n: number): number {
   let rest = n;
   while (rest > 0) {
     if (rest % 2 === 1) result *= factor;
-    rest = floorDiv2(rest);
+    rest = Math.floor(rest / 2);
     if (rest > 0) factor *= factor;
   }
   return result;
 }
 
-const floorDiv2 = (n: number): number => (n - (n % 2)) / 2;
-
-/** Twelfth root of `a > 0` by range reduction and Newton's method. */
-function root12(a: number): number {
+/**
+ * Twelfth root of `a > 0` by range reduction and Newton's method. `steps` is
+ * a parameter only so tests can show that `ROOT12_STEPS` is enough and fewer
+ * steps are not.
+ */
+export function root12(a: number, steps: number = ROOT12_STEPS): number {
   let reduced = a;
   let scale = 1;
   while (reduced < 1) {
@@ -55,7 +60,7 @@ function root12(a: number): number {
     exponent += 1;
   }
   let x = (TWO_POW_TWELFTHS[exponent] ?? 1) * (1 + (mantissa - 1) * 0.0595);
-  for (let step = 0; step < ROOT12_STEPS; step++) {
+  for (let step = 0; step < steps; step++) {
     x = (11 * x + reduced / intPow(x, 11)) / 12;
   }
   return x * scale;
@@ -65,16 +70,20 @@ function root12(a: number): number {
  * `base^exponent` for `base >= 0` and an exponent in whole twelfths
  * (12 · exponent is an integer), as in (1 − w)^(D/12). Whole exponents take
  * the exact integer path. Anything else throws, as it is a programming error.
+ * A result beyond the double range overflows to Infinity (or underflows to 0)
+ * like Math.pow; it does not throw. The exponent is limited to
+ * `MAX_EXPONENT` (1200 months), beyond which the twelfths check loses
+ * precision, so larger values throw.
  */
 export function detPow(base: number, exponent: number): number {
   if (!Number.isFinite(base) || base < 0) {
     throw new RangeError(`detPow: invalid base ${base}`);
   }
-  if (!Number.isFinite(exponent) || exponent < 0) {
+  if (!Number.isFinite(exponent) || exponent < 0 || exponent > MAX_EXPONENT) {
     throw new RangeError(`detPow: invalid exponent ${exponent}`);
   }
   const twelfths = Math.floor(exponent * 12 + 0.5);
-  if (Math.abs(exponent * 12 - twelfths) > TWELVE_POW_TOLERANCE) {
+  if (Math.abs(exponent * 12 - twelfths) > TWELFTHS_TOLERANCE) {
     throw new RangeError(`detPow: exponent ${exponent} is not in twelfths`);
   }
   if (twelfths === 0) return 1;
