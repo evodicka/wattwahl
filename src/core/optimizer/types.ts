@@ -13,6 +13,11 @@ export type Option = {
   needs: number | null;
   /** What the option means; the problem builder decodes it. */
   choice: string;
+  /**
+   * Yearly quantities behind `cost`, so the result can show electricity,
+   * petrol and maintenance separately (F8.energy, F8.maintenance).
+   */
+  quantities?: { gridKwh: number; litres: number; iceKm: number };
 };
 
 /** Exactly one option is chosen per group (the knapsack picks one item per class). */

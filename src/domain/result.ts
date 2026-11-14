@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PresenceStateSchema, PriceCaseSchema, WeekdaySchema } from './schema';
 
 // Result-side schemas shared by core, worker, state and UI (architecture 5.1,
 // 8.4). S07 adds the trace; the offer result follows with S10.
@@ -78,3 +79,132 @@ export const SliderPricesSchema = z.object({
   electricityEscalationPct: z.number().min(-100),
 });
 export type SliderPrices = z.infer<typeof SliderPricesSchema>;
+
+const WaySchema = z.enum(['a', 'b']);
+export type WayKey = z.infer<typeof WaySchema>;
+/** 0 is January, 11 is December. */
+const MonthSchema = z.number().int().min(0).max(11);
+const TrafficLightSchema = z.enum(['green', 'yellow', 'red']);
+
+/** Why no plan works (spec "Ungeeignet"). */
+export const UnsuitableReasonSchema = z.discriminatedUnion('kind', [
+  z.object({
+    /** A day with both workplaces staffed that neither way can serve. */
+    kind: z.literal('both'),
+    weekday: WeekdaySchema,
+    month: MonthSchema,
+    /** Reserve of each way in km at `soh`; negative where the EV cannot drive. */
+    reserveKm: z.object({ a: z.number(), b: z.number() }),
+    soh: z.number(),
+  }),
+  z.object({
+    /** Strict mode: this way is not drivable in this month. */
+    kind: z.literal('strict'),
+    way: WaySchema,
+    month: MonthSchema,
+    reserveKm: z.number(),
+    soh: z.number(),
+  }),
+  z.object({
+    /**
+     * Every way is drivable at the best SoH, but driving them lowers the SoH
+     * (more EV km, less capacity) below what they need.
+     */
+    kind: z.literal('coupling'),
+    soh: z.number(),
+  }),
+]);
+export type UnsuitableReason = z.infer<typeof UnsuitableReasonSchema>;
+
+/** What the plan does on one day type: the EV drives A or B, or rests. */
+export const PlanChoiceSchema = z.enum(['evA', 'evB', 'rest']);
+
+export const PlanCellSchema = z.object({
+  weekday: WeekdaySchema,
+  month: MonthSchema,
+  state: PresenceStateSchema,
+  choice: PlanChoiceSchema,
+});
+
+/** Range reserve of one way in one month at the checked SoH (spec section 3). */
+export const ReserveCellSchema = z.object({
+  way: WaySchema,
+  month: MonthSchema,
+  reserveKm: z.number(),
+  /** In percent: 25.9 means 25.9 %. */
+  reservePct: z.number(),
+  light: TrafficLightSchema,
+});
+export type ReserveCell = z.infer<typeof ReserveCellSchema>;
+
+const offerFields = {
+  offerId: z.string(),
+  candidateId: z.string(),
+  kind: z.enum(['purchase', 'lease']),
+  priceCase: PriceCaseSchema,
+};
+
+/**
+ * The result of one offer in one price case (spec step 6 of the algorithm and
+ * "Ergebnistabelle"). Every number of an `ok` result has an entry with its
+ * path in the Rechenweg (Q6).
+ */
+export const OfferResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    ...offerFields,
+    status: z.literal('ok'),
+    /** Plan per weekday, month and presence state that occurs; EV drives A, B or rests. */
+    plan: z.array(PlanCellSchema),
+    /** Share of the extra mileage the EV drives per month in percent; null without extra mileage. */
+    extraSharePct: z.array(z.number().nullable()).length(12),
+    /** K_EV and K_ICE in km per year. */
+    evKmPerYear: z.number(),
+    iceKmPerYear: z.number(),
+    /** Planned mileage of the petrol car at the end of the comparison. */
+    iceOdometerEnd: z.number(),
+    /** SoH at the end of the comparison, and the SoH the reserves are checked at. */
+    sohEnd: z.number(),
+    sohCheck: z.number(),
+    costs: z.object({
+      /** Purchase (value lost) or lease, depending on `kind`. */
+      acquisition: z.number(),
+      electricity: z.number(),
+      petrol: z.number(),
+      maintenance: z.number(),
+      total: z.number(),
+      /** Extra cost of the warranty budget against the cheapest plan overall. */
+      budgetExtraCost: z.number(),
+    }),
+    /** Both ways in each month: 24 cells, way a first. */
+    reserves: z.array(ReserveCellSchema).length(24),
+    /** The cell of `reserves` with the smallest reserve in percent. */
+    minReserve: ReserveCellSchema.omit({ light: true }),
+    warranty: z.object({
+      /** Both warranties are expired: "ohne Garantie". */
+      noWarranty: z.boolean(),
+      budgetKmPerYear: z.number().nullable(),
+      budgetExceeded: z.boolean(),
+      /** With `budgetExceeded`: years until each running warranty's km limit. */
+      yearsToKmLimit: z
+        .object({
+          vehicle: z.number().nullable(),
+          battery: z.number().nullable(),
+        })
+        .nullable(),
+    }),
+    warnings: z.array(z.enum(['budgetExceeded'])),
+  }),
+  z.object({
+    ...offerFields,
+    status: z.literal('incomplete'),
+    /** Fields that block this offer, as schema paths such as `candidates[2].purchasePrice`. */
+    issues: z.array(z.object({ path: z.string(), message: z.string() })),
+  }),
+  z.object({
+    ...offerFields,
+    status: z.literal('unsuitable'),
+    reason: UnsuitableReasonSchema,
+  }),
+]);
+export type OfferResult = z.infer<typeof OfferResultSchema>;
+export type OkOfferResult = Extract<OfferResult, { status: 'ok' }>;
