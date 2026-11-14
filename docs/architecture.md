@@ -44,7 +44,7 @@ Die Plattform ist durch die Spezifikation fest vorgegeben: statische Seite, kein
 | Kein Server, keine Benutzerkonten, keine Live-Preise | Gesamte Logik im Browser, Geräteabgleich nur über Export-Datei |
 | Keine Cookies, keine Analyse, keine Laufzeit-Abhängigkeit von externen Diensten | Alle Bibliotheken werden mitgebaut, keine CDN-Einbindung |
 | Aktuelle Chrome, Edge, Firefox und Safari auf Desktop und Handy | Nur Web-Standards mit Unterstützung in allen drei Engines (Blink, Gecko, WebKit) (Web Worker, IndexedDB, Service Worker) |
-| Stabile Adresse, weil der Browser-Speicher an den Origin gebunden ist | Repository-Name und Pages-Pfad werden nicht geändert, Vite-`base` ist fest |
+| Stabile Adresse, weil der Browser-Speicher an den Origin gebunden ist | Der Origin ist `https://wattwahl.evodicka.dev` und wird nicht geändert, Vite-`base` ist fest `/` |
 | Sprache Deutsch, Euro, Kilometer, Dezimalkomma | Formatierung über `Intl` mit Locale `de-DE`, Texte in einer Sprachdatei |
 
 ### 2.2 Organisatorisch
@@ -292,8 +292,8 @@ Nach dem ersten Laden kommt die App aus dem Service-Worker-Cache. Die Daten in I
 
 ### 7.2 Konfiguration
 
-- Vite `base` ist fest auf `/<Repository-Name>/` gesetzt, der Service Worker nutzt denselben Scope.
-- Quelle von GitHub Pages ist „GitHub Actions“, nicht ein Branch.
+- Vite `base` ist fest auf `/` gesetzt, der Service Worker nutzt den Scope `/`.
+- Quelle von GitHub Pages ist „GitHub Actions“, nicht ein Branch. Die Custom Domain `wattwahl.evodicka.dev` ist in den Repository-Einstellungen gesetzt und HTTPS erzwungen. Eine `CNAME`-Datei im Repository ist bei dieser Quelle wirkungslos und wird nicht angelegt.
 - Lokale Entwicklung mit `vite`, Vorschau des PWA-Builds mit `vite preview`.
 
 ## 8. Querschnittliche Konzepte
@@ -456,7 +456,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 | Eigene Potenzfunktion `detPow` weicht von `Math.pow` ab oder ist langsamer | Abweichung von den Handrechnungen, längere Rechenzeit | Property-Test gegen `Math.pow` mit relativer Toleranz 1e-12, Laufzeit in Q1 mitmessen |
 | Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (Grenzwert festzulegen) |
 | Fehlerhafte Schema-Migration | Gespeicherte Szenarien unlesbar | Beispieldatei je Schemaversion im Repository, Migrationstest im CI, alter Datensatz bleibt bis zur erfolgreichen Prüfung erhalten |
-| Änderung von Repository-Name oder Pages-Adresse | Neuer Origin, Browser-Speicher leer | Adresse festschreiben, vor jedem Umzug exportieren |
+| Änderung der Domain oder Entfernen der Custom Domain | Neuer Origin, Browser-Speicher leer | Domain festschreiben, vor jedem Umzug exportieren. Ein Umbenennen des Repositorys ändert den Origin nicht |
 | Lint-Regeln sind die einzige Schichtgrenze | Versehentliche UI-Importe im Kern | Regel im CI verpflichtend, Q11 als Test |
 
 **Technische Schulden zum Start:** keine. Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst zurückgestellt und wird erst nach dem Benchmark entschieden.

@@ -27,8 +27,8 @@ Jeder Schritt ist eine abgeschlossene Aufgabe für einen Agenten und endet mit e
 
 Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später nur mit Datenverlust oder Mehraufwand änderbar.
 
-- [ ] Name und Besitzer des öffentlichen GitHub-Repositorys. Der Name bestimmt die Pages-Adresse und damit den Origin des Browser-Speichers (Architektur 2.1 und 7.2).
-- [ ] Zugang zu Claude Design für Phase 3 und eine Person, die die Mockups freigibt.
+- [x] Repository `evodicka/wattwahl`, öffentlich. Die Adresse ist `https://wattwahl.evodicka.dev/` und bestimmt den Origin des Browser-Speichers (Architektur 2.1 und 7.2).
+- [ ] Zugang zu Claude Design für Phase 3 und eine Person, die die Mockups freigibt. Der Punkt blockiert erst D2 und D3, nicht Phase 0.
 
 ## Ablauf
 
