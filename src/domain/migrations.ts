@@ -83,6 +83,15 @@ export const UpgradeResultSchema = z.discriminatedUnion('status', [
 ]);
 export type UpgradeResult = z.infer<typeof UpgradeResultSchema>;
 
+/** Formats a Zod issue path like the spec (architecture 8.3): `candidates[2].price`. */
+function formatPath(path: PropertyKey[]): string {
+  return path.reduce<string>((acc, segment) => {
+    if (typeof segment === 'number') return `${acc}[${segment}]`;
+    const key = String(segment);
+    return acc === '' ? key : `${acc}.${key}`;
+  }, '');
+}
+
 /** Migrates a stored or imported scenario record and checks it with the storage schema. */
 export function upgradeScenario(record: {
   schemaVersion: unknown;
@@ -99,7 +108,7 @@ export function upgradeScenario(record: {
       status: 'invalid',
       reason: 'schemaMismatch',
       issues: parsed.error.issues.map((issue) => ({
-        path: issue.path.join('.'),
+        path: formatPath(issue.path),
         message: issue.message,
       })),
     };
