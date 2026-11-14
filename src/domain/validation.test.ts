@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { exampleScenario } from '../../tests/fixtures/exampleScenario';
-import { CandidateComputeSchema, ScenarioSchema } from './schema';
-import { ScenarioComputeSchema } from './schema';
+import {
+  CandidateComputeSchema,
+  ScenarioComputeSchema,
+  ScenarioSchema,
+} from './schema';
 import {
   checkWarnings,
   parseDecimal,
@@ -55,16 +58,25 @@ describe('S04: parseDecimal', () => {
     ['  8,25 ', 8.25],
     ['-3,5', -3.5],
     ['−3,5', -3.5],
-  ])('S04: thousands separator and decimals: "%s" is %d', (text, expected) => {
+  ])('S04: thousands separator and decimals: "%s" is %s', (text, expected) => {
     expect(parseDecimal(text)).toEqual(ok(expected));
   });
 
-  it.each(['abc', '1,2,3', '1.2.3', '1,234.5', ',5', '12.', '--1', '-', '1e3'])(
-    'S04: "%s" is invalid and never NaN',
-    (text) => {
-      expect(parseDecimal(text)).toEqual(fail('invalid'));
-    },
-  );
+  it.each([
+    'abc',
+    '1,2,3',
+    '1.2.3',
+    '1,234.5',
+    ',5',
+    '.5',
+    '+5',
+    '12.',
+    '--1',
+    '-',
+    '1e3',
+  ])('S04: "%s" is invalid and never NaN', (text) => {
+    expect(parseDecimal(text)).toEqual(fail('invalid'));
+  });
 
   it('S04: an empty string is empty', () => {
     expect(parseDecimal('')).toEqual(fail('empty'));
@@ -94,6 +106,45 @@ describe('S04: parseNumberField', () => {
     expect(parseNumberField('12a', { required: true })).toEqual({
       ok: false,
       error: 'invalid',
+    });
+  });
+
+  it('S04: unreadable text in an optional field is invalid, not empty', () => {
+    expect(parseNumberField('abc', { required: false })).toEqual({
+      ok: false,
+      error: 'invalid',
+    });
+  });
+
+  it('S04: whitespace only in an optional field is empty', () => {
+    expect(parseNumberField('   ', { required: false })).toEqual({
+      ok: true,
+      value: null,
+    });
+  });
+
+  it('S04: min, max and minExclusive combine', () => {
+    const rules = { required: true, min: 0, minExclusive: true, max: 100 };
+    expect(parseNumberField('0', rules)).toEqual({
+      ok: false,
+      error: 'belowMin',
+    });
+    expect(parseNumberField('0,1', rules)).toEqual({ ok: true, value: 0.1 });
+    expect(parseNumberField('100', rules)).toEqual({ ok: true, value: 100 });
+    expect(parseNumberField('100,1', rules)).toEqual({
+      ok: false,
+      error: 'aboveMax',
+    });
+  });
+
+  it('S04: a Unicode minus is read as negative', () => {
+    expect(parseNumberField('−3', { required: true, min: 0 })).toEqual({
+      ok: false,
+      error: 'belowMin',
+    });
+    expect(parseNumberField('−3', { required: true })).toEqual({
+      ok: true,
+      value: -3,
     });
   });
 });
@@ -130,6 +181,43 @@ describe('S04: plausibility warnings', () => {
     scenario.workplaces.b.commute = { city: 100, rural: 100, highway: 101 };
     expect(checkWarnings(scenario)).toEqual([
       { code: 'commuteAbove300', path: 'workplaces.b.commute' },
+    ]);
+  });
+
+  it('S04: cold above mild also warns for the combined range', () => {
+    const scenario = exampleScenario();
+    const candidate = scenario.candidates[0];
+    if (!candidate) throw new Error('example candidate missing');
+    candidate.rangeKm.combined = { mild: 300, cold: 320 };
+    expect(checkWarnings(scenario)).toEqual([
+      { code: 'coldAboveMild', path: 'candidates.0.rangeKm.combined' },
+    ]);
+  });
+
+  it('S04: cold equal to mild does not warn', () => {
+    const scenario = exampleScenario();
+    const candidate = scenario.candidates[0];
+    if (!candidate) throw new Error('example candidate missing');
+    candidate.rangeKm.city = { mild: 300, cold: 300 };
+    expect(checkWarnings(scenario)).toEqual([]);
+  });
+
+  it('S04: a commute of exactly 300 km does not warn', () => {
+    const scenario = exampleScenario();
+    scenario.workplaces.b.commute = { city: 100, rural: 100, highway: 100 };
+    expect(checkWarnings(scenario)).toEqual([]);
+  });
+
+  it('S04: the warning path carries the index of the second candidate', () => {
+    const scenario = exampleScenario();
+    const first = scenario.candidates[0];
+    if (!first) throw new Error('example candidate missing');
+    scenario.candidates.push(structuredClone(first));
+    const second = scenario.candidates[1];
+    if (!second) throw new Error('second candidate missing');
+    second.netCapacityKwh = 250;
+    expect(checkWarnings(scenario)).toEqual([
+      { code: 'capacityAbove200', path: 'candidates.1.netCapacityKwh' },
     ]);
   });
 
