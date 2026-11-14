@@ -15,16 +15,18 @@ npm ci
 npm run dev
 ```
 
-| Script                 | Purpose                                        |
-| ---------------------- | ---------------------------------------------- |
-| `npm run dev`          | Vite dev server                                |
-| `npm run build`        | Type-check and production build into `dist/`   |
-| `npm run preview`      | Serve the production build locally             |
-| `npm run lint`         | ESLint, including the module import boundaries |
-| `npm run typecheck`    | `tsc` in strict mode                           |
-| `npm test`             | Vitest (unit tests and lint-rule fixtures)     |
-| `npm run test:e2e`     | Playwright in Chromium, Firefox and WebKit     |
-| `npm run format:check` | Prettier check (`npm run format` fixes)        |
+| Script                  | Purpose                                        |
+| ----------------------- | ---------------------------------------------- |
+| `npm run dev`           | Vite dev server                                |
+| `npm run build`         | Type-check and production build into `dist/`   |
+| `npm run preview`       | Serve the production build locally             |
+| `npm run lint`          | ESLint, including the module import boundaries |
+| `npm run typecheck`     | `tsc` in strict mode                           |
+| `npm test`              | Vitest (unit tests and lint-rule fixtures)     |
+| `npm run test:e2e`      | Playwright in Chromium, Firefox and WebKit     |
+| `npm run format:check`  | Prettier check (`npm run format` fixes)        |
+| `npm run bench`         | Micro-benchmark of `detPow` and Q1 in Node     |
+| `npm run bench:browser` | Q1 in Chromium, Firefox, WebKit (not in CI)    |
 
 The project `.npmrc` pins the public npm registry and exact dependency versions. Do not commit a lockfile that references a private registry.
 
