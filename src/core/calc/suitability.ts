@@ -1,6 +1,13 @@
 import type { Parameters } from '../../domain';
 import type { Trace } from '../trace';
-import { fraction, type PerRoad } from './units';
+import {
+  TRIPS_PER_WORKING_DAY,
+  finiteRatio,
+  fraction,
+  percent,
+  roadInputs,
+  type PerRoad,
+} from './units';
 
 // Spec "Berechnungslogik" section 3: suitability of one way in one month.
 // Reserves are in percent (25.9 means 25.9 %), like every stored percentage.
@@ -33,7 +40,7 @@ export function tripsCounted(
   chargesFreeAtWork: boolean,
   trace?: Trace,
 ): number {
-  const n = chargesFreeAtWork ? 1 : 2;
+  const n = TRIPS_PER_WORKING_DAY - (chargesFreeAtWork ? 1 : 0);
   trace?.add({ formula: 'F3.n', inputs: { chargesFreeAtWork }, value: n });
   return n;
 }
@@ -45,19 +52,19 @@ export function capacityShare(
   soh: number,
   trace?: Trace,
 ): number {
-  const phi =
-    distanceKm.city / (checkRangeKm.city * soh) +
-    distanceKm.rural / (checkRangeKm.rural * soh) +
-    distanceKm.highway / (checkRangeKm.highway * soh);
+  // A road without distance needs no capacity; a road with distance but no
+  // range or no SoH needs more than the battery has (largest finite share).
+  const phi = Math.min(
+    finiteRatio(distanceKm.city, checkRangeKm.city * soh) +
+      finiteRatio(distanceKm.rural, checkRangeKm.rural * soh) +
+      finiteRatio(distanceKm.highway, checkRangeKm.highway * soh),
+    Number.MAX_VALUE,
+  );
   trace?.add({
     formula: 'F3.phi',
     inputs: {
-      city: distanceKm.city,
-      rural: distanceKm.rural,
-      highway: distanceKm.highway,
-      rangeCity: checkRangeKm.city,
-      rangeRural: checkRangeKm.rural,
-      rangeHighway: checkRangeKm.highway,
+      ...roadInputs(distanceKm),
+      ...roadInputs(checkRangeKm, 'range'),
       soh,
     },
     value: phi,
@@ -81,7 +88,10 @@ export function isSuitable(
   return suitable;
 }
 
-/** F3.reserveKm: d_w (u / φ - n). Negative when the way is not suitable. */
+/**
+ * F3.reserveKm: d_w (u / φ - n). Negative when the way is not suitable. With
+ * φ = 0 the reserve is unlimited (largest finite value), or 0 for a way of 0 km.
+ */
 export function reserveKm(
   wayKm: number,
   u: number,
@@ -89,7 +99,7 @@ export function reserveKm(
   n: number,
   trace?: Trace,
 ): number {
-  const reserve = wayKm * (u / phi - n);
+  const reserve = Math.min(wayKm * (finiteRatio(u, phi) - n), Number.MAX_VALUE);
   trace?.add({
     formula: 'F3.reserveKm',
     inputs: { wayKm, u, phi, n },
@@ -98,14 +108,24 @@ export function reserveKm(
   return reserve;
 }
 
-/** F3.reservePct: u / (n · φ) - 1, in percent. */
+/**
+ * F3.reservePct: u / (n · φ) - 1, in percent. Without a need (n · φ = 0) the
+ * reserve is unlimited (largest finite value), or 0 when there is no usable
+ * capacity either.
+ */
 export function reservePct(
   u: number,
   phi: number,
   n: number,
   trace?: Trace,
 ): number {
-  const reserve = (u / (n * phi) - 1) * 100;
+  const need = n * phi;
+  const reserve =
+    need <= 0
+      ? u > 0
+        ? Number.MAX_VALUE
+        : 0
+      : Math.min(percent(u / need - 1), Number.MAX_VALUE);
   trace?.add({
     formula: 'F3.reservePct',
     inputs: { u, phi, n },
@@ -163,20 +183,27 @@ export function checkWay(
     trace,
   );
   const reserve = reservePct(input.u, phi, n, trace);
+  const suitable = isSuitable(n, phi, input.u, trace);
+  // n·φ ≤ u and u/(n·φ) - 1 ≥ 0 differ by rounding at the boundary; the
+  // suitability flag decides, so the light is red exactly when not suitable.
+  const lightReserve = suitable
+    ? Math.max(reserve, 0)
+    : Math.min(reserve, -Number.MIN_VALUE);
   return {
     phi,
     n,
-    suitable: isSuitable(n, phi, input.u, trace),
+    suitable,
     reserveKm: reserveKm(sumRoads(input.distanceKm), input.u, phi, n, trace),
     reservePct: reserve,
-    light: trafficLight(reserve, input.greenFromPct, trace),
+    light: trafficLight(lightReserve, input.greenFromPct, trace),
   };
 }
 
 /**
  * OPT.threshold: the lowest SoH at which the way is suitable, n · φ_1 / u with
  * φ_1 the capacity share at SoH 1. The optimizer uses it to find which options
- * a given SoH permits.
+ * a given SoH permits. The value is not clamped: above 1 the way is never
+ * suitable, below the minimum SoH it is always suitable.
  */
 export function sohThreshold(
   distanceKm: PerRoad,
@@ -185,8 +212,9 @@ export function sohThreshold(
   u: number,
   trace?: Trace,
 ): number {
+  // Untraced on purpose: only OPT.threshold belongs in the Rechenweg here.
   const phiAtFullSoh = capacityShare(distanceKm, checkRangeKm, 1);
-  const threshold = (n * phiAtFullSoh) / u;
+  const threshold = finiteRatio(n * phiAtFullSoh, u);
   trace?.add({
     formula: 'OPT.threshold',
     inputs: { phiAtFullSoh, n, u },

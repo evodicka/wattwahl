@@ -1,6 +1,6 @@
 import type { CandidateCompute, Parameters } from '../../domain';
 import type { Trace } from '../trace';
-import { fraction } from './units';
+import { finiteRatio, fraction } from './units';
 
 // Spec "Berechnungslogik" section 2: battery ageing (SoH). All values are
 // fractions of the original capacity.
@@ -14,13 +14,13 @@ export type SohCurve = {
   slope: number;
 };
 
-/** F2.slope: s = (1 - SoH_min) / k_SoH. */
+/** F2.slope: s = (1 - SoH_min) / k_SoH. Without a distance to SoH_min the car ages at once (largest finite slope). */
 export function sohSlope(
   sohMinPct: number,
   kmToSohMin: number,
   trace?: Trace,
 ): number {
-  const slope = (1 - fraction(sohMinPct)) / kmToSohMin;
+  const slope = finiteRatio(1 - fraction(sohMinPct), kmToSohMin);
   trace?.add({
     formula: 'F2.slope',
     inputs: { sohMinPct, kmToSohMin },

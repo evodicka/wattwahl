@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { exampleCandidateCompute } from '../../../tests/fixtures/exampleScenario';
 import { expectSpec } from '../../../tests/helpers/specTolerance';
 import { Trace } from '../trace';
-import { mixWeight, mixWeightCold, roadRanges } from './range';
+import { checkRanges, mixWeight, mixWeightCold, roadRanges } from './range';
 
 const ranges = exampleCandidateCompute().rangeKm;
 const formulas = (trace: Trace) => trace.entries.map((e) => e.formula);
@@ -29,7 +29,7 @@ describe('TC3: temperature mixing (F1)', () => {
 
   it('F1.RStar: the check range uses its own formula ID and the highway discount', () => {
     const trace = new Trace();
-    const r = roadRanges(ranges, 0, 12, trace, 'F1.RStar');
+    const r = checkRanges(ranges, 0, 12, trace);
     expect(r.highway).toBeCloseTo(220 * 0.88, 10);
     expect(r.city).toBe(300);
     expect(new Set(formulas(trace))).toEqual(new Set(['F1.RStar']));
@@ -43,7 +43,7 @@ describe('F1: properties', () => {
   });
   const rangesArb = fc.record({ city: pair, highway: pair, combined: pair });
 
-  it('F1: every range lies between its cold and mild value (cold > mild only warns)', () => {
+  it('F1: every range lies between its cold and mild value', () => {
     fc.assert(
       fc.property(
         rangesArb,
@@ -76,7 +76,7 @@ describe('F1: properties', () => {
           const trace = new Trace();
           const w = mixWeightCold(temp, 5, -10, 23);
           expect(mixWeightCold(temp, 5, -10, 23, trace)).toBe(w);
-          expect(roadRanges(r, w, discount, trace, 'F1.RStar')).toEqual(
+          expect(checkRanges(r, w, discount, trace)).toEqual(
             roadRanges(r, w, discount),
           );
         },

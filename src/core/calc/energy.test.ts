@@ -35,9 +35,19 @@ describe('TC4: energy and daily cost of the EV (F4)', () => {
     expectSpec(c.highway, '0,273');
     expectSpec(battery, '15,01');
     expectSpec(grid, '16,67');
-    expect(new Set(trace.entries.map((e) => e.formula))).toEqual(
-      new Set(['F1.w', 'F1.R', 'F4.c', 'F4.E', 'F4.Egrid']),
-    );
+    expect(trace.entries.map((e) => [e.formula, e.inputs.road])).toEqual([
+      ['F1.w', undefined],
+      ['F1.R', 'city'],
+      ['F1.R', 'rural'],
+      ['F1.R', 'highway'],
+      ['F4.c', 'city'],
+      ['F4.c', 'rural'],
+      ['F4.c', 'highway'],
+      ['F4.E', undefined],
+      ['F4.Egrid', undefined],
+    ]);
+    const cEntries = trace.entries.filter((e) => e.formula === 'F4.c');
+    expect(cEntries.map((e) => e.value)).toEqual([c.city, c.rural, c.highway]);
   });
 
   it('TC4: daily cost 10.00 EUR without and 5.00 EUR with charging at work', () => {

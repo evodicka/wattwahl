@@ -6,7 +6,7 @@ import {
 } from '../../../tests/fixtures/exampleScenario';
 import { expectSpec } from '../../../tests/helpers/specTolerance';
 import { Trace } from '../trace';
-import { mixWeightCold, roadRanges } from './range';
+import { checkRanges, mixWeightCold } from './range';
 import {
   checkWay,
   sohThreshold,
@@ -21,12 +21,11 @@ const wayA: PerRoad = { city: 10, rural: 15, highway: 35 };
 /** Test case 1 and 2: January at -10 °C, SoH 1, check range of the common data. */
 function january(chargesFreeAtWork: boolean, trace?: Trace) {
   const w = mixWeightCold(-10, params.coldReserveK, -10, 23, trace);
-  const checkRangeKm = roadRanges(
+  const checkRangeKm = checkRanges(
     exampleCandidateCompute().rangeKm,
     w,
     params.highwayDiscountPct,
     trace,
-    'F1.RStar',
   );
   const u = usableShare(params, trace);
   return checkWay(
@@ -53,19 +52,25 @@ describe('TC1: suitability in winter without charging at work (F3)', () => {
     expectSpec(check.reserveKm, '31,1');
     expectSpec(check.reservePct, '25,9');
     expect(check.light).toBe('green');
-    expect(new Set(trace.entries.map((e) => e.formula))).toEqual(
-      new Set([
-        'F1.wStar',
-        'F1.RStar',
-        'F3.u',
-        'F3.n',
-        'F3.phi',
-        'F3.reservePct',
-        'F3.suitable',
-        'F3.reserveKm',
-        'F3.trafficLight',
-      ]),
-    );
+    expect(trace.entries.map((e) => e.formula)).toEqual([
+      'F1.wStar',
+      'F1.RStar',
+      'F1.RStar',
+      'F1.RStar',
+      'F3.u',
+      'F3.n',
+      'F3.phi',
+      'F3.reservePct',
+      'F3.suitable',
+      'F3.reserveKm',
+      'F3.trafficLight',
+    ]);
+    const entry = (formula: string) =>
+      trace.entries.find((e) => e.formula === formula);
+    expect(entry('F3.n')?.value).toBe(2);
+    expect(entry('F3.phi')?.value).toBe(check.phi);
+    expect(entry('F3.suitable')?.value).toBe(true);
+    expect(entry('F3.trafficLight')?.value).toBe('green');
   });
 });
 
@@ -88,13 +93,7 @@ describe('F3: traffic light and threshold', () => {
 
   it('OPT.threshold: a way is suitable exactly from the threshold SoH', () => {
     const w = mixWeightCold(-10, 0, -10, 23);
-    const checkRangeKm = roadRanges(
-      exampleCandidateCompute().rangeKm,
-      w,
-      0,
-      undefined,
-      'F1.RStar',
-    );
+    const checkRangeKm = checkRanges(exampleCandidateCompute().rangeKm, w, 0);
     const u = usableShare(params);
     const threshold = sohThreshold(wayA, checkRangeKm, 2, u);
     const at = (soh: number) =>
@@ -108,6 +107,25 @@ describe('F3: traffic light and threshold', () => {
       });
     expect(at(threshold * 1.0001).suitable).toBe(true);
     expect(at(threshold * 0.9999).suitable).toBe(false);
+  });
+
+  it('OPT.threshold: above 1 the way is never suitable, and it stays finite for u = 0', () => {
+    const w = mixWeightCold(-10, 0, -10, 23);
+    const checkRangeKm = checkRanges(exampleCandidateCompute().rangeKm, w, 0);
+    const longWay: PerRoad = { city: 100, rural: 100, highway: 200 };
+    const threshold = sohThreshold(longWay, checkRangeKm, 2, 0.63);
+    expect(threshold).toBeGreaterThan(1);
+    expect(
+      checkWay({
+        distanceKm: longWay,
+        checkRangeKm,
+        soh: 1,
+        u: 0.63,
+        chargesFreeAtWork: false,
+        greenFromPct: 15,
+      }).suitable,
+    ).toBe(false);
+    expect(Number.isFinite(sohThreshold(wayA, checkRangeKm, 2, 0))).toBe(true);
   });
 });
 
@@ -141,6 +159,8 @@ describe('F3: properties', () => {
         } else {
           expect(check.reservePct).toBeLessThan(1e-9);
         }
+        // the light never contradicts the suitability flag, even at the boundary
+        expect(check.light === 'red').toBe(!check.suitable);
       }),
     );
   });

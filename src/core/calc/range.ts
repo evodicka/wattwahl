@@ -9,6 +9,17 @@ export type CandidateRanges = CandidateCompute['rangeKm'];
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
+/**
+ * Position of `tempC` between the cold and mild temperature, clamped to 0..1.
+ * With tColdC = tMildC there is no transition, so the weight is a step: 1 from
+ * the mild temperature, 0 below.
+ */
+function weightAt(tempC: number, tColdC: number, tMildC: number): number {
+  const span = tMildC - tColdC;
+  if (span === 0) return tempC >= tMildC ? 1 : 0;
+  return clamp01((tempC - tColdC) / span);
+}
+
 /** F1.w: weight of the mild range at monthly temperature `tempC`. */
 export function mixWeight(
   tempC: number,
@@ -16,7 +27,7 @@ export function mixWeight(
   tMildC: number,
   trace?: Trace,
 ): number {
-  const w = clamp01((tempC - tColdC) / (tMildC - tColdC));
+  const w = weightAt(tempC, tColdC, tMildC);
   trace?.add({ formula: 'F1.w', inputs: { tempC, tColdC, tMildC }, value: w });
   return w;
 }
@@ -29,7 +40,7 @@ export function mixWeightCold(
   tMildC: number,
   trace?: Trace,
 ): number {
-  const w = clamp01((tempC - coldReserveK - tColdC) / (tMildC - tColdC));
+  const w = weightAt(tempC - coldReserveK, tColdC, tMildC);
   trace?.add({
     formula: 'F1.wStar',
     inputs: { tempC, coldReserveK, tColdC, tMildC },
@@ -38,16 +49,21 @@ export function mixWeightCold(
   return w;
 }
 
-/**
- * F1.R, or F1.RStar with the weight from `mixWeightCold`: range per road type.
- * City is city, rural is combined, highway is reduced by the highway discount.
- */
-export function roadRanges(
+const ROADS = ['city', 'rural', 'highway'] as const;
+
+/** Which candidate range each road type uses: rural is the combined range. */
+const RANGE_SOURCE: Record<(typeof ROADS)[number], keyof CandidateRanges> = {
+  city: 'city',
+  rural: 'combined',
+  highway: 'highway',
+};
+
+function rangesFor(
+  formula: 'F1.R' | 'F1.RStar',
   ranges: CandidateRanges,
   weight: number,
   highwayDiscountPct: number,
   trace?: Trace,
-  formula: 'F1.R' | 'F1.RStar' = 'F1.R',
 ): PerRoad {
   const at = (pair: RangePair): number =>
     pair.cold + weight * (pair.mild - pair.cold);
@@ -57,9 +73,8 @@ export function roadRanges(
     highway: at(ranges.highway) * (1 - fraction(highwayDiscountPct)),
   };
   if (trace) {
-    const source = { city: 'city', rural: 'combined', highway: 'highway' };
-    for (const road of ['city', 'rural', 'highway'] as const) {
-      const pair = ranges[source[road] as keyof CandidateRanges];
+    for (const road of ROADS) {
+      const pair = ranges[RANGE_SOURCE[road]];
       trace.add({
         formula,
         inputs: {
@@ -67,11 +82,34 @@ export function roadRanges(
           weight,
           cold: pair.cold,
           mild: pair.mild,
-          highwayDiscountPct: road === 'highway' ? highwayDiscountPct : 0,
+          ...(road === 'highway' && { highwayDiscountPct }),
         },
         value: result[road],
       });
     }
   }
   return result;
+}
+
+/**
+ * F1.R: range per road type at the monthly weight from `mixWeight`. City is
+ * city, rural is combined, highway is reduced by the highway discount.
+ */
+export function roadRanges(
+  ranges: CandidateRanges,
+  weight: number,
+  highwayDiscountPct: number,
+  trace?: Trace,
+): PerRoad {
+  return rangesFor('F1.R', ranges, weight, highwayDiscountPct, trace);
+}
+
+/** F1.RStar: the same ranges with the weight from `mixWeightCold`, for the suitability check. */
+export function checkRanges(
+  ranges: CandidateRanges,
+  weight: number,
+  highwayDiscountPct: number,
+  trace?: Trace,
+): PerRoad {
+  return rangesFor('F1.RStar', ranges, weight, highwayDiscountPct, trace);
 }
