@@ -23,9 +23,18 @@ npm run dev
 | `npm run lint`         | ESLint, including the module import boundaries |
 | `npm run typecheck`    | `tsc` in strict mode                           |
 | `npm test`             | Vitest (unit tests and lint-rule fixtures)     |
+| `npm run test:e2e`     | Playwright in Chromium, Firefox and WebKit     |
 | `npm run format:check` | Prettier check (`npm run format` fixes)        |
 
 The project `.npmrc` pins the public npm registry and exact dependency versions. Do not commit a lockfile that references a private registry.
+
+## CI and deployment
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`: install, lint, format check, typecheck, unit tests, build, then the Playwright end-to-end tests in all three browser engines. Only a green push to `main` deploys to GitHub Pages.
+
+- GitHub Pages is set to the source "GitHub Actions" and serves the custom domain `wattwahl.evodicka.dev` (configured in the repository settings; a `CNAME` file is ignored for this source).
+- Vite `base` is `/`. The browser storage is bound to this origin, so never change the domain without exporting the data first.
+- Run `npx playwright install` once before `npm run test:e2e` locally.
 
 ## Documentation
 
