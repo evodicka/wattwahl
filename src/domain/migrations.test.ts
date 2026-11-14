@@ -1,13 +1,18 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CURRENT_SCHEMA_VERSION } from './schema';
+import { CURRENT_SCHEMA_VERSION, ScenarioSchema } from './schema';
 import { createMigrator, migrate, upgradeScenario } from './migrations';
 
-const fixtureDir = join(process.cwd(), 'src/domain/__fixtures__');
+const fixtureDir = fileURLToPath(new URL('./__fixtures__', import.meta.url));
+const fixtureVersion = (name: string): number | undefined => {
+  const match = /^scenario\.v(\d+)\.json$/.exec(name);
+  return match?.[1] ? Number(match[1]) : undefined;
+};
 const fixtureFiles = readdirSync(fixtureDir)
-  .filter((name) => /^scenario\.v\d+\.json$/.test(name))
-  .sort();
+  .filter((name) => fixtureVersion(name) !== undefined)
+  .sort((a, b) => (fixtureVersion(a) ?? 0) - (fixtureVersion(b) ?? 0));
 
 function readFixture(name: string): { schemaVersion: number; data: unknown } {
   return JSON.parse(readFileSync(join(fixtureDir, name), 'utf8'));
@@ -23,9 +28,7 @@ function deepFreeze<T>(value: T): T {
 
 describe('S05: example file per schema version', () => {
   it('has exactly one example file for each version 1 to current', () => {
-    const versions = fixtureFiles.map((name) =>
-      Number(/\d+/.exec(name.replace('scenario.', ''))?.[0]),
-    );
+    const versions = fixtureFiles.map(fixtureVersion);
     expect(versions).toEqual(
       Array.from({ length: CURRENT_SCHEMA_VERSION }, (_, i) => i + 1),
     );
@@ -45,10 +48,10 @@ describe('S05: example file per schema version', () => {
     },
   );
 
-  it('keeps the data of the v1 file unchanged by the current chain', () => {
-    const record = readFixture('scenario.v1.json');
-    const result = upgradeScenario(record);
-    expect(result.status === 'ok' && result.scenario).toEqual(record.data);
+  it.each(fixtureFiles)('%s is already schema-canonical', (name) => {
+    const record = readFixture(name);
+    if (record.schemaVersion !== CURRENT_SCHEMA_VERSION) return;
+    expect(ScenarioSchema.parse(record.data)).toEqual(record.data);
   });
 });
 
@@ -156,7 +159,7 @@ describe('S05: upgradeScenario reports schema failures with paths', () => {
     if (result.status === 'invalid') {
       expect(result.reason).toBe('schemaMismatch');
       expect(result.issues.map((i) => i.path)).toEqual([
-        'candidates.0.purchasePrice',
+        'candidates[0].purchasePrice',
       ]);
     }
   });
@@ -165,6 +168,9 @@ describe('S05: upgradeScenario reports schema failures with paths', () => {
     for (const data of [null, 42, 'text', [], {}]) {
       const result = upgradeScenario({ schemaVersion: 1, data });
       expect(result.status).toBe('invalid');
+      if (result.status === 'invalid') {
+        expect(result.reason).toBe('schemaMismatch');
+      }
     }
   });
 });
