@@ -1,0 +1,123 @@
+/*
+ * Wattwahl design tokens (architecture 8.8), taken from the design system
+ * released at G3: https://claude.ai/artifact/XcCjLPUnuS8iSXQ73k7Z5f
+ * Source of truth is docs/design/tokens.json; tests/ui/theme.test.ts checks
+ * that every token has exactly one custom property here, light and dark.
+ * Light and dark follow prefers-color-scheme. User-chosen traffic light colors
+ * override --ok-*, --warn-* and --bad-* on the root element at runtime (S16).
+ */
+
+/* Colors, light */
+:root {
+  color-scheme: light dark;
+  --surface: #f6f5f1;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ecebe5;
+  --line: #d6d4c9;
+  --line-strong: #7a786d;
+  --ink: #1b1d1f;
+  --ink-muted: #52565a;
+  --accent: #0b5f6e;
+  --on-accent: #ffffff;
+  --accent-soft: #d9ebee;
+  --focus: #0b5f6e;
+  --ok-fg: #14693a;
+  --ok-bg: #dcf0e3;
+  --warn-fg: #7a4d00;
+  --warn-bg: #fbeecb;
+  --bad-fg: #a2242a;
+  --bad-bg: #f8dcdc;
+  --chart-acquisition: #33415c;
+  --chart-electricity: #0a7f94;
+  --chart-petrol: #b05a05;
+  --chart-maintenance: #6f757c;
+  --shadow-raised: 0 1px 2px rgba(20, 23, 26, 0.12);
+}
+
+/* Colors, dark */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #14171a;
+    --surface-raised: #1c2024;
+    --surface-sunken: #262b30;
+    --line: #3a4047;
+    --line-strong: #8d959d;
+    --ink: #eceae4;
+    --ink-muted: #aab0b6;
+    --accent: #6cc8d6;
+    --on-accent: #0c1a1d;
+    --accent-soft: #1f3b41;
+    --focus: #6cc8d6;
+    --ok-fg: #74d6a0;
+    --ok-bg: #1c3a2a;
+    --warn-fg: #f2c45f;
+    --warn-bg: #3d3215;
+    --bad-fg: #ff9b9b;
+    --bad-bg: #472221;
+    --chart-acquisition: #a9b8d6;
+    --chart-electricity: #4fc1d6;
+    --chart-petrol: #f0a24a;
+    --chart-maintenance: #9aa1a8;
+  }
+}
+
+/* Spacing, sizes, radii and type */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --control-height: 44px;
+  --control-height-desktop: 40px;
+  --nav-bar-height: 64px;
+  --sidebar-width: 240px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --type-display-family: var(--font-sans);
+  --type-display-size: 28px;
+  --type-display-line-height: 34px;
+  --type-display-weight: 650;
+  --type-title-family: var(--font-sans);
+  --type-title-size: 22px;
+  --type-title-line-height: 28px;
+  --type-title-weight: 650;
+  --type-heading-family: var(--font-sans);
+  --type-heading-size: 18px;
+  --type-heading-line-height: 24px;
+  --type-heading-weight: 600;
+  --type-body-family: var(--font-sans);
+  --type-body-size: 16px;
+  --type-body-line-height: 24px;
+  --type-body-weight: 400;
+  --type-body-sm-family: var(--font-sans);
+  --type-body-sm-size: 14px;
+  --type-body-sm-line-height: 20px;
+  --type-body-sm-weight: 400;
+  --type-label-family: var(--font-sans);
+  --type-label-size: 14px;
+  --type-label-line-height: 20px;
+  --type-label-weight: 600;
+  --type-caption-family: var(--font-sans);
+  --type-caption-size: 12px;
+  --type-caption-line-height: 16px;
+  --type-caption-weight: 400;
+  --type-number-lg-family: var(--font-sans);
+  --type-number-lg-size: 32px;
+  --type-number-lg-line-height: 36px;
+  --type-number-lg-weight: 650;
+  --type-number-family: var(--font-sans);
+  --type-number-size: 16px;
+  --type-number-line-height: 24px;
+  --type-number-weight: 600;
+  --type-formula-family: var(--font-mono);
+  --type-formula-size: 14px;
+  --type-formula-line-height: 20px;
+  --type-formula-weight: 400;
+}
