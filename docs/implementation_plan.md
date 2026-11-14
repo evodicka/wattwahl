@@ -507,6 +507,7 @@ Phase 5 baut die fünf Bereiche nach den freigegebenen Mockups. S17 bis S22 hän
 **Aufgaben**
 
 - Routen aus Architektur 8.8 mit Hash-Routing, Seitenleiste ab 900 px, untere Navigation darunter.
+- Zwischenstufen für Tablets nach Architektur 8.8 (600 und 1200 px) im Theme.
 - Theme aus D4 mit Hell und Dunkel, Laufzeit-Überschreibung der Ampelfarben aus den Geräteeinstellungen.
 - Szenario-Auswahl und Kopfzeile mit Szenario, Preisfall, Vergleichsdauer und Stand der Berechnung.
 
@@ -514,6 +515,7 @@ Phase 5 baut die fünf Bereiche nach den freigegebenen Mockups. S17 bis S22 hän
 
 - E2E: Jede Route ist per Deep-Link erreichbar, auch nach Neuladen, die Zurück-Taste funktioniert.
 - E2E: Bei 899 px untere Navigation, bei 900 px Seitenleiste.
+- E2E: Bei 599 und 600 px sowie bei 1199 und 1200 px wechseln Inhaltsbreite, Spalten und Breite der Seitenleiste wie in Architektur 8.8, die Navigation bleibt gleich.
 - Eine geänderte Ampelfarbe wirkt ohne Neuladen.
 
 **Voraussetzung:** G3, D4, S14
@@ -645,7 +647,7 @@ Phase 6 weist alle Abnahmekriterien der Spezifikation und alle Qualitätsszenari
 - Q2: Ein Tastendruck im Formular während der Q1-Rechnung erscheint ohne spürbare Verzögerung (Schwelle im Test festgelegt und begründet).
 - Q5: Der Ergebnis-Hash des Messszenarios ist in Chromium, Firefox und WebKit gleich.
 - Q8: Mit persistentem Browser-Kontext ist der Stand nach Neuladen und Neustart des Browsers da.
-- Abnahmekriterium Viewports: Alle Bereiche bei 1280 px und 390 px ohne abgeschnittene Eingabefelder.
+- Abnahmekriterium Viewports: Alle Bereiche bei 1280, 1024, 820 und 390 px ohne abgeschnittene Eingabefelder.
 - Eine Abdeckungstabelle im Pull Request ordnet Testfälle 1 bis 19 und Q1 bis Q11 je einem grünen Test zu, Q8 und Q9 mit Verweis auf den manuellen Teil in S26.
 
 **Voraussetzung:** S23
