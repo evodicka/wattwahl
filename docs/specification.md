@@ -355,6 +355,8 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 ### Gestaltung
 
 - Responsives Layout: ab etwa 900 px Breite Seitenleiste und zwei Spalten, darunter eine Spalte mit unterer Navigation.
+- Tablet hochkant (600 bis 899 px): Layout wie am Handy, der Inhalt ist höchstens 720 px breit und mittig. Formulare zeigen zwei Felder nebeneinander, Ergebniskarten stehen in zwei Spalten.
+- Tablet quer (900 bis 1199 px): Layout wie am Desktop mit schmalerer Seitenleiste. Feldgruppen mit drei Feldern stehen untereinander, damit Zahl und Einheit Platz haben. Die Ergebnistabelle scrollt seitlich, die Spalte Kandidat bleibt stehen.
 - Bedienelemente mindestens 44 px hoch auf dem Handy, Zahlenfelder mit passender Tastatur und Einheit am Feldende.
 - Hell und dunkel nach Systemeinstellung. Kontraste nach WCAG AA, Ampelwerte mit Symbol.
 - Sprache Deutsch, Dezimalkomma, Tausenderpunkt, Euro. Texte liegen in einer Sprachdatei, damit später weitere Sprachen möglich sind.
@@ -504,7 +506,7 @@ Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Re
 
 - Alle 18 Testfälle bestehen automatisiert.
 - Die App läuft nach der Installation auf dem Home-Bildschirm offline und behält ihre Daten nach Neustart des Geräts.
-- Desktop (1280 px) und Handy (390 px Breite) zeigen alle Bereiche ohne abgeschnittene Eingabefelder.
+- Desktop (1280 px), Tablet (820 px hochkant und 1024 px quer) und Handy (390 px Breite) zeigen alle Bereiche ohne abgeschnittene Eingabefelder.
 - Die Leistungswerte aus dem Abschnitt Nicht-funktionale Anforderungen sind gemessen und erreicht.
 - Ein Szenario mit zwei Kandidaten ist von der ersten Eingabe bis zum Vergleich ohne Hilfe bedienbar.
 

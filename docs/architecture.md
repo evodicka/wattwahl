@@ -387,6 +387,16 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 | `#/szenarien` | Szenarioliste, Szenariovergleich, Export und Import |
 
 - Layout-Umschaltung bei 900 px Breite: Seitenleiste und zwei Spalten darüber, untere Navigation darunter.
+- Zwei Zwischenstufen für Tablets ändern nur Breiten und Spalten innerhalb der Layouts, keine Navigation:
+
+  | Breite | Layout | Regeln |
+  | --- | --- | --- |
+  | unter 600 px | Handy | eine Spalte, untere Navigation |
+  | 600 bis 899 px | Handy, breit | Inhalt höchstens 720 px und mittig, Kopfzeile und untere Navigation volle Breite. Formularkarten mit zwei Feldern je Zeile, Ergebniskarten und Preis-Regler zweispaltig, Kostenbalken mit Beschriftung links. |
+  | 900 bis 1199 px | Desktop, schmal | Seitenleiste 200 px, Ränder 24 px, zwei Spalten. Feldgruppen mit drei Feldern untereinander. Ergebnistabelle mit Mindestbreite 880 px in einer Scrollbox, erste Spalte `position: sticky`. |
+  | ab 1200 px | Desktop | Seitenleiste 240 px, zwei Spalten, Dreiergruppen nebeneinander |
+
+- Die Stufen stehen als Media Queries in `src/ui/theme.css` (Breakpoints als Konstanten 600, 900 und 1200 px). Referenz sind die Tablet-Boards T1 bis T4 aus D3.
 - Design-Tokens in `src/ui/theme.css` als Custom Properties, Hell und Dunkel über `prefers-color-scheme`. Vom Nutzer gewählte Ampelfarben überschreiben die Tokens zur Laufzeit am Wurzelelement.
 - Ampelwerte zeigen immer Farbe plus Symbol oder Zahl. Bedienelemente am Handy mindestens 44 px hoch.
 
@@ -420,7 +430,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 | Unit | Vitest | Testfälle 1 bis 18 der Spezifikation gegen `src/core`, Migrationen gegen gespeicherte Beispieldateien jeder Version |
 | Property | fast-check mit Vitest | Dynamische Programmierung gegen Brute Force auf zufälligen kleinen Fällen, Invarianten wie Reserve > 0 bei Eignung |
 | Komponenten | Vitest, React Testing Library | Formulare, Validierungsmeldungen, Dezimalkomma |
-| End-to-End | Playwright | Export, Speicher leeren, Import (Testfall 14), Offline nach Installation, Viewports 1280 px und 390 px, Laufzeitmessung mit 10 Kandidaten, Eingabe während der Rechnung (Q2), Ergebnis-Hash in drei Engines (Q5), persistenter Kontext (Q8), axe-Prüfung (Q10) |
+| End-to-End | Playwright | Export, Speicher leeren, Import (Testfall 14), Offline nach Installation, Viewports 1280, 1024, 820 und 390 px, Laufzeitmessung mit 10 Kandidaten, Eingabe während der Rechnung (Q2), Ergebnis-Hash in drei Engines (Q5), persistenter Kontext (Q8), axe-Prüfung (Q10) |
 | Manuelle Abnahme | iPhone mit Safari, Android-Mittelklasse-Handy mit Chrome | Laufzeit Q1 am echten Gerät, Installation und Offline-Start (Q9), Daten nach Geräteneustart (Q8); vor der Abnahme und nach größeren Änderungen |
 
 Die Pipeline in GitHub Actions bricht bei Lint-, Typ- oder Testfehler ab und veröffentlicht nur einen grünen Build.
