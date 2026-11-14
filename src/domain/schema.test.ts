@@ -10,6 +10,7 @@ import {
   CandidateComputeSchema,
   CandidateSchema,
   CURRENT_SCHEMA_VERSION,
+  MAX_COMPARISON_MONTHS,
   ScenarioComputeSchema,
   ScenarioSchema,
 } from './schema';
@@ -234,6 +235,15 @@ describe('S03: edge cases of the spec are rejected', () => {
     expect(
       computeIssuePaths(ScenarioComputeSchema.safeParse(scenario)),
     ).toEqual(['parameters.electricityPrice']);
+  });
+
+  it('a comparison period above 1,200 months', () => {
+    const scenario = profile();
+    scenario.parameters.comparisonMonths = MAX_COMPARISON_MONTHS;
+    expect(ScenarioComputeSchema.safeParse(scenario).success).toBe(true);
+    scenario.parameters.comparisonMonths = MAX_COMPARISON_MONTHS + 1;
+    const result = ScenarioComputeSchema.safeParse(scenario);
+    expect(computeIssuePaths(result)).toEqual(['parameters.comparisonMonths']);
   });
 
   it('a traffic light threshold above 100 %', () => {

@@ -64,3 +64,15 @@ export const TraceEntrySchema = z.object({
   resultPath: z.string().optional(),
 });
 export type TraceEntry = z.infer<typeof TraceEntrySchema>;
+
+/**
+ * Prices of the price slider (architecture 8.5): the fifth price case `slider`.
+ * Held in the UI state and never stored with a scenario.
+ */
+export const SliderPricesSchema = z.object({
+  petrol: z.number().min(0),
+  electricity: z.number().min(0),
+  petrolEscalationPct: z.number().min(-100),
+  electricityEscalationPct: z.number().min(-100),
+});
+export type SliderPrices = z.infer<typeof SliderPricesSchema>;

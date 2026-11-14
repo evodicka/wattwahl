@@ -1,6 +1,7 @@
 /** Zod schemas, defaults, migrations and plausibility warnings. Imported by every module. */
 export {
   CURRENT_SCHEMA_VERSION,
+  MAX_COMPARISON_MONTHS,
   PRESENCE_STATES,
   PRICE_CASES,
   ROAD_TYPES,
@@ -74,7 +75,12 @@ export type {
   MigrationStep,
   UpgradeResult,
 } from './migrations';
-export { FORMULA_IDS, FormulaIdSchema, TraceEntrySchema } from './result';
-export type { FormulaId, TraceEntry } from './result';
+export {
+  FORMULA_IDS,
+  FormulaIdSchema,
+  SliderPricesSchema,
+  TraceEntrySchema,
+} from './result';
+export type { FormulaId, SliderPrices, TraceEntry } from './result';
 export { DEFAULT_DEVICE_SETTINGS, DeviceSettingsSchema } from './settings';
 export type { DeviceSettings } from './settings';

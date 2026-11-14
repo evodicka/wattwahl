@@ -3,6 +3,9 @@ import { z } from 'zod';
 /** Version of the stored scenario format (architecture 8.2). */
 export const CURRENT_SCHEMA_VERSION = 1;
 
+/** Longest comparison period in months (spec "Parameterliste"): 100 years. */
+export const MAX_COMPARISON_MONTHS = 1200;
+
 export const ROAD_TYPES = ['city', 'rural', 'highway'] as const;
 export const WEEKDAYS = [
   'mon',
@@ -93,7 +96,7 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
   });
 
   const Parameters = z.object({
-    comparisonMonths: positive.int(),
+    comparisonMonths: positive.int().max(MAX_COMPARISON_MONTHS),
     chargeLowerPct: percent,
     chargeUpperPct: percent,
     safetyBufferPct: percent,
