@@ -39,10 +39,10 @@ function escalationFactor(
   trace?: Trace,
 ): number {
   const base = 1 + fraction(escalationPct);
-  let factor = 0;
-  yearShares(comparisonMonths).forEach((q, index) => {
-    factor += q * detPow(base, index);
-  });
+  const factor = yearShares(comparisonMonths).reduce(
+    (sum, q, index) => sum + q * detPow(base, index),
+    0,
+  );
   trace?.add({
     formula,
     inputs: { escalationPct, comparisonMonths },
@@ -79,6 +79,11 @@ export function maintenanceFactor(
   return factor;
 }
 
+/** The price case to resolve; only `slider` carries the slider prices. */
+export type PriceSelection =
+  | { priceCase: 'slider'; sliderPrices: SliderPrices }
+  | { priceCase: Exclude<PriceCase, 'slider'> };
+
 /**
  * Prices of a price case: mid; "E-Auto günstig" is petrol maximum with
  * electricity minimum, "E-Auto ungünstig" the reverse; `slider` takes the
@@ -87,12 +92,11 @@ export function maintenanceFactor(
 export function resolvePrices(
   iceVehicle: ScenarioCompute['iceVehicle'],
   parameters: ScenarioCompute['parameters'],
-  priceCase: PriceCase,
-  sliderPrices?: SliderPrices,
+  selection: PriceSelection,
 ): ResolvedPrices {
   const { petrolPrice } = iceVehicle;
   const { electricityPrice } = parameters;
-  switch (priceCase) {
+  switch (selection.priceCase) {
     case 'mid':
       return rates({
         petrol: petrolPrice.mid,
@@ -108,16 +112,15 @@ export function resolvePrices(
         petrol: petrolPrice.min,
         electricity: electricityPrice.max,
       });
-    case 'slider':
-      if (!sliderPrices) {
-        throw new Error('Price case "slider" needs the slider prices.');
-      }
+    case 'slider': {
+      const { sliderPrices } = selection;
       return {
         petrolPrice: sliderPrices.petrol,
         electricityPrice: sliderPrices.electricity,
         petrolEscalationPct: sliderPrices.petrolEscalationPct,
         electricityEscalationPct: sliderPrices.electricityEscalationPct,
       };
+    }
   }
 
   function rates(prices: {

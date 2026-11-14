@@ -4,10 +4,11 @@ import { WEEKDAYS } from '../../domain';
 import { exampleScenarioCompute } from '../../../tests/fixtures/exampleScenario';
 import { expectSpec } from '../../../tests/helpers/specTolerance';
 import { Trace } from '../trace';
-import { attendanceFactor, expectedDays } from './workdays';
+import { attendanceFactor, attendanceFactors, expectedDays } from './workdays';
 
 const { workplaces, parameters } = exampleScenarioCompute();
 const weeks = parameters.workWeeksPerYear;
+const attendance = attendanceFactors(workplaces, weeks);
 
 describe('TC9: working days (F5)', () => {
   it('TC9: f_A = 0.8846 and f_B = 0.9038', () => {
@@ -19,25 +20,34 @@ describe('TC9: working days (F5)', () => {
 
   it('TC9: Tuesday per month is 3.46 days with both, 0.37 only A, 0.45 only B, 0.05 neither', () => {
     const trace = new Trace();
-    const days = expectedDays('tue', workplaces, weeks, trace);
+    const days = expectedDays('tue', workplaces, weeks, attendance, trace);
     expectSpec(days.both, '3,46');
     expectSpec(days.onlyA, '0,37');
     expectSpec(days.onlyB, '0,45');
     expectSpec(days.none, '0,05');
     expect(new Set(trace.entries.map((e) => e.formula))).toEqual(
-      new Set(['F5.c', 'F5.f', 'F5.days']),
+      new Set(['F5.c', 'F5.days']),
     );
   });
 
+  it('F5.f: both factors are traced once, however many weekdays are computed', () => {
+    const trace = new Trace();
+    const factors = attendanceFactors(workplaces, weeks, trace);
+    for (const weekday of WEEKDAYS) {
+      expectedDays(weekday, workplaces, weeks, factors, trace);
+    }
+    expect(trace.entries.filter((e) => e.formula === 'F5.f')).toHaveLength(2);
+  });
+
   it('F5.days: a weekday only workplace A visits has no "only B" and no "both" days', () => {
-    const days = expectedDays('mon', workplaces, weeks);
+    const days = expectedDays('mon', workplaces, weeks, attendance);
     expect(days.both).toBe(0);
     expect(days.onlyB).toBe(0);
     expect(days.onlyA).toBeCloseTo((weeks / 12) * (1 - 30 / 260), 12);
   });
 
   it('F5.days: a weekday neither workplace visits is a free day', () => {
-    const days = expectedDays('sun', workplaces, weeks);
+    const days = expectedDays('sun', workplaces, weeks, attendance);
     expect(days).toEqual({ both: 0, onlyA: 0, onlyB: 0, none: weeks / 12 });
   });
 });
@@ -67,7 +77,12 @@ describe('F5: properties', () => {
         ),
         ({ weeksPerYear, a, b }) => {
           for (const weekday of WEEKDAYS) {
-            const days = expectedDays(weekday, { a, b }, weeksPerYear);
+            const days = expectedDays(
+              weekday,
+              { a, b },
+              weeksPerYear,
+              attendanceFactors({ a, b }, weeksPerYear),
+            );
             const sum = days.both + days.onlyA + days.onlyB + days.none;
             expect(sum).toBeCloseTo(weeksPerYear / 12, 10);
             for (const value of Object.values(days)) {
@@ -80,8 +95,8 @@ describe('F5: properties', () => {
   });
 
   it('F5: a traced call returns the same values as an untraced call', () => {
-    expect(expectedDays('tue', workplaces, weeks, new Trace())).toEqual(
-      expectedDays('tue', workplaces, weeks),
-    );
+    expect(
+      expectedDays('tue', workplaces, weeks, attendance, new Trace()),
+    ).toEqual(expectedDays('tue', workplaces, weeks, attendance));
   });
 });

@@ -39,7 +39,10 @@ describe('TC7: purchase (F8)', () => {
   });
 
   it('F8.purchase: the longest allowed comparison period stays within detPow', () => {
-    expect(() => purchaseCost(40000, 15, MAX_COMPARISON_MONTHS)).not.toThrow();
+    expect(purchaseCost(40000, 15, MAX_COMPARISON_MONTHS)).toBeCloseTo(
+      40000 - 40000 * Math.pow(0.85, 100),
+      4,
+    );
   });
 
   it('F8.purchase: 100 % depreciation loses the whole price', () => {
@@ -81,17 +84,6 @@ describe('TC17: petrol car mileage (F8)', () => {
     const trace = new Trace();
     expect(iceOdometerEnd(120000, 8000, 48, trace)).toBe(152000);
     expect(trace.entries[0]?.formula).toBe('F8.iceOdometer');
-  });
-
-  it('TC17: the total cost does not change with the petrol car mileage', () => {
-    const total = (currentMileageKm: number) => {
-      iceOdometerEnd(currentMileageKm, 8000, 48);
-      return (
-        energyCost('petrol', 1000, 1.9, 4) +
-        maintenanceCost({ ev: 10000, ice: 8000 }, { ev: 0.02, ice: 0.04 }, 4)
-      );
-    };
-    expect(total(120000)).toBe(total(0));
   });
 });
 

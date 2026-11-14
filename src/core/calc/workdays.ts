@@ -46,30 +46,41 @@ export function weekdayOccurrences(
   return c;
 }
 
+/** F5.f of both workplaces, computed once and passed to `expectedDays` for every weekday. */
+export function attendanceFactors(
+  workplaces: { a: WorkdaysInput; b: WorkdaysInput },
+  weeksPerYear: number,
+  trace?: Trace,
+): { a: number; b: number } {
+  return {
+    a: attendanceFactor(workplaces.a, weeksPerYear, trace),
+    b: attendanceFactor(workplaces.b, weeksPerYear, trace),
+  };
+}
+
 /**
  * F5.days: expected days per presence state for one weekday in one month.
- * The four values add up to `weeksPerYear / 12`.
+ * The four values add up to `weeksPerYear / 12`. `attendance` comes from
+ * `attendanceFactors`; a workplace that does not visit `weekday` ignores its factor.
  */
 export function expectedDays(
   weekday: Weekday,
   workplaces: { a: WorkdaysInput; b: WorkdaysInput },
   weeksPerYear: number,
+  attendance: { a: number; b: number },
   trace?: Trace,
 ): ExpectedDays {
   const c = weekdayOccurrences(weeksPerYear, trace);
   const inA = workplaces.a.weekdays.includes(weekday);
   const inB = workplaces.b.weekdays.includes(weekday);
-  const fA = inA ? attendanceFactor(workplaces.a, weeksPerYear, trace) : 0;
-  const fB = inB ? attendanceFactor(workplaces.b, weeksPerYear, trace) : 0;
+  const fA = inA ? attendance.a : 0;
+  const fB = inB ? attendance.b : 0;
 
-  const both = inA && inB ? c * fA * fB : 0;
-  const onlyA = inA ? c * fA * (inB ? 1 - fB : 1) : 0;
-  const onlyB = inB ? c * fB * (inA ? 1 - fA : 1) : 0;
   const days: ExpectedDays = {
-    both,
-    onlyA,
-    onlyB,
-    none: c - both - onlyA - onlyB,
+    both: inA && inB ? c * fA * fB : 0,
+    onlyA: inA ? c * fA * (inB ? 1 - fB : 1) : 0,
+    onlyB: inB ? c * fB * (inA ? 1 - fA : 1) : 0,
+    none: c * (inA ? 1 - fA : 1) * (inB ? 1 - fB : 1),
   };
   if (trace) {
     for (const state of ['both', 'onlyA', 'onlyB', 'none'] as const) {

@@ -6,6 +6,7 @@ import {
   electricityFactor,
   maintenanceFactor,
   petrolFactor,
+  type PriceSelection,
   resolvePrices,
   yearShares,
 } from './prices';
@@ -22,12 +23,6 @@ describe('F7: price factors', () => {
       'F7.qy',
       'F7.qy',
     ]);
-  });
-
-  it('F7.qy: the shares add up to D/12 for D = 1, 12, 30, 48, 600', () => {
-    for (const months of [1, 12, 30, 48, 600]) {
-      expect(sum(yearShares(months))).toBeCloseTo(months / 12, 12);
-    }
   });
 
   it('F7.qy: the shares add up to D/12 for any D', () => {
@@ -78,17 +73,21 @@ describe('price cases (spec "Optimierung")', () => {
   };
 
   it('mid uses both mid prices', () => {
-    const prices = resolvePrices(priced, parameters, 'mid');
+    const prices = resolvePrices(priced, parameters, { priceCase: 'mid' });
     expect([prices.petrolPrice, prices.electricityPrice]).toEqual([1.9, 0.3]);
   });
 
   it('"E-Auto günstig" is petrol maximum and electricity minimum', () => {
-    const prices = resolvePrices(priced, parameters, 'evFavorable');
+    const prices = resolvePrices(priced, parameters, {
+      priceCase: 'evFavorable',
+    });
     expect([prices.petrolPrice, prices.electricityPrice]).toEqual([2.1, 0.25]);
   });
 
   it('"E-Auto ungünstig" is petrol minimum and electricity maximum', () => {
-    const prices = resolvePrices(priced, parameters, 'evUnfavorable');
+    const prices = resolvePrices(priced, parameters, {
+      priceCase: 'evUnfavorable',
+    });
     expect([prices.petrolPrice, prices.electricityPrice]).toEqual([1.7, 0.35]);
   });
 
@@ -99,7 +98,12 @@ describe('price cases (spec "Optimierung")', () => {
       petrolEscalationPct: 3,
       electricityEscalationPct: 2,
     };
-    expect(resolvePrices(priced, parameters, 'slider', slider)).toEqual({
+    expect(
+      resolvePrices(priced, parameters, {
+        priceCase: 'slider',
+        sliderPrices: slider,
+      }),
+    ).toEqual({
       petrolPrice: 2.5,
       electricityPrice: 0.4,
       petrolEscalationPct: 3,
@@ -107,13 +111,15 @@ describe('price cases (spec "Optimierung")', () => {
     });
   });
 
-  it('slider without slider prices is a programming error', () => {
-    expect(() => resolvePrices(priced, parameters, 'slider')).toThrow();
+  it('slider without slider prices does not type-check', () => {
+    // @ts-expect-error the slider case requires `sliderPrices`
+    const selection: PriceSelection = { priceCase: 'slider' };
+    expect(selection.priceCase).toBe('slider');
   });
 
   it('the scenario escalation rates apply to every case but the slider', () => {
     const escalating = { ...priced, petrolEscalationPct: 4 };
-    const prices = resolvePrices(escalating, parameters, 'mid');
+    const prices = resolvePrices(escalating, parameters, { priceCase: 'mid' });
     expect(prices.petrolEscalationPct).toBe(4);
     expect(prices.electricityEscalationPct).toBe(
       parameters.electricityEscalationPct,

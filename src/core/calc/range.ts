@@ -1,4 +1,4 @@
-import type { CandidateCompute } from '../../domain';
+import { ROAD_TYPES, type CandidateCompute, type RoadType } from '../../domain';
 import type { Trace } from '../trace';
 import { fraction, type PerRoad } from './units';
 
@@ -49,10 +49,8 @@ export function mixWeightCold(
   return w;
 }
 
-const ROADS = ['city', 'rural', 'highway'] as const;
-
 /** Which candidate range each road type uses: rural is the combined range. */
-const RANGE_SOURCE: Record<(typeof ROADS)[number], keyof CandidateRanges> = {
+const RANGE_SOURCE: Record<RoadType, keyof CandidateRanges> = {
   city: 'city',
   rural: 'combined',
   highway: 'highway',
@@ -73,7 +71,7 @@ function rangesFor(
     highway: at(ranges.highway) * (1 - fraction(highwayDiscountPct)),
   };
   if (trace) {
-    for (const road of ROADS) {
+    for (const road of ROAD_TYPES) {
       const pair = ranges[RANGE_SOURCE[road]];
       trace.add({
         formula,
