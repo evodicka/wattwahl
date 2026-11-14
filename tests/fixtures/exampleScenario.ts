@@ -1,8 +1,10 @@
 import {
+  CandidateComputeSchema,
   createCandidateTemplate,
   createLeaseTierTemplate,
   createScenarioTemplate,
   type Candidate,
+  type CandidateCompute,
   type Scenario,
 } from '../../src/domain';
 
@@ -42,6 +44,11 @@ export function exampleCandidate(): Candidate {
   };
 }
 
+/** The example candidate as the core sees it: required fields set. */
+export function exampleCandidateCompute(): CandidateCompute {
+  return CandidateComputeSchema.parse(exampleCandidate());
+}
+
 /** Driving profile of TC4, TC5, TC9 and TC17 with one candidate. */
 export function exampleScenario(): Scenario {
   const scenario = createScenarioTemplate({
@@ -75,6 +82,9 @@ export function exampleScenario(): Scenario {
   };
   scenario.parameters = {
     ...scenario.parameters,
+    // "Gemeinsame Beispieldaten": no highway discount and no cold reserve.
+    highwayDiscountPct: 0,
+    coldReserveK: 0,
     evMaintenancePerKm: 0.02,
     electricityPrice: { min: 0.25, mid: 0.3, max: 0.35 },
   };

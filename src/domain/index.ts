@@ -74,5 +74,7 @@ export type {
   MigrationStep,
   UpgradeResult,
 } from './migrations';
+export { FORMULA_IDS, FormulaIdSchema, TraceEntrySchema } from './result';
+export type { FormulaId, TraceEntry } from './result';
 export { DEFAULT_DEVICE_SETTINGS, DeviceSettingsSchema } from './settings';
 export type { DeviceSettings } from './settings';
