@@ -5,16 +5,14 @@ import {
   purchaseCost,
 } from '../calc/costs';
 import type { Trace } from '../trace';
-import {
-  DP_CELL_KM,
-  WAYS,
-  type GroupInfo,
-  type Problem,
-  type Way,
-} from './problem';
-import { solve } from './select';
+import { WAYS, type GroupInfo, type Problem, type Way } from './problem';
 import type { Selection } from './types';
-import { warrantyBudget, type WarrantyBudget } from './warranty';
+import {
+  isExpired,
+  warrantyBudget,
+  yearsToKmLimit,
+  type WarrantyBudget,
+} from './warranty';
 
 type LeaseTier = CandidateCompute['leaseTiers'][number];
 
@@ -38,6 +36,14 @@ export type UnsuitableReason =
       month: number;
       reserveKm: number;
       soh: number;
+    }
+  | {
+      /**
+       * Every way is drivable at the best SoH, but driving them lowers the SoH
+       * (more EV km, less capacity) below what they need.
+       */
+      kind: 'coupling';
+      soh: number;
     };
 
 export type PlanEntry = {
@@ -60,9 +66,32 @@ export type OptimizerOutcome =
       budget: WarrantyBudget;
       budgetExtraCost: number;
       budgetExceeded: boolean;
+      /**
+       * With `budgetExceeded`: years until each running warranty reaches its km
+       * limit at the planned EV km (the warning of spec "Garantie-Budget").
+       * `null` for an expired warranty, and for both when the budget is met.
+       */
+      yearsToKmLimit: { vehicle: number | null; battery: number | null } | null;
       /** SoH of the raster bucket the plan was checked at. */
       bucketSoh: number;
     };
+
+type StrictReason = Extract<UnsuitableReason, { kind: 'strict' }>;
+
+/** The way and month with the least reserve at `soh`. */
+function worstPair(problem: Problem, soh: number): StrictReason {
+  let worst: StrictReason | null = null;
+  for (const way of WAYS) {
+    for (let month = 0; month < 12; month++) {
+      const reserveKm = problem.checkWayAt(way, month, soh).reserveKm;
+      if (!worst || reserveKm < worst.reserveKm) {
+        worst = { kind: 'strict', way, month, reserveKm, soh };
+      }
+    }
+  }
+  if (!worst) throw new Error('No way to explain.');
+  return worst;
+}
 
 /** Finds the most telling reason for an unsuitable offer at the best possible SoH. */
 function explain(
@@ -70,28 +99,13 @@ function explain(
   selection: Extract<Selection, { status: 'unsuitable' }>,
 ): UnsuitableReason {
   const soh = selection.bestSoh;
-  const worstPair = (): UnsuitableReason => {
-    let worst: UnsuitableReason | null = null;
-    for (const way of WAYS) {
-      for (let month = 0; month < 12; month++) {
-        const reserveKm = problem.checkWayAt(way, month, soh).reserveKm;
-        if (worst?.kind !== 'strict' || reserveKm < worst.reserveKm) {
-          worst = { kind: 'strict', way, month, reserveKm, soh };
-        }
-      }
-    }
-    if (!worst) throw new Error('No way to explain.');
-    return worst;
-  };
-  if (selection.cause === 'strict') return worstPair();
+  if (selection.cause === 'strict') return worstPair(problem, soh);
 
-  // The "both" state whose better way is the furthest from being drivable.
+  // The "both" state whose better way is the furthest below zero.
   let worst: UnsuitableReason | null = null;
-  let worstBest = Infinity;
+  let worstBest = 0;
   problem.info.forEach((info) => {
-    if (info.kind !== 'day' || info.state !== 'both') {
-      return;
-    }
+    if (info.kind !== 'day' || info.state !== 'both') return;
     const a = problem.checkWayAt('a', info.month, soh).reserveKm;
     const b = problem.checkWayAt('b', info.month, soh).reserveKm;
     if (Math.max(a, b) < worstBest) {
@@ -105,7 +119,9 @@ function explain(
       };
     }
   });
-  return worst ?? worstPair();
+  // No "both" day is blocked at the best SoH: the plans fail only because
+  // driving them lowers the SoH.
+  return worst ?? { kind: 'coupling', soh };
 }
 
 /**
@@ -139,20 +155,15 @@ export function optimizeOffer(
         )
       : 0;
 
-  const selection = solve(
+  const selection = problem.solver.solve(
     {
-      groups: problem.groups,
-      thresholds: problem.thresholds,
-      sohForKmPerYear: problem.sohForKmPerYear,
-      reserveAtSoh: problem.reserveAtSoh,
       offerCost:
         offer.kind === 'purchase'
           ? () => purchase
           : (evKmPerYear) => leaseCost(offer.tier, evKmPerYear, months).total,
       budgetKmPerYear: budget.active ? budget.budgetKmPerYear : null,
       strict: parameters.strictMode,
-      gridKm: parameters.kmGridPerYear,
-      cellKm: DP_CELL_KM,
+      reserveAtSoh: problem.reserveAtSoh,
     },
     trace,
   );
@@ -179,6 +190,24 @@ export function optimizeOffer(
     budget,
     budgetExtraCost: selection.budgetExtraCost,
     budgetExceeded: selection.budgetExceeded,
+    yearsToKmLimit: selection.budgetExceeded
+      ? {
+          vehicle: !isExpired(candidate.vehicleWarranty)
+            ? yearsToKmLimit(
+                candidate.vehicleWarranty.km,
+                selection.evKmPerYear,
+                trace,
+              )
+            : null,
+          battery: !isExpired(candidate.batteryWarranty)
+            ? yearsToKmLimit(
+                candidate.batteryWarranty.km,
+                selection.evKmPerYear,
+                trace,
+              )
+            : null,
+        }
+      : null,
     bucketSoh: selection.bucketSoh,
   };
 }

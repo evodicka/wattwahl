@@ -36,6 +36,7 @@ import {
   type WayCheck,
 } from '../calc/suitability';
 import { attendanceFactors, expectedDays } from '../calc/workdays';
+import { createSolver, type Solver } from './select';
 import type { Group, Option } from './types';
 
 // Maps a scenario, a candidate and one price case to the decision groups of the
@@ -68,6 +69,8 @@ export type GroupInfo =
 export type Problem = {
   groups: Group[];
   info: GroupInfo[];
+  /** DP and plan cache of this candidate and price case, shared by all its offers. */
+  solver: Solver;
   /** SoH thresholds per permission pair, indexed by `pairIndex`. */
   thresholds: number[];
   sohForKmPerYear: (kmPerYear: number) => number;
@@ -77,12 +80,28 @@ export type Problem = {
   checkWayAt: (way: Way, month: number, soh: number) => WayCheck;
 };
 
-/** Shares 0, step, 2 step, … below 100 and 100 itself, in percent. */
-function shareOptions(stepPct: number): number[] {
+/**
+ * Shares 0, step, 2 step, … below 100 and 100 itself, in percent. Each share is
+ * computed from its index and rounded, so a step such as 0.1 does not drift.
+ */
+export function shareOptions(stepPct: number): number[] {
   const shares: number[] = [];
-  for (let share = 0; share < 100; share += stepPct) shares.push(share);
+  for (let index = 0; ; index++) {
+    const share = Math.round(index * stepPct * 1e6) / 1e6;
+    if (share >= 100) break;
+    shares.push(share);
+  }
   shares.push(100);
   return shares;
+}
+
+function fixedShare(share: number | null): number {
+  if (share === null) {
+    throw new Error(
+      'Extra mileage mode "fixed" needs a share (ScenarioComputeSchema).',
+    );
+  }
+  return share;
 }
 
 export function buildProblem(
@@ -134,7 +153,8 @@ export function buildProblem(
         parameters.chargingEfficiencyPct,
       );
       return {
-        // Cost over the comparison period of one working day per year.
+        // Cost over the comparison period of one working day of this kind,
+        // counted once per year; options multiply it by the expected days.
         ev:
           evDayCost(trips[way], grid, prices.electricityPrice) * fs +
           fm * evPerKm * km,
@@ -229,7 +249,7 @@ export function buildProblem(
   if (extraKm.city + extraKm.rural + extraKm.highway > 0) {
     const shares =
       parameters.extraMileageMode === 'fixed'
-        ? [parameters.extraMileageFixedEvSharePct as number]
+        ? [fixedShare(parameters.extraMileageFixedEvSharePct)]
         : shareOptions(parameters.extraMileageStepPct);
     for (let month = 0; month < 12; month++) {
       const m = months[month] as (typeof months)[0];
@@ -291,9 +311,18 @@ export function buildProblem(
     return smallest;
   };
 
+  const solver = createSolver({
+    groups,
+    thresholds,
+    sohForKmPerYear,
+    gridKm: parameters.kmGridPerYear,
+    cellKm: DP_CELL_KM,
+  });
+
   return {
     groups,
     info,
+    solver,
     thresholds,
     sohForKmPerYear,
     reserveAtSoh,

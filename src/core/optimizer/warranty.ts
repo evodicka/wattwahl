@@ -16,7 +16,7 @@ export type WarrantyBudget = {
 };
 
 /** A warranty with 0 years or 0 km is expired and does not enter the budget. */
-const isExpired = (warranty: Warranty): boolean =>
+export const isExpired = (warranty: Warranty): boolean =>
   warranty.years <= 0 || warranty.km <= 0;
 
 /**

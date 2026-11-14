@@ -2,8 +2,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { bruteForce } from './__tests__/bruteForce';
 import { Trace } from '../trace';
-import { dpCosts, prepare, reconstruct } from './knapsack';
-import { solve, TIE_BAND } from './select';
+import { dpCosts, dpTable, prepare, reconstruct } from './knapsack';
+import { createSolver, solve, TIE_BAND } from './select';
 import type { Group, Option, SolverInput } from './types';
 
 const option = (
@@ -137,6 +137,115 @@ describe('S09: tie rule (spec step 5)', () => {
   });
 });
 
+describe('S09: exact distance per cell (rounding up must not misjudge a plan)', () => {
+  // Ten groups; driving costs 1 instead of 2 and 0.6 km each. Each option
+  // rounds up to one 1 km cell, so ten driven groups count as 10 cells but are
+  // only 6 km.
+  const groups: Group[] = Array.from({ length: 10 }, (_, i) => ({
+    key: `g${i}`,
+    options: [option(0.6, 1), option(0, 2)],
+  }));
+  const flatSoh = () => 1;
+
+  it('S09: a plan of 6 km fits a 7 km budget although it counts 10 cells', () => {
+    const result = solve(
+      input({ groups, sohForKmPerYear: flatSoh, budgetKmPerYear: 7 }),
+    );
+    expect(result).toMatchObject({
+      status: 'ok',
+      budgetExceeded: false,
+      budgetExtraCost: 0,
+      variableCost: 10,
+    });
+    expect((result as { evKmPerYear: number }).evKmPerYear).toBeCloseTo(6, 9);
+  });
+
+  it('S09: the offer cost is judged at the exact 6 km, not at the 10 cells', () => {
+    // A surcharge above 6.5 km: charged for 10 cells, not for 6 km.
+    const result = solve(
+      input({
+        groups,
+        sohForKmPerYear: flatSoh,
+        offerCost: (km) => (km > 6.5 ? 1000 : 0),
+      }),
+    );
+    expect(result).toMatchObject({ status: 'ok', variableCost: 10 });
+    // The decision and the reported cost agree.
+    expect((result as { targetCost: number }).targetCost).toBe(10);
+  });
+
+  it('S09: at exactly equal cost the plan with fewer exact km is kept', () => {
+    const tied: Group[] = [
+      { key: 'x', options: [option(1.9, 5), option(1.2, 5)] },
+    ];
+    const table = dpTable(prepare(tied, 1), 0);
+    expect(table?.cost[2]).toBe(5);
+    expect(table?.km[2]).toBe(1.2);
+    expect(reconstruct(prepare(tied, 1), 0, 2)).toEqual([1]);
+  });
+
+  it('S09: forced over budget picks the smallest exact distance among the cells', () => {
+    const forced: Group[] = [
+      // 2.4 km is 3 cells and dearer, 3.6 km is 4 cells and cheaper.
+      { key: 'f', options: [option(3.6, 1), option(2.4, 9)] },
+    ];
+    const result = solve(
+      input({ groups: forced, sohForKmPerYear: flatSoh, budgetKmPerYear: 1 }),
+    );
+    expect(result).toMatchObject({ status: 'ok', budgetExceeded: true });
+    expect((result as { evKmPerYear: number }).evKmPerYear).toBe(2.4);
+  });
+});
+
+describe('S09: tie band edges', () => {
+  const reserveLikesLongRuns = (soh: number) => -soh;
+
+  it('S09: a cost exactly one band above the minimum still ties', () => {
+    const groups: Group[] = [
+      { key: 'a', options: [option(0, 100), option(1000, 100 + TIE_BAND)] },
+    ];
+    const result = solve(input({ groups, reserveAtSoh: reserveLikesLongRuns }));
+    expect(result).toMatchObject({ status: 'ok', evKmPerYear: 1000 });
+  });
+
+  it('S09: the band is measured from the cheapest plan, not chained from plan to plan', () => {
+    // 100.000, 100.008 and 100.016: each is within a band of the next, but
+    // the last is not within a band of the cheapest.
+    const groups: Group[] = [
+      {
+        key: 'a',
+        options: [option(0, 100), option(1000, 100.008), option(2000, 100.016)],
+      },
+    ];
+    const result = solve(input({ groups, reserveAtSoh: reserveLikesLongRuns }));
+    expect(result).toMatchObject({ status: 'ok', evKmPerYear: 1000 });
+  });
+});
+
+describe('S09: knapsack guards', () => {
+  const prep = prepare(
+    [{ key: 'x', options: [option(5, 1), option(0, 2)] }],
+    1,
+  );
+
+  it('S09: reconstruct rejects cells outside the table and unreachable cells', () => {
+    expect(() => reconstruct(prep, 0, -1)).toThrow(RangeError);
+    expect(() => reconstruct(prep, 0, 6)).toThrow(RangeError);
+    expect(() => reconstruct(prep, 0, 3)).toThrow(RangeError);
+    expect(reconstruct(prep, 0, 5)).toEqual([0]);
+  });
+
+  it('S09: a group may have many options (steps below 0.4 % need more than 255)', () => {
+    const many: Group = {
+      key: 'many',
+      options: Array.from({ length: 1001 }, (_, i) => option(i / 10, 1000 - i)),
+    };
+    const costs = dpCosts(prepare([many], 0.1), 0);
+    expect(costs?.[1000]).toBe(0);
+    expect(costs?.[0]).toBe(1000);
+  });
+});
+
 describe('S09: unsuitable', () => {
   const sohHigh = () => 0.9;
 
@@ -191,12 +300,17 @@ describe('S09: SoH coupling', () => {
 });
 
 describe('TC13 / Q4: dynamic programming against brute force', () => {
-  const same = (solved: ReturnType<typeof solve>, input: SolverInput) => {
-    const reference = bruteForce(input);
+  const same = (problem: SolverInput) => {
+    const solved = solve(problem);
+    const reference = bruteForce(problem);
     expect(solved.status).toBe(reference.status);
-    if (solved.status === 'ok' && reference.status === 'ok') {
-      expect(solved.targetCost).toBeCloseTo(reference.targetCost, 9);
-    }
+    if (solved.status !== 'ok' || reference.status !== 'ok') return;
+    // The plan itself can differ between equally cheap combinations, but its
+    // exact distance, cost and budget flags cannot.
+    expect(solved.evKmPerYear).toBe(reference.evKmPerYear);
+    expect(solved.targetCost).toBe(reference.targetCost);
+    expect(solved.budgetExtraCost).toBe(reference.budgetExtraCost);
+    expect(solved.budgetExceeded).toBe(reference.budgetExceeded);
   };
 
   it('TC13: two weekdays and two months give the same cost as the full search', () => {
@@ -208,16 +322,22 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
       { key: 'tue:0', options: [month(0), option(0, 70)] },
       { key: 'tue:1', options: [month(1), option(0, 65)] },
     ];
-    const problem = input({
-      groups,
-      thresholds: [0.93, 0.8],
-      sohForKmPerYear: (km) => 1 - km / 8000,
-      offerCost: (km) => 1000 + Math.max(0, km - 800) * 0.5,
-    });
-    same(solve(problem), problem);
+    same(
+      input({
+        groups,
+        thresholds: [0.93, 0.8],
+        sohForKmPerYear: (km) => 1 - km / 8000,
+        offerCost: (km) => 1000 + Math.max(0, km - 800) * 0.5,
+      }),
+    );
   });
 
-  it('Q4: 1,000 random small cases give the same cost', () => {
+  it('Q4: 1,000 random small cases give the same cost, distance and budget result', () => {
+    // Costs in 1/256 EUR so that costs within the 0.01 tie band occur and all
+    // sums are exact in binary (no float noise decides a tie), km in halves so
+    // that the rounding up to cells matters, and a reserve that is not
+    // monotone in the SoH so that the tie rule has something to decide.
+    const money = fc.integer({ min: 0, max: 25600 }).map((n) => n / 256);
     const pairs = fc.integer({ min: 1, max: 4 });
     const problem = pairs.chain((pairCount) =>
       fc.record({
@@ -226,8 +346,8 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
             key: fc.constant('g'),
             options: fc.array(
               fc.record({
-                km: fc.integer({ min: 0, max: 40 }),
-                cost: fc.integer({ min: 0, max: 100 }),
+                km: fc.integer({ min: 0, max: 80 }).map((n) => n / 2),
+                cost: money,
                 needs: fc.option(fc.integer({ min: 0, max: pairCount - 1 }), {
                   nil: null,
                 }),
@@ -244,27 +364,65 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
         }),
         slope: fc.double({ min: 0.001, max: 0.02, noNaN: true }),
         gridKm: fc.constantFrom(1, 5, 10, 25),
+        cellKm: fc.constantFrom(1, 2),
         budget: fc.option(fc.integer({ min: 0, max: 200 }), { nil: null }),
         strict: fc.boolean(),
-        base: fc.integer({ min: 0, max: 500 }),
+        base: money,
         tier: fc.integer({ min: 0, max: 100 }),
         extra: fc.integer({ min: 0, max: 5 }),
+        reserveStep: fc.constantFrom(5, 20, 50),
       }),
     );
     fc.assert(
       fc.property(problem, (p) => {
-        const solverInput = input({
-          groups: p.groups,
-          thresholds: p.thresholds,
-          sohForKmPerYear: (km) => Math.max(0, 1 - p.slope * km),
-          budgetKmPerYear: p.budget,
-          strict: p.strict,
-          gridKm: p.gridKm,
-          offerCost: (km) => p.base + p.extra * Math.max(0, km - p.tier),
-        });
-        same(solve(solverInput), solverInput);
+        same(
+          input({
+            groups: p.groups,
+            thresholds: p.thresholds,
+            sohForKmPerYear: (km) => Math.max(0, 1 - p.slope * km),
+            reserveAtSoh: (soh) => Math.round(soh * p.reserveStep) % 3,
+            budgetKmPerYear: p.budget,
+            strict: p.strict,
+            gridKm: p.gridKm,
+            cellKm: p.cellKm,
+            offerCost: (km) => p.base + p.extra * Math.max(0, km - p.tier),
+          }),
+        );
       }),
       { numRuns: 1000 },
     );
+  });
+});
+
+describe('S09: a solver shared by several offers', () => {
+  const groups: Group[] = Array.from({ length: 6 }, (_, i) => ({
+    key: `g${i}`,
+    options: [option(300, 20 + i, 0), option(0, 50)],
+  }));
+  const setup = input({
+    groups,
+    thresholds: [0.9],
+    sohForKmPerYear: (km) => 1 - km / 20000,
+  });
+  const offers = [
+    { offerCost: () => 500 },
+    { offerCost: (km: number) => 400 + Math.max(0, km - 900) * 2 },
+    { offerCost: () => 300, strict: true },
+    { offerCost: () => 300, budgetKmPerYear: 600 },
+  ];
+
+  it('S09: createSolver gives each offer the result a fresh solve gives', () => {
+    const shared = createSolver(setup);
+    for (const change of offers) {
+      const offer = { ...setup, ...change };
+      expect(shared.solve(offer)).toEqual(solve(offer));
+    }
+  });
+
+  it('S09: asking twice gives the same answer (the cache does not leak between offers)', () => {
+    const shared = createSolver(setup);
+    const first = shared.solve({ ...setup, ...offers[1] });
+    shared.solve({ ...setup, ...offers[3] });
+    expect(shared.solve({ ...setup, ...offers[1] })).toEqual(first);
   });
 });

@@ -4,6 +4,7 @@ import {
   exampleScenarioCompute,
 } from '../../../tests/fixtures/exampleScenario';
 import type { ScenarioCompute } from '../../domain';
+import { expectSpec } from '../../../tests/helpers/specTolerance';
 import { resolvePrices } from '../calc/prices';
 import { optimizeOffer, type OfferTerms } from './optimize';
 import { buildProblem } from './problem';
@@ -29,18 +30,25 @@ function isolated(
   return scenario;
 }
 
-function run(
+function problemFor(
   scenario: ScenarioCompute,
-  offer: OfferTerms = purchase,
   candidate = exampleCandidateCompute(),
 ) {
   const prices = resolvePrices(scenario.iceVehicle, scenario.parameters, {
     priceCase: 'mid',
   });
+  return buildProblem(scenario, candidate, prices);
+}
+
+function run(
+  scenario: ScenarioCompute,
+  offer: OfferTerms = purchase,
+  candidate = exampleCandidateCompute(),
+) {
   return optimizeOffer(
     scenario,
     candidate,
-    buildProblem(scenario, candidate, prices),
+    problemFor(scenario, candidate),
     offer,
   );
 }
@@ -114,6 +122,10 @@ describe('TC12: rest instead of unsuitable', () => {
   it('TC12: Monday with only A staffed and A not drivable in January plans "E ruht" and the offer stays suitable', () => {
     const outcome = run(winterTrap(false));
     expect(outcome.status).toBe('ok');
+    // "Rest" is forced: A cannot be driven in January but can in February.
+    const problem = problemFor(winterTrap(false));
+    expect(problem.checkWayAt('a', 0, 1).reserveKm).toBeLessThan(0);
+    expect(problem.checkWayAt('a', 1, 1).reserveKm).toBeGreaterThanOrEqual(0);
     expect(
       choiceOf(outcome, { weekday: 'mon', month: 0, state: 'onlyA' }),
     ).toBe('rest');
@@ -131,6 +143,9 @@ describe('TC12: rest instead of unsuitable', () => {
       way: 'a',
       month: 0,
     });
+    if (outcome.reason.kind === 'strict') {
+      expect(outcome.reason.reserveKm).toBeLessThan(0);
+    }
   });
 });
 
@@ -183,15 +198,13 @@ describe('TC18: no warranty is not an error', () => {
 });
 
 describe('S09: the example scenario', () => {
-  it('S09: purchase and the 15,000 km lease are planned and the lease drives no more than it costs', () => {
+  it('S09: purchase and the 15,000 km lease are both planned, and only the purchase has a warranty budget', () => {
     const scenario = exampleScenarioCompute();
     const candidate = exampleCandidateCompute();
+    const [firstTier] = candidate.leaseTiers;
+    if (!firstTier) throw new Error('The example candidate has a lease tier.');
     const bought = run(scenario, purchase, candidate);
-    const leased = run(
-      scenario,
-      { kind: 'lease', tier: candidate.leaseTiers[0] as never },
-      candidate,
-    );
+    const leased = run(scenario, { kind: 'lease', tier: firstTier }, candidate);
     expect(bought.status).toBe('ok');
     expect(leased.status).toBe('ok');
     if (bought.status !== 'ok' || leased.status !== 'ok') return;
@@ -206,5 +219,143 @@ describe('S09: the example scenario', () => {
     const first = run(scenario);
     const second = run(scenario);
     expect(second).toEqual(first);
+  });
+});
+
+describe('TC16: daily costs behind the plan', () => {
+  it('TC16: for "only A" the EV costs 10.00 EUR a day and petrol 15.77 EUR, so the plan is E→A', () => {
+    // Data of test cases 4 and 5: January at -10 °C, 60 km way A, no maintenance.
+    const scenario = isolated((s) => {
+      s.workplaces.b = {
+        ...s.workplaces.b,
+        weekdays: ['mon', 'thu'],
+        freeDaysPerYear: 10,
+      };
+      s.parameters.monthlyTempC[0] = -10;
+    });
+    const problem = problemFor(scenario);
+    const index = problem.info.findIndex(
+      (entry) =>
+        entry.kind === 'day' &&
+        entry.weekday === 'mon' &&
+        entry.month === 0 &&
+        entry.state === 'onlyA',
+    );
+    const info = problem.info[index];
+    const options = problem.groups[index]?.options;
+    if (info?.kind !== 'day' || !options) throw new Error('group not found');
+    // Cost over D = 48 months without price rise: days per year · cost per day · 4.
+    const perDay = (choice: string) =>
+      (options.find((o) => o.choice === choice)?.cost ?? Number.NaN) /
+      (info.days * 4);
+    expectSpec(perDay('evA'), '10,00');
+    expectSpec(perDay('rest'), '15,77');
+    expectSpec(info.days, '0,37');
+    expect(
+      choiceOf(run(scenario), { weekday: 'mon', month: 0, state: 'onlyA' }),
+    ).toBe('evA');
+  });
+});
+
+describe('S09: unsuitable because driving lowers the SoH', () => {
+  /**
+   * Way A can never be driven (it counts two trips and is far above the
+   * capacity). Way B can be driven only while the SoH stays at or above 0.9006.
+   * The smallest possible EV distance is A's, so the best SoH is that of 6,240
+   * km a year, where B is still fine. B's own 8,320 km a year age the battery
+   * below its threshold.
+   */
+  const coupled = (kmToSohMin: number) =>
+    isolated((s) => {
+      s.workplaces.a = {
+        ...s.workplaces.a,
+        weekdays: ['mon'],
+        freeDaysPerYear: 0,
+        commute: hw(60),
+        chargesFreeAtWork: false,
+      };
+      s.workplaces.b = {
+        ...s.workplaces.b,
+        weekdays: ['mon'],
+        freeDaysPerYear: 0,
+        commute: hw(80),
+        chargesFreeAtWork: true,
+      };
+      s.parameters.sohReference = 'end';
+      s.parameters.kmGridPerYear = 50;
+      s.parameters.kmToSohMin = kmToSohMin;
+    });
+  const candidate = () => {
+    const c = exampleCandidateCompute();
+    const flat = { mild: 141, cold: 141 };
+    c.rangeKm = { city: flat, highway: flat, combined: flat };
+    return c;
+  };
+
+  it('S09: the reason is "coupling", not a blocked day, when the way is drivable at the best SoH', () => {
+    const outcome = run(coupled(42857), purchase, candidate());
+    expect(outcome.status).toBe('unsuitable');
+    if (outcome.status !== 'unsuitable') return;
+    expect(outcome.reason.kind).toBe('coupling');
+    expect(outcome.reason.soh).toBeCloseTo(0.9125, 3);
+  });
+
+  it('S09: the same scenario with slow ageing is suitable and drives B', () => {
+    const outcome = run(coupled(200000), purchase, candidate());
+    expect(outcome.status).toBe('ok');
+    expect(choiceOf(outcome, { weekday: 'mon', month: 0, state: 'both' })).toBe(
+      'evB',
+    );
+  });
+});
+
+describe('S09: forced over the warranty budget', () => {
+  const forced = () =>
+    isolated((s) => {
+      const allWeek = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
+      s.workplaces.a = {
+        ...s.workplaces.a,
+        weekdays: [...allWeek],
+        freeDaysPerYear: 0,
+      };
+      s.workplaces.b = {
+        ...s.workplaces.b,
+        weekdays: [...allWeek],
+        freeDaysPerYear: 0,
+      };
+      s.parameters.warrantyBudgetAsTarget = true;
+    });
+
+  it('S09: both workplaces every day force about 26,000 km, above the 20,000 km budget, with the years to each km limit', () => {
+    const outcome = run(forced());
+    expect(outcome.status).toBe('ok');
+    if (outcome.status !== 'ok') return;
+    expect(outcome.budget.budgetKmPerYear).toBe(20000);
+    expect(outcome.budgetExceeded).toBe(true);
+    expect(outcome.evKmPerYear).toBeGreaterThan(20000);
+    expect(outcome.yearsToKmLimit?.vehicle).toBeCloseTo(
+      100000 / outcome.evKmPerYear,
+      9,
+    );
+    expect(outcome.yearsToKmLimit?.battery).toBeCloseTo(
+      160000 / outcome.evKmPerYear,
+      9,
+    );
+  });
+
+  it('S09: an expired warranty has no years to its limit', () => {
+    const candidate = exampleCandidateCompute();
+    candidate.vehicleWarranty = { years: 0, km: 0 };
+    const outcome = run(forced(), purchase, candidate);
+    if (outcome.status !== 'ok') throw new Error('expected a plan');
+    expect(outcome.yearsToKmLimit?.vehicle).toBeNull();
+    expect(outcome.yearsToKmLimit?.battery).not.toBeNull();
+  });
+
+  it('S09: within the budget there is no warning', () => {
+    const outcome = run(isolated(() => undefined));
+    if (outcome.status !== 'ok') throw new Error('expected a plan');
+    expect(outcome.budgetExceeded).toBe(false);
+    expect(outcome.yearsToKmLimit).toBeNull();
   });
 });
