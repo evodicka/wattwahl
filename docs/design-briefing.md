@@ -91,7 +91,7 @@ Jedes Feld nennt seine Einheit. Pflichtfelder sind markiert. Validierung beim Ve
 | --- | --- | --- | --- |
 | Allgemein | Name, Notiz | Text | Name Pflicht |
 | Allgemein | Zustand | neu oder gebraucht | Pflicht |
-| Allgemein | Erstzulassung | Monat und Jahr | nur bei gebraucht |
+| Allgemein | Erstzulassung | Monat und Jahr | nur bei gebraucht, dort Pflicht. Warnung, wenn sie nach dem Stichtag liegt |
 | Allgemein | Laufleistung | km | nur bei gebraucht, ≥ 0. Bei neu ausgeblendet (Wert 0) |
 | Akku | Netto-Akkukapazität | kWh | > 0, Warnung über 200 |
 | Akku | SoH aktuell | % | optional, nur gebraucht, 50 bis 100 |
@@ -151,6 +151,7 @@ Alle Parameter mit Standardwert, Einheit, Hinweis. Ein geänderter Standardwert 
 | Streng-Modus | aus | Schalter | |
 | Garantie-Budget als Ziel | an | Schalter | |
 | Kilometerraster der Optimierung | 250 | km pro Jahr | |
+| Stichtag der Garantieberechnung | Monat der Anlage des Szenarios | Monat und Jahr. Zurücksetzen setzt den aktuellen Monat, „geändert“ nur nach eigener Eingabe | ja |
 | Export-Erinnerung | 14 | Tage (Geräteeinstellung, nicht im Export) | |
 
 Pflichteingaben ohne Standardwert brauchen einen eigenen leeren Zustand mit Hinweis, dass ohne sie nicht gerechnet wird.
@@ -233,7 +234,9 @@ Der Szenariovergleich liegt inhaltlich in Bereich 5 und kann im Ergebnis-Bereich
 | Z17 | Garantie-Budget überschritten | Garantie-Kachel, Warnung | Warnung mit Jahren bis zur Kilometergrenze, Angebot bleibt im Vergleich |
 | Z18 | Erster Start | Rahmen | Leeres Szenario, Hinweis auf Beispielwerte und Annahmen |
 | Z19 | Löschen bestätigen | Kandidat, Szenario, Leasingangebot | Bestätigungsdialog |
-| Z20 | Gebraucht-Zweig | Kandidatenformular | Zusatzfelder Erstzulassung und SoH erscheinen nur bei „gebraucht“ |
+| Z20 | Gebraucht-Zweig | Kandidatenformular | Zusatzfelder Erstzulassung (Pflicht), Laufleistung und SoH erscheinen nur bei „gebraucht“, dazu die berechnete Restgarantie zum Stichtag |
+| Z21 | Garantiewerte prüfen | Kandidatenkarte | Nach der Migration auf Schemaversion 2, wenn Garantiewerte nicht umgerechnet werden konnten. Blockiert nicht, verschwindet nach Bestätigen oder Ändern |
+| Z22 | Erstzulassung nach dem Stichtag | Kandidatenformular | Plausibilitätswarnung, rechnet mit Alter 0 |
 
 ## 7. Beispielwerte für die Mockups
 
@@ -341,3 +344,4 @@ Jedes Board hat einen Tweak „theme“ (hell, dunkel). Die Zahlen sind konsiste
 - Laufleistung erscheint im Kandidatenformular nur bei „Gebraucht“.
 - Garantie: Eingabe der normalen Garantie (Jahre, Kilometer). Die Restgarantie bei Gebrauchten berechnet die App. **Das weicht von Spezifikation (Datenmodell, Garantie) und Schema ab und braucht eine Entscheidung vor G3**: Spezifikation, `src/domain/schema.ts` und Rechenkern rechnen heute mit Restjahren und Restkilometern.
 - Zuordnungsplan: Statt Buchstaben zeigt er Symbole (Blitz E-Auto, Zapfsäule Verbrenner, Gebäude je Arbeitsstätte). Die Namen in der Legende („Büro Innenstadt“, „Werk Nord“) kommen aus dem Namen der Arbeitsstätten im Fahrprofil und ändern sich mit ihm. Die Mockups zeigen sie fest, die Umsetzung (S20/S21) liest sie aus dem Szenario.
+- Nach der Garantie-Änderung (`docs/change-garantie.md`, Phase 3b) ergänzt: Parameter „Stichtag der Garantieberechnung“ (D4, M7), Erstzulassung als Pflicht und berechnete Restgarantie im Gebraucht-Zweig (Z20), Hinweis „Garantiewerte prüfen“ (Z21), Warnung „Erstzulassung nach dem Stichtag“ (Z22), unvollständig wegen fehlender Erstzulassung (Z02), Restgarantie in der Garantie-Kachel und im Rechenweg (D6, M9, Formel `OPT.remainingWarranty`). Der Spec-Abgleich der Garantie ist damit kein offener Punkt mehr, sobald C1a gemerged ist.
