@@ -72,6 +72,23 @@ describe('formatPercent (input in percent, as in OfferResult)', () => {
   });
 });
 
+describe('negative values and values that round to zero', () => {
+  it('drops the sign of a value that rounds to zero', () => {
+    expect(formatEuro(-0.4)).toBe(`0${nbsp}€`);
+    expect(formatKm(-0.4)).toBe(`0${nbsp}km`);
+    expect(formatPercent(-0.2)).toBe(`0${nbsp}%`);
+    expect(formatDecimal(-0.04, 1)).toBe('0,0');
+  });
+
+  it('TC11: a negative reserve keeps its sign', () => {
+    expect(formatKm(-12.3)).toBe(`-12${nbsp}km`);
+  });
+
+  it('a negative cost difference keeps its sign', () => {
+    expect(formatEuro(-1234.5)).toBe(`-1.235${nbsp}€`);
+  });
+});
+
 describe('formatDecimal (decimal comma for other values)', () => {
   it('uses the decimal comma and the given number of decimals', () => {
     expect(formatDecimal(0.2943, 4)).toBe('0,2943');
