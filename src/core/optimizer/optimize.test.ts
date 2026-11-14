@@ -352,10 +352,14 @@ describe('S09: forced over the warranty budget', () => {
     expect(outcome.yearsToKmLimit?.battery).not.toBeNull();
   });
 
-  it('S09: within the budget there is no warning', () => {
+  it('S09: within the budget there is no warning but the years to the limit are known', () => {
     const outcome = run(isolated(() => undefined));
     if (outcome.status !== 'ok') throw new Error('expected a plan');
     expect(outcome.budgetExceeded).toBe(false);
-    expect(outcome.yearsToKmLimit).toBeNull();
+    // The years to the km limit are shown anyway (Garantie tile).
+    expect(outcome.yearsToKmLimit.vehicle).toBeCloseTo(
+      100000 / outcome.evKmPerYear,
+      9,
+    );
   });
 });

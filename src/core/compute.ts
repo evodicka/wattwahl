@@ -1,6 +1,7 @@
 import {
   CandidateComputeSchema,
   ScenarioComputeSchema,
+  SliderPricesSchema,
   type CandidateCompute,
   type FormulaId,
   type Offer,
@@ -45,20 +46,89 @@ type Issue = { path: string; message: string };
 
 /**
  * Work that several offers of one scenario share: the validation and, per
- * candidate and price case, the problem with its DP. Create one for each run
- * and drop it when the scenario changes: it never notices a changed scenario.
- * Calls with a trace ignore the cache, so their Rechenweg is complete.
+ * candidate and price case, the problem with its DP. Create one per run. The
+ * cache remembers the scenario object it was filled for and starts over when
+ * it is given another one, so scenario state must be replaced on every change,
+ * never edited in place (an edit of the same object is not noticed).
+ * Calls with a trace ignore it, so their Rechenweg is complete; that makes
+ * opening the Rechenweg rebuild the problem of that one offer.
  */
 export class ComputeCache {
-  scenarioCheck: ScenarioCheck | undefined;
-  readonly candidateChecks = new Map<string, CandidateCheck>();
-  readonly problems = new Map<string, Problem>();
+  private scenario: Scenario | undefined;
+  private scenarioCheck: ScenarioCheck | undefined;
+  private readonly candidateChecks = new Map<string, CandidateCheck>();
+  private readonly problems = new Map<string, Problem>();
+  /** Only the latest slider problem per candidate is kept: dragging must not pile them up. */
+  private readonly sliderProblems = new Map<
+    string,
+    { key: string; problem: Problem }
+  >();
+
+  private sync(scenario: Scenario): void {
+    if (this.scenario === scenario) return;
+    this.scenario = scenario;
+    this.scenarioCheck = undefined;
+    this.candidateChecks.clear();
+    this.problems.clear();
+    this.sliderProblems.clear();
+  }
+
+  checkScenario(scenario: Scenario): ScenarioCheck {
+    this.sync(scenario);
+    return (this.scenarioCheck ??= ScenarioComputeSchema.safeParse(scenario));
+  }
+
+  checkCandidate(
+    scenario: Scenario,
+    candidate: Scenario['candidates'][number],
+  ): CandidateCheck {
+    this.sync(scenario);
+    let check = this.candidateChecks.get(candidate.id);
+    if (!check) {
+      check = CandidateComputeSchema.safeParse(candidate);
+      this.candidateChecks.set(candidate.id, check);
+    }
+    return check;
+  }
+
+  problem(
+    scenario: Scenario,
+    candidateId: string,
+    priceCase: PriceCase,
+    sliderPrices: SliderPrices | undefined,
+    build: () => Problem,
+  ): Problem {
+    this.sync(scenario);
+    if (priceCase === 'slider' && sliderPrices) {
+      const key = [
+        sliderPrices.petrol,
+        sliderPrices.electricity,
+        sliderPrices.petrolEscalationPct,
+        sliderPrices.electricityEscalationPct,
+      ].join('|');
+      const known = this.sliderProblems.get(candidateId);
+      if (known?.key === key) return known.problem;
+      const problem = build();
+      this.sliderProblems.set(candidateId, { key, problem });
+      return problem;
+    }
+    const key = `${candidateId}|${priceCase}`;
+    let problem = this.problems.get(key);
+    if (!problem) {
+      problem = build();
+      this.problems.set(key, problem);
+    }
+    return problem;
+  }
 }
 
 export type ComputeOptions = {
   /** Prices of the slider; required for the price case `slider`. */
   sliderPrices?: SliderPrices;
-  /** Collects the Rechenweg and links each result number to its entry (Q6). */
+  /**
+   * Collects the Rechenweg and links each result number to its entry (Q6).
+   * Use one trace per offer: result paths carry no offer id.
+   */
   trace?: Trace;
   cache?: ComputeCache;
 };
@@ -127,6 +197,9 @@ export function computeOffer(
     if (!sliderPrices) {
       throw new RangeError('The price case "slider" needs the slider prices.');
     }
+    if (!SliderPricesSchema.safeParse(sliderPrices).success) {
+      throw new RangeError('The slider prices are not valid numbers.');
+    }
     selection = { priceCase, sliderPrices };
   } else {
     selection = { priceCase };
@@ -136,23 +209,23 @@ export function computeOffer(
     candidateId: offer.candidateId,
     kind: offer.kind,
     priceCase,
+    scenarioId: scenario.id,
+    comparisonMonths: scenario.parameters.comparisonMonths,
   };
 
   // Everything this offer needs: the driving profile and parameters, and the
   // candidate with all its lease tiers (spec: one gap blocks the candidate).
   const scenarioCheck = cache
-    ? (cache.scenarioCheck ??= ScenarioComputeSchema.safeParse(scenario))
+    ? cache.checkScenario(scenario)
     : ScenarioComputeSchema.safeParse(scenario);
-  let candidateCheck = cache?.candidateChecks.get(stored.id);
-  if (!candidateCheck) {
-    candidateCheck = CandidateComputeSchema.safeParse(stored);
-    cache?.candidateChecks.set(stored.id, candidateCheck);
-  }
+  const candidateCheck = cache
+    ? cache.checkCandidate(scenario, stored)
+    : CandidateComputeSchema.safeParse(stored);
   const issues = [
     ...issuesOf(scenarioCheck),
     ...issuesOf(candidateCheck, `candidates[${index}]`),
   ];
-  if (!scenarioCheck.success || !candidateCheck.success || issues.length > 0) {
+  if (!scenarioCheck.success || !candidateCheck.success) {
     return { ...head, status: 'incomplete', issues };
   }
   const compute = scenarioCheck.data;
@@ -168,15 +241,11 @@ export function computeOffer(
     selection,
   );
 
-  const problemKey =
-    priceCase === 'slider' && sliderPrices
-      ? `${candidate.id}|slider|${Object.values(sliderPrices).join('|')}`
-      : `${candidate.id}|${priceCase}`;
-  let problem = trace ? undefined : cache?.problems.get(problemKey);
-  if (!problem) {
-    problem = buildProblem(compute, candidate, prices, trace);
-    if (!trace) cache?.problems.set(problemKey, problem);
-  }
+  const build = () => buildProblem(compute, candidate, prices, trace);
+  const problem =
+    cache && !trace
+      ? cache.problem(scenario, candidate.id, priceCase, sliderPrices, build)
+      : build();
 
   const optimizeFrom = trace?.entries.length ?? 0;
   const outcome = optimizeOffer(compute, candidate, problem, terms, trace);
@@ -219,7 +288,15 @@ type OkInput = {
 
 /** The result of spec step 6, with the cost formulas of section 8 run for the chosen plan. */
 function okResult(
-  head: Pick<OkOfferResult, 'offerId' | 'candidateId' | 'kind' | 'priceCase'>,
+  head: Pick<
+    OkOfferResult,
+    | 'offerId'
+    | 'candidateId'
+    | 'kind'
+    | 'priceCase'
+    | 'scenarioId'
+    | 'comparisonMonths'
+  >,
   input: OkInput,
 ): OkOfferResult {
   const { compute, candidate, problem, outcome, prices, terms, trace } = input;
@@ -244,6 +321,8 @@ function okResult(
 
   // Cost parts: the formulas of section 8 on the yearly quantities of the plan.
   const evPerKm = effectiveEvMaintenancePerKm(candidate, parameters);
+  // K_ICE = total km - K_EV as in the spec; it can differ from the plan's own
+  // petrol km by about one ulp.
   const kIce = (() => {
     const from = mark();
     const value = iceKmPerYear(
@@ -305,7 +384,15 @@ function okResult(
     link(from, 'F8.maintenance', 'costs.maintenance');
     return value;
   })();
-  link(input.optimizeFrom, 'OPT.target', 'costs.total');
+  const total = acquisition + electricity + petrol + maintenance;
+  // The optimizer's own OPT.target sums the same costs in another order, so
+  // the total of the result gets its own entry with exactly this value.
+  trace?.add({
+    formula: 'OPT.target',
+    inputs: { acquisition, electricity, petrol, maintenance },
+    value: total,
+    resultPath: 'costs.total',
+  });
   if (
     trace &&
     !trace.entries.some(
@@ -342,7 +429,8 @@ function okResult(
   const iceOdometer = iceOdometerEnd(iceVehicle.mileageKm, kIce, months, trace);
   link(from, 'F8.iceOdometer', 'iceOdometerEnd');
 
-  // Reserve of both ways in every month at that SoH (section 3).
+  // Reserve of both ways in every month at that SoH (section 3). It is the SoH
+  // of the exact EV km, at least the raster bucket SoH the optimizer checked.
   const reserves: ReserveCell[] = [];
   for (const way of WAYS) {
     for (let month = 0; month < 12; month++) {
@@ -360,18 +448,41 @@ function okResult(
       });
     }
   }
-  const smallest = reserves.reduce((best, cell) =>
-    cell.reservePct < best.reservePct ? cell : best,
+  // The smallest reserve counts only the ways and months the plan lets the EV
+  // drive: there the way is suitable, so the reserve is not negative. A way
+  // the petrol car takes (the EV rests) has no say.
+  const driven = new Set(
+    outcome.plan.flatMap((entry) =>
+      entry.info.kind === 'day' && entry.choice !== 'rest'
+        ? [`${entry.choice === 'evA' ? 'a' : 'b'}:${entry.info.month}`]
+        : [],
+    ),
   );
-  from = mark();
-  const smallestCheck = problem.checkWayAt(
-    smallest.way,
-    smallest.month,
-    sohCheck,
-    trace,
-  );
-  link(from, 'F3.reserveKm', 'minReserve.reserveKm');
-  link(from, 'F3.reservePct', 'minReserve.reservePct');
+  const smallest = reserves
+    .filter((cell) => driven.has(`${cell.way}:${cell.month}`))
+    .reduce<ReserveCell | null>(
+      (best, cell) =>
+        best === null || cell.reservePct < best.reservePct ? cell : best,
+      null,
+    );
+  let minReserve: OkOfferResult['minReserve'] = null;
+  if (smallest) {
+    from = mark();
+    const check = problem.checkWayAt(
+      smallest.way,
+      smallest.month,
+      sohCheck,
+      trace,
+    );
+    link(from, 'F3.reserveKm', 'minReserve.reserveKm');
+    link(from, 'F3.reservePct', 'minReserve.reservePct');
+    minReserve = {
+      way: smallest.way,
+      month: smallest.month,
+      reserveKm: check.reserveKm,
+      reservePct: check.reservePct,
+    };
+  }
 
   // The plan, and the share of the extra mileage the EV takes per month.
   const plan: OkOfferResult['plan'] = [];
@@ -388,7 +499,10 @@ function okResult(
         choice: toPlanChoice(entry.choice),
       });
     } else {
-      const share = Number(entry.choice.slice('share:'.length));
+      const share = entry.sharePct;
+      if (share === undefined) {
+        throw new RangeError('An extra mileage option has no share.');
+      }
       extraSharePct[entry.info.month] = share;
       trace?.add({
         formula: 'OPT.select',
@@ -399,12 +513,12 @@ function okResult(
     }
   }
 
-  // Warranty: the budget, and the years to each km limit if the plan forces more.
+  // Warranty: the budget, and the years to each running warranty's km limit.
   const { budget, yearsToKmLimit } = outcome;
   if (budget.budgetKmPerYear !== null) {
     link(input.optimizeFrom, 'OPT.budget', 'warranty.budgetKmPerYear');
   }
-  if (trace && yearsToKmLimit) {
+  if (trace) {
     const entries = trace.entries
       .map((entry, at) => ({ entry, at }))
       .filter(
@@ -434,16 +548,11 @@ function okResult(
       electricity,
       petrol,
       maintenance,
-      total: acquisition + electricity + petrol + maintenance,
+      total,
       budgetExtraCost: outcome.budgetExtraCost,
     },
     reserves,
-    minReserve: {
-      way: smallest.way,
-      month: smallest.month,
-      reserveKm: smallestCheck.reserveKm,
-      reservePct: smallestCheck.reservePct,
-    },
+    minReserve,
     warranty: {
       noWarranty: budget.noWarranty,
       budgetKmPerYear: budget.budgetKmPerYear,

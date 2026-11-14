@@ -1,10 +1,21 @@
 // Hash of a result for the determinism checks (Q5): the same input must give
 // the same hash in every engine. The text is canonical JSON, so key order
-// never matters, and JSON writes every float64 with the shortest text that
-// reads back as the same number, so equal hashes mean bit-equal values.
+// never matters, and every float64 is written with the shortest text that
+// reads back as the same number (-0 and the non-finite values explicitly), so
+// equal texts mean bit-equal values. Tests compare the texts themselves; the
+// hash is for compact reports across engines.
 
-/** JSON with the keys of every object in sorted order; `undefined` values are left out. */
+/**
+ * JSON with the keys of every object in sorted order; `undefined` values are
+ * left out. For plain data only: `toJSON`, `Date` and `Map` are not honoured
+ * and a cycle does not end.
+ */
 export function canonicalJson(value: unknown): string {
+  if (typeof value === 'number') {
+    // JSON.stringify would write -0 as 0 and NaN and the infinities as null.
+    if (Object.is(value, -0)) return '-0';
+    return Number.isFinite(value) ? String(value) : `"${String(value)}"`;
+  }
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value) ?? 'null';
   }

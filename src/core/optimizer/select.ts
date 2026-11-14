@@ -211,7 +211,12 @@ export function createSolver(setup: SolverSetup): Solver {
     if (budget !== null) {
       trace?.add({
         formula: 'OPT.budgetExtraCost',
-        inputs: { budgetKmPerYear: budget, globalMin, minBudget },
+        inputs: {
+          budgetKmPerYear: budget,
+          globalMin,
+          // Nothing fits the budget: there is no cheapest plan within it.
+          minBudget: inBudget ? minBudget : 'none',
+        },
         value: budgetExtraCost,
       });
     }

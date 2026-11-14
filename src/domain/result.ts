@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { PresenceStateSchema, PriceCaseSchema, WeekdaySchema } from './schema';
 
 // Result-side schemas shared by core, worker, state and UI (architecture 5.1,
-// 8.4). S07 adds the trace; the offer result follows with S10.
+// 8.4): the trace, the slider prices, and the result of one offer.
 
 /** Formula IDs of architecture 8.4: `F<section>.<name>`, optimizer steps `OPT.<name>`. */
 export const FORMULA_IDS = [
@@ -142,6 +142,13 @@ const offerFields = {
   candidateId: z.string(),
   kind: z.enum(['purchase', 'lease']),
   priceCase: PriceCaseSchema,
+  /**
+   * What the result was computed for, so a view can say so even while newer
+   * input is being recomputed (spec: every view names scenario, price case and
+   * comparison period). Labels, not results.
+   */
+  scenarioId: z.string(),
+  comparisonMonths: z.number(),
 };
 
 /**
@@ -177,20 +184,24 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
     }),
     /** Both ways in each month: 24 cells, way a first. */
     reserves: z.array(ReserveCellSchema).length(24),
-    /** The cell of `reserves` with the smallest reserve in percent. */
-    minReserve: ReserveCellSchema.omit({ light: true }),
+    /**
+     * The cell of `reserves` with the smallest reserve in percent among the
+     * ways and months the plan lets the EV drive, so it is not negative. `null`
+     * if the EV never drives. The optimizer's tie rule compares plans over all
+     * ways and at the SoH of their raster bucket, which is at most the SoH
+     * `reserves` are checked at.
+     */
+    minReserve: ReserveCellSchema.omit({ light: true }).nullable(),
     warranty: z.object({
       /** Both warranties are expired: "ohne Garantie". */
       noWarranty: z.boolean(),
       budgetKmPerYear: z.number().nullable(),
       budgetExceeded: z.boolean(),
-      /** With `budgetExceeded`: years until each running warranty's km limit. */
-      yearsToKmLimit: z
-        .object({
-          vehicle: z.number().nullable(),
-          battery: z.number().nullable(),
-        })
-        .nullable(),
+      /** Years until each running warranty's km limit at the planned EV km; null if expired. */
+      yearsToKmLimit: z.object({
+        vehicle: z.number().nullable(),
+        battery: z.number().nullable(),
+      }),
     }),
     warnings: z.array(z.enum(['budgetExceeded'])),
   }),

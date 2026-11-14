@@ -28,6 +28,8 @@ export type PlanEntry = {
   info: GroupInfo;
   /** `evA`, `evB`, `rest` (EV rests) or `share:<percent>` for the extra mileage. */
   choice: string;
+  /** With `share:<percent>`: that percent as a number. */
+  sharePct?: number;
 };
 
 export type OptimizerOutcome =
@@ -55,11 +57,12 @@ export type OptimizerOutcome =
       budgetExtraCost: number;
       budgetExceeded: boolean;
       /**
-       * With `budgetExceeded`: years until each running warranty reaches its km
-       * limit at the planned EV km (the warning of spec "Garantie-Budget").
-       * `null` for an expired warranty, and for both when the budget is met.
+       * Years until each running warranty reaches its km limit at the planned
+       * EV km (spec "Garantie": years to the km limit against the remaining
+       * warranty; with `budgetExceeded` it is the warning). `null` for an
+       * expired warranty.
        */
-      yearsToKmLimit: { vehicle: number | null; battery: number | null } | null;
+      yearsToKmLimit: { vehicle: number | null; battery: number | null };
       /** SoH of the raster bucket the plan was checked at. */
       bucketSoh: number;
     };
@@ -181,14 +184,15 @@ export function optimizeOffer(
   }
   return {
     status: 'ok',
-    plan: problem.groups.map((group, index) => ({
-      info: problem.info[index] as GroupInfo,
-      choice: (
-        group.options[selection.optionIndex[index] as number] as {
-          choice: string;
-        }
-      ).choice,
-    })),
+    plan: problem.groups.map((group, index) => {
+      const option = group.options[selection.optionIndex[index] as number];
+      if (!option) throw new RangeError(`Bad option for group ${group.key}.`);
+      return {
+        info: problem.info[index] as GroupInfo,
+        choice: option.choice,
+        sharePct: option.sharePct,
+      };
+    }),
     evKmPerYear: selection.evKmPerYear,
     quantities: sumQuantities(problem, selection.optionIndex),
     variableCost: selection.variableCost,
@@ -196,24 +200,22 @@ export function optimizeOffer(
     budget,
     budgetExtraCost: selection.budgetExtraCost,
     budgetExceeded: selection.budgetExceeded,
-    yearsToKmLimit: selection.budgetExceeded
-      ? {
-          vehicle: !isExpired(candidate.vehicleWarranty)
-            ? yearsToKmLimit(
-                candidate.vehicleWarranty.km,
-                selection.evKmPerYear,
-                trace,
-              )
-            : null,
-          battery: !isExpired(candidate.batteryWarranty)
-            ? yearsToKmLimit(
-                candidate.batteryWarranty.km,
-                selection.evKmPerYear,
-                trace,
-              )
-            : null,
-        }
-      : null,
+    yearsToKmLimit: {
+      vehicle: isExpired(candidate.vehicleWarranty)
+        ? null
+        : yearsToKmLimit(
+            candidate.vehicleWarranty.km,
+            selection.evKmPerYear,
+            trace,
+          ),
+      battery: isExpired(candidate.batteryWarranty)
+        ? null
+        : yearsToKmLimit(
+            candidate.batteryWarranty.km,
+            selection.evKmPerYear,
+            trace,
+          ),
+    },
     bucketSoh: selection.bucketSoh,
   };
 }

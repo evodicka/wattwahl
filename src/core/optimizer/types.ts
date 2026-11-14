@@ -13,6 +13,8 @@ export type Option = {
   needs: number | null;
   /** What the option means; the problem builder decodes it. */
   choice: string;
+  /** For an extra-mileage option: the share of the km the EV takes, in percent. */
+  sharePct?: number;
   /**
    * Yearly quantities behind `cost`, so the result can show electricity,
    * petrol and maintenance separately (F8.energy, F8.maintenance).
