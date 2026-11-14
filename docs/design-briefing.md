@@ -19,8 +19,8 @@ Wattwahl ist eine Entscheidungshilfe für einen Haushalt mit einem Bestands-Verb
 | Breiten | Handy 390 px, Desktop 1280 px, Umbruch bei 900 px | Spezifikation „Gestaltung“, Architektur 8.8 |
 | Layout Desktop (ab 900 px) | Seitenleiste links, Inhalt in zwei Spalten | Architektur 8.8 |
 | Layout Handy (unter 900 px) | Eine Spalte, untere Navigationsleiste mit fünf Bereichen | Architektur 8.8 |
-| Tablet hochkant (600 bis 899 px) | Handy-Layout, Inhalt höchstens 720 px breit und mittig. Formularkarten zeigen zwei Felder nebeneinander, Ergebniskarten zwei Spalten, Kostenbalken mit Beschriftung links | Design-Review, Abschnitt 13 |
-| Tablet quer (900 bis 1199 px) | Desktop-Layout mit Seitenleiste 200 px. Feldgruppen mit drei Feldern stehen untereinander, die Ergebnistabelle scrollt seitlich mit fester Spalte Kandidat | Design-Review, Abschnitt 13 |
+| Tablet hochkant (600 bis 899 px) | Handy-Layout, Inhalt höchstens 720 px breit und mittig. Formularkarten zeigen zwei Felder nebeneinander, Ergebniskarten zwei Spalten, Kostenbalken mit Beschriftung links | Spezifikation „Gestaltung“, Architektur 8.8 |
+| Tablet quer (900 bis 1199 px) | Desktop-Layout mit Seitenleiste 200 px. Feldgruppen mit drei Feldern stehen untereinander, die Ergebnistabelle scrollt seitlich mit fester Spalte Kandidat | Spezifikation „Gestaltung“, Architektur 8.8 |
 | Bedienhöhe | Alle Bedienelemente am Handy mindestens 44 px hoch | Spezifikation „Gestaltung“ |
 | Zahlenfelder | Einheit am Feldende, passende Tastatur, Eingabe mit Komma oder Punkt | Spezifikation „Eingabe“, „Validierung“ |
 | Farbschema | Hell und Dunkel nach Systemeinstellung, kein Umschalter in der App | Spezifikation „Gestaltung“ |
@@ -352,7 +352,7 @@ Jedes Board hat einen Tweak „theme“ (hell, dunkel). Die Zahlen sind konsiste
 
 ## 13. Tablet
 
-Die Spezifikation kennt nur den Umbruch bei 900 px. Tablets fallen damit hochkant (etwa 768 bis 834 px) in das Handy-Layout und quer (1024 bis 1366 px) in das Desktop-Layout. Zwei Zwischenstufen verhindern, dass Inhalte zu breit oder zu eng werden. Sie ändern keinen Umbruch und keinen Bereich, nur Breiten und Spalten innerhalb der Layouts.
+Die Stufen stehen verbindlich in der Spezifikation (Abschnitt „Gestaltung“) und in Architektur 8.8. Tablets fallen hochkant (etwa 768 bis 834 px) in das Handy-Layout und quer (1024 bis 1366 px) in das Desktop-Layout. Zwei Zwischenstufen verhindern, dass Inhalte zu breit oder zu eng werden. Sie ändern keinen Umbruch und keinen Bereich, nur Breiten und Spalten innerhalb der Layouts.
 
 | Breite | Layout | Regeln |
 | --- | --- | --- |
@@ -361,4 +361,4 @@ Die Spezifikation kennt nur den Umbruch bei 900 px. Tablets fallen damit hochkan
 | 900 bis 1199 px | Desktop, schmal | Seitenleiste 200 px, Ränder 24 px. Zwei Spalten bleiben. Feldgruppen mit drei Feldern stehen untereinander, damit Zahl und Einheit Platz haben. Wochentage mit 2 px Abstand in einer Zeile. Ergebnistabelle mit Mindestbreite 880 px in der Scrollbox, Spalte Kandidat bleibt beim Scrollen stehen. |
 | ab 1200 px | Desktop | wie D1 bis D8 |
 
-Boards: T1 und T2 (820 px hochkant), T3 und T4 (1024 px quer). Die Stufen 600 und 1200 px setzt S16 als Container- oder Media-Queries im Theme um. Die Abnahme der Spezifikation (390 und 1280 px) bleibt unverändert; ein Test bei 820 und 1024 px ohne abgeschnittene Felder ist eine Ergänzung für S24.
+Boards: T1 und T2 (820 px hochkant), T3 und T4 (1024 px quer). Die Stufen 600 und 1200 px setzt S16 als Container- oder Media-Queries im Theme um. Die Abnahme der Spezifikation prüft alle Bereiche bei 390, 820, 1024 und 1280 px ohne abgeschnittene Eingabefelder (S24).
