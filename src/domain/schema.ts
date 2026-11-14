@@ -46,6 +46,7 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
   const req = <T extends z.ZodType>(
     schema: T,
   ): Strict extends true ? T : z.ZodNullable<T> =>
+    // Deliberate cast: the conditional return type is only honoured by callers.
     (strict ? schema : schema.nullable()) as never;
   const text = strict ? z.string().trim().min(1) : z.string();
 
@@ -105,7 +106,7 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     monthlyTempC: z.array(z.number()).length(12),
     coldReserveK: nonNegative,
     highwayDiscountPct: percent,
-    trafficLightGreenFromPct: z.number(),
+    trafficLightGreenFromPct: percent,
     depreciationPctPerYear: percent,
     evMaintenancePerKm: req(nonNegative),
     electricityPrice: priceRange,
