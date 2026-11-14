@@ -17,6 +17,11 @@ const euro = new Intl.NumberFormat(LOCALE, {
   signDisplay: 'negative',
 });
 
+// Intl writes the hyphen-minus (U+002D) for de-DE. The design uses the true
+// minus sign (U+2212), which also keeps "−12" from breaking after the sign.
+const MINUS = '\u2212';
+const withMinus = (text: string): string => text.replace('-', MINUS);
+
 const decimalFormats = new Map<number, Intl.NumberFormat>();
 const decimalFormat = (decimals: number): Intl.NumberFormat => {
   let format = decimalFormats.get(decimals);
@@ -47,22 +52,24 @@ const percentFormat = (decimals: number): Intl.NumberFormat => {
 };
 
 /** Costs in full euros: 19119.75 → "19.120 €". */
-export const formatEuro = (value: number): string => euro.format(value);
+export const formatEuro = (value: number): string =>
+  withMinus(euro.format(value));
 
 /** Distances and reserves in whole km: 31.1 → "31 km". */
 export const formatKm = (value: number): string =>
-  `${decimalFormat(0).format(value)}${NBSP}km`;
+  `${withMinus(decimalFormat(0).format(value))}${NBSP}km`;
 
 /** Consumption per 100 km with one decimal: 23.077 → "23,1 kWh/100 km". */
 export const formatConsumption = (
   valuePer100Km: number,
   unit: 'kWh' | 'l',
-): string => `${decimalFormat(1).format(valuePer100Km)}${NBSP}${unit}/100 km`;
+): string =>
+  `${withMinus(decimalFormat(1).format(valuePer100Km))}${NBSP}${unit}/100 km`;
 
 /** A value already in percent: 25.9 → "26 %". */
 export const formatPercent = (valuePct: number, decimals = 0): string =>
-  percentFormat(decimals).format(valuePct / 100);
+  withMinus(percentFormat(decimals).format(valuePct / 100));
 
 /** Any other number with decimal comma and thousands point. */
 export const formatDecimal = (value: number, decimals: number): string =>
-  decimalFormat(decimals).format(value);
+  withMinus(decimalFormat(decimals).format(value));

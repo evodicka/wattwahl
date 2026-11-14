@@ -9,6 +9,8 @@ import {
 
 // Intl puts a no-break space between number and unit.
 const nbsp = ' ';
+// Negative numbers use the true minus sign (U+2212), as in the mockups.
+const minus = '\u2212';
 
 describe('formatEuro (architecture 8.7: costs in full euros)', () => {
   it('TC7: the unrounded acquisition cost 19,119.75 EUR shows as 19.120 €', () => {
@@ -80,12 +82,18 @@ describe('negative values and values that round to zero', () => {
     expect(formatDecimal(-0.04, 1)).toBe('0,0');
   });
 
-  it('TC11: a negative reserve keeps its sign', () => {
-    expect(formatKm(-12.3)).toBe(`-12${nbsp}km`);
+  it('TC11: a negative reserve keeps its sign as a true minus (U+2212)', () => {
+    expect(formatKm(-12.3)).toBe(`${minus}12${nbsp}km`);
   });
 
-  it('a negative cost difference keeps its sign', () => {
-    expect(formatEuro(-1234.5)).toBe(`-1.235${nbsp}€`);
+  it('a negative cost difference uses the true minus', () => {
+    expect(formatEuro(-1234.5)).toBe(`${minus}1.235${nbsp}€`);
+  });
+
+  it('every format uses the true minus, never the hyphen', () => {
+    expect(formatPercent(-9.4)).toBe(`${minus}9${nbsp}%`);
+    expect(formatDecimal(-0.25, 2)).toBe(`${minus}0,25`);
+    expect(formatConsumption(-1, 'l')).toBe(`${minus}1,0${nbsp}l/100 km`);
   });
 });
 
