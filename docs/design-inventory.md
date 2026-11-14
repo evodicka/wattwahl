@@ -113,6 +113,6 @@ S16 besitzt die Zustandsboards, weil Rahmen, Hinweise, Dialog und Error Boundary
 
 ## Texte
 
-Alle Texte aus den Mockups stehen in `src/i18n/de.json`. Die Namespaces folgen den Bereichen: `common` (Rahmen, Navigation, Aktionen, Ampel, Einheiten, Hinweise, Prüfmeldungen, Monate, Wochentage), `fahrprofil`, `kandidaten`, `parameter`, `ergebnis`, `szenarien`. Zahlen stehen nie im Text, sondern kommen als Platzhalter (`{{value}}`) und werden über `src/i18n/format.ts` formatiert. Beispielwerte aus den Mockups (Modell A, 27.012 €) sind keine Texte.
+Alle Texte aus den Mockups stehen in `src/i18n/de.json`. Die Namespaces folgen den Bereichen: `common` (Rahmen, Navigation, Aktionen, Ampel, Einheiten, Hinweise, Prüfmeldungen, Monate, Wochentage), `fahrprofil`, `kandidaten`, `parameter`, `ergebnis`, `szenarien`. Zahlen stehen nie im Text, sondern kommen als Platzhalter (`{{value}}`) und werden über `src/i18n/format.ts` formatiert. Beispielwerte aus den Mockups (Modell A, 27.012 €) sind keine Texte. Texte mit einer Zahl nutzen die Pluralformen von i18next (`_one`, `_other`, Platzhalter `{{count}}`). Texte mit mehreren Zahlen sind in einzeln pluralisierte Teile aufgeteilt, etwa `kandidaten.summary.candidates` und `summary.leases`; die Oberfläche verbindet sie mit `common.separator`.
 
 Phase 5 ergänzt Schlüssel, wo ein Schritt mehr Text braucht als die Mockups zeigen, und entfernt keine Schlüssel eines anderen Bereichs.

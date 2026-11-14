@@ -32,4 +32,24 @@ describe('language file (architecture 8.7)', () => {
       'Es fehlen 3 Angaben',
     );
   });
+
+  it('splits texts with several numbers into separately pluralized parts', () => {
+    const summary = [
+      i18n.t('summary.candidates', { ns: 'kandidaten', count: 1 }),
+      i18n.t('summary.leases', { ns: 'kandidaten', count: 3 }),
+      i18n.t('summary.live', { ns: 'kandidaten' }),
+    ].join(i18n.t('separator'));
+    expect(summary).toBe(
+      '1 Kandidat · 3 Leasingangebote · Ergebnisse rechnen live neu',
+    );
+    expect(i18n.t('list.metaCandidates', { ns: 'szenarien', count: 4 })).toBe(
+      '4 Kandidaten',
+    );
+    expect(i18n.t('export.lastAgo', { ns: 'szenarien', count: 1 })).toBe(
+      'vor 1 Tag',
+    );
+    expect(i18n.t('import.replaceBody', { ns: 'szenarien', count: 1 })).toBe(
+      'Das vorhandene Szenario wird gelöscht. Exportiere es vorher.',
+    );
+  });
 });
