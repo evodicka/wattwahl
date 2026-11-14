@@ -2,7 +2,7 @@
 
 Nov 14, 2026 · @Eduard Vodicka
 
-Wattwahl entsteht in 30 Schritten über sieben Phasen: 26 Umsetzungsschritte S01 bis S26 und vier Design-Schritte D1 bis D4. Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
+Wattwahl entsteht in 31 Schritten über acht Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4 und der Änderungsschritt C1 (Phase 3b). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
 
 ## Arbeitsweise
 
@@ -34,7 +34,7 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
-**Fahrplan · 3 Spuren, 7 Phasen, 4 Freigaben**
+**Fahrplan · 3 Spuren, 8 Phasen, 4 Freigaben**
 
 ```mermaid
 flowchart TD
@@ -69,9 +69,12 @@ flowchart TD
         S1213 --> S14
     end
 
+    P3b["<b>Phase 3b · Änderung</b><br/>C1 Garantie ab Erstzulassung"]
+
     G1 --> core
     G1 --> design
-    G1 --> app
+    core --> P3b
+    P3b --> app
 
     P5["<b>Phase 5 · Oberfläche</b><br/>S16 App-Shell und Theme<br/>S17–S22 die fünf Bereiche, parallel baubar<br/>S23 Offline, Updates und Sicherheit"]
     P6["<b>Phase 6 · Qualität und Abnahme</b><br/>S24 Gesamtsuite und Messungen Q1–Q11<br/>S25 Doku und Release-Kandidat<br/>S26 Abnahme am iPhone und Android-Handy durch den Nutzer"]
@@ -87,12 +90,12 @@ flowchart TD
     classDef agent fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
     class G1,G2,G3,G4 gate
     class D2,D3 cd
-    class P0,P1,P2,S11,D1,D4,S1213,S14,S15,P5,P6 agent
+    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6 agent
 ```
 
 *Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
 
-Claude Design arbeitet in D2 und D3, also parallel zu Phase 1 und 2. So liegen freigegebene Mockups vor, bevor der erste Bildschirm gebaut wird.
+Claude Design arbeitet in D2 und D3, also parallel zu Phase 1 und 2. So liegen freigegebene Mockups vor, bevor der erste Bildschirm gebaut wird. Phase 3b ändert Spezifikation, Schema und Rechenkern nach dem Design-Review und muss vor Phase 4 fertig sein, weil Speicher und Export das Schema der Version 2 brauchen.
 
 ## Phase 0 – Fundament
 
@@ -365,9 +368,35 @@ Der Nutzer gibt Design-System und Mockups frei. Erst danach beginnt Phase 5. Sp�
 
 **Voraussetzung:** G3, S15
 
+## Phase 3b – Änderung nach dem Design-Review
+
+Der Design-Review hat eine fachliche Änderung ausgelöst: Der Nutzer trägt die normale Garantie ein, die App rechnet die Restgarantie selbst aus. Die Änderung berührt Spezifikation, Schema und den fertigen Rechenkern und läuft deshalb als eigener Schritt nach dem Kern (G2) und vor Phase 4. Beschreibung und Entscheidungen: `docs/change-garantie.md`.
+
+### C1 · Garantie ab Erstzulassung
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+- Spezifikation und Architektur nach `docs/change-garantie.md` ändern: Datenmodell, neuer Abschnitt Restgarantie, Parameter Stichtag der Garantieberechnung, Testfälle 18 und 19, Architektur 5.2, 8.1, 8.2, 8.6, 11 und Glossar.
+- Schema, Standardwerte und Ergebnisschema anpassen, Schemaversion 2 mit Migration v1 → v2, Beispieldatei Version 2 und Fixture.
+- `remainingWarranty` im Kern vor dem Garantie-Budget, Trace-Formel und Ergebnisfeld mit den berechneten Restwerten, auch für Leasingangebote (Anzeige der Jahre bis zur Kilometergrenze).
+
+**Validierung**
+
+- Testfall 18 neu: Gebraucht, Erstzulassung 03/2022, Stichtag 03/2025, Laufleistung 80.000 km. Fahrzeuggarantie 3 Jahre / 100.000 km ist abgelaufen. Akkugarantie 6 Jahre / 140.000 km hat Rest 3 Jahre / 60.000 km. B = 20.000 km pro Jahr.
+- Testfall 19: Beide Garantien nach Alter oder Kilometern abgelaufen. Kein Budget, „ohne Garantie“, keine Division durch 0.
+- Neuwagen: Restwerte gleich Normalwerte, die Ergebnisse von Testfall 10 bleiben unverändert.
+- Gebraucht ohne Erstzulassung ist unvollständig mit Feldpfad `candidates[i].firstRegistration`.
+- Leasingangebot eines Gebrauchten zeigt die Jahre bis zur Kilometergrenze aus der berechneten Restgarantie, das Budget bleibt dort nicht aktiv.
+- Migration: Eine v1-Datei mit Gebrauchtem ergibt nach der Kette dieselbe Restgarantie wie vorher.
+- Gleiche Eingaben samt Stichtag liefern bitgleiche Ergebnisse (Q2). Kein bestehender Test wird abgeschwächt.
+
+**Voraussetzung:** G2, S05, S10
+
 ## Phase 4 – App-Infrastruktur
 
-Phase 4 baut alles zwischen Rechenkern und Oberfläche, ohne sichtbare Bildschirme. S12, S13 und S15 laufen parallel zu Phase 2, S14 braucht den fertigen Kern.
+Phase 4 baut alles zwischen Rechenkern und Oberfläche, ohne sichtbare Bildschirme. Sie beginnt nach Phase 3b, weil Speicher und Export das Schema der Version 2 brauchen. S12, S13 und S15 laufen danach parallel, S14 braucht den fertigen Kern.
 
 ### S12 · Speicher
 
