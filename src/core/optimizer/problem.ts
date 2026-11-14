@@ -301,6 +301,7 @@ export function buildProblem(
             fm * (evPerKm * evKm + icePerKm * iceKm),
           needs: null,
           choice: `share:${share}`,
+          sharePct: share,
           quantities: { gridKwh, litres, iceKm },
         };
       });

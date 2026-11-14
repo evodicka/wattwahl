@@ -14,9 +14,17 @@ import {
   type OkOfferResult,
   type PriceCase,
   type Scenario,
+  type TraceEntry,
 } from '../domain';
+import { expectSpec } from '../../tests/helpers/specTolerance';
 import { resolvePrices } from './calc/prices';
-import { ComputeCache, computeOffer, hashResult, Trace } from './index';
+import {
+  ComputeCache,
+  canonicalJson,
+  computeOffer,
+  hashResult,
+  Trace,
+} from './index';
 import { optimizeOffer } from './optimizer/optimize';
 import { buildProblem } from './optimizer/problem';
 
@@ -47,7 +55,9 @@ const ok = (result: OfferResult): OkOfferResult => {
   return result;
 };
 
-/** Paths of all numbers in a result, such as `reserves[3].reserveKm`; `month` is a label, not a result. */
+const LABELS = new Set(['month', 'comparisonMonths']);
+
+/** Paths of all numbers in a result, such as `reserves[3].reserveKm`; labels (month, comparison period) are not results. */
 function numericLeaves(value: unknown, path = ''): string[] {
   if (typeof value === 'number') return [path];
   if (Array.isArray(value)) {
@@ -57,7 +67,7 @@ function numericLeaves(value: unknown, path = ''): string[] {
   }
   if (value !== null && typeof value === 'object') {
     return Object.entries(value).flatMap(([key, item]) =>
-      key === 'month'
+      LABELS.has(key)
         ? []
         : numericLeaves(item, path === '' ? key : `${path}.${key}`),
     );
@@ -65,41 +75,132 @@ function numericLeaves(value: unknown, path = ''): string[] {
   return [];
 }
 
-describe('Q6: every number of the result has a Rechenweg entry', () => {
-  const scenario = exampleScenario();
+/** The value at a path written like `reserves[3].reserveKm`. */
+function valueAt(root: unknown, path: string): unknown {
+  return path
+    .split(/[.[\]]+/)
+    .filter((part) => part !== '')
+    .reduce<unknown>(
+      (node, part) =>
+        node !== null && typeof node === 'object'
+          ? (node as Record<string, unknown>)[part]
+          : undefined,
+      root,
+    );
+}
 
-  it.each(CASES)(
-    'Q6: all numbers of every offer in price case %s are linked to an entry with a formula ID',
-    (priceCase) => {
-      for (const offer of offersOf(scenario)) {
-        const trace = new Trace();
-        const result = ok(computeOffer(scenario, offer, priceCase, { trace }));
-        const linked = new Map(
-          trace.entries
-            .filter((entry) => entry.resultPath !== undefined)
-            .map((entry) => [entry.resultPath as string, entry]),
-        );
-        const leaves = numericLeaves(result);
-        expect(leaves.length).toBeGreaterThan(50);
-        for (const leaf of leaves) {
-          const entry = linked.get(leaf);
-          expect(entry, `${offer.offerId}: no entry for ${leaf}`).toBeDefined();
-          // A valid entry with a formula ID from the list of architecture 8.4.
-          expect(TraceEntrySchema.safeParse(entry).success).toBe(true);
-        }
-        // And no link points at a number the result does not have.
-        for (const path of linked.keys()) {
-          expect(leaves, `${offer.offerId}: dangling link ${path}`).toContain(
-            path,
+describe('Q6: every number of the result has a Rechenweg entry', () => {
+  const allWeek = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
+  const variants: [string, (scenario: Scenario) => void][] = [
+    ['example (budget met, extra mileage)', () => undefined],
+    [
+      'budget exceeded',
+      (s) => {
+        s.workplaces.a = {
+          ...s.workplaces.a,
+          weekdays: [...allWeek],
+          freeDaysPerYear: 0,
+        };
+        s.workplaces.b = {
+          ...s.workplaces.b,
+          weekdays: [...allWeek],
+          freeDaysPerYear: 0,
+        };
+      },
+    ],
+    [
+      'no warranty',
+      (s) => {
+        const candidate = first(s.candidates);
+        candidate.vehicleWarranty = { years: 0, km: 0 };
+        candidate.batteryWarranty = { years: 0, km: 0 };
+      },
+    ],
+    [
+      'fixed extra share',
+      (s) => {
+        s.parameters.extraMileageMode = 'fixed';
+        s.parameters.extraMileageFixedEvSharePct = 40;
+      },
+    ],
+    [
+      'no extra mileage',
+      (s) => {
+        s.extraMileage.kmPerMonth = { city: 0, rural: 0, highway: 0 };
+      },
+    ],
+    [
+      'strict mode',
+      (s) => {
+        s.parameters.strictMode = true;
+      },
+    ],
+    [
+      'budget as no target',
+      (s) => {
+        s.parameters.warrantyBudgetAsTarget = false;
+      },
+    ],
+  ];
+
+  it.each(variants)(
+    'Q6: %s: every number is linked to exactly one entry that holds that very value',
+    (_name, change) => {
+      const scenario = exampleScenario();
+      change(scenario);
+      for (const priceCase of CASES) {
+        for (const offer of offersOf(scenario)) {
+          const trace = new Trace();
+          const result = ok(
+            computeOffer(scenario, offer, priceCase, { trace }),
           );
+          const linked = new Map<string, TraceEntry[]>();
+          for (const entry of trace.entries) {
+            if (entry.resultPath === undefined) continue;
+            linked.set(entry.resultPath, [
+              ...(linked.get(entry.resultPath) ?? []),
+              entry,
+            ]);
+          }
+          const leaves = numericLeaves(result);
+          expect(leaves.length).toBeGreaterThan(40);
+          for (const leaf of leaves) {
+            const entries = linked.get(leaf) ?? [];
+            expect(
+              entries,
+              `${offer.offerId} ${priceCase}: ${leaf}`,
+            ).toHaveLength(1);
+            const entry = entries[0];
+            // A valid entry with a formula ID from architecture 8.4 ...
+            expect(TraceEntrySchema.safeParse(entry).success).toBe(true);
+            // ... that holds the number the result shows, not just any entry of that formula.
+            expect(entry?.value, `${offer.offerId} ${priceCase}: ${leaf}`).toBe(
+              valueAt(result, leaf),
+            );
+          }
+          // And no link points at a number the result does not have.
+          for (const path of linked.keys()) {
+            expect(leaves, `dangling link ${path}`).toContain(path);
+          }
         }
       }
     },
   );
 
+  it('Q6: the fixtures reach the numbers the plain example does not have', () => {
+    const exceeded = exampleScenario();
+    variants[1]?.[1](exceeded);
+    const result = ok(computeOffer(exceeded, first(offersOf(exceeded)), 'mid'));
+    expect(result.warranty.budgetExceeded).toBe(true);
+    expect(numericLeaves(result)).toContain('warranty.yearsToKmLimit.vehicle');
+    expect(numericLeaves(result)).toContain('extraSharePct[0]');
+  });
+
   it('Q6: the Rechenweg also holds the intermediate values, not only the linked ones', () => {
     const trace = new Trace();
-    computeOffer(scenario, first(offersOf(scenario)), 'mid', { trace });
+    computeOffer(exampleScenario(), first(offersOf(exampleScenario())), 'mid', {
+      trace,
+    });
     const formulas = new Set(trace.entries.map((entry) => entry.formula));
     for (const formula of [
       'F1.R',
@@ -156,6 +257,7 @@ describe('Q5: determinism (in Node)', () => {
       offersOf(scenario).flatMap((offer) =>
         CASES.map((priceCase) => computeOffer(scenario, offer, priceCase)),
       );
+    expect(canonicalJson(run())).toBe(canonicalJson(run()));
     expect(hashResult(run())).toBe(hashResult(run()));
   });
 
@@ -165,6 +267,18 @@ describe('Q5: determinism (in Node)', () => {
     changed.iceVehicle.petrolPrice = { min: 1.7, mid: 1.95, max: 2.1 };
     expect(hashResult(computeOffer(changed, offer, 'mid'))).not.toBe(
       hashResult(computeOffer(scenario, offer, 'mid')),
+    );
+  });
+
+  it('Q5: -0, NaN and null are different values with different texts', () => {
+    expect(canonicalJson(-0)).not.toBe(canonicalJson(0));
+    expect(canonicalJson(Number.NaN)).not.toBe(canonicalJson(null));
+    expect(canonicalJson(Number.POSITIVE_INFINITY)).not.toBe(
+      canonicalJson(Number.NEGATIVE_INFINITY),
+    );
+    expect(hashResult({ x: -0 })).not.toBe(hashResult({ x: 0 }));
+    expect(canonicalJson({ b: 1.5, a: [0.1, -2e-7], u: 'ä' })).toBe(
+      '{"a":[0.1,-2e-7],"b":1.5,"u":"ä"}',
     );
   });
 
@@ -363,26 +477,53 @@ describe('S10: the result agrees with the optimizer and with itself', () => {
     }
   });
 
-  it('S10: the parts add up, K_EV + K_ICE is the same for every plan, and the SoH never rises', () => {
+  it('S10: K_EV + K_ICE is the same for every offer, and the SoH never rises over the comparison', () => {
     const purchase = ok(
       computeOffer(scenario, first(offersOf(scenario)), 'mid'),
     );
     const lease = ok(
       computeOffer(scenario, first(offersOf(scenario).slice(1)), 'mid'),
     );
-    const { costs } = purchase;
-    expect(costs.total).toBeCloseTo(
-      costs.acquisition + costs.electricity + costs.petrol + costs.maintenance,
-      9,
-    );
     expect(purchase.evKmPerYear + purchase.iceKmPerYear).toBeCloseTo(
       lease.evKmPerYear + lease.iceKmPerYear,
       6,
     );
+    // New car: SoH 1 at the start, so the end value is at most 1; with the
+    // check at the end of the comparison both are the same number.
     expect(purchase.sohEnd).toBeLessThanOrEqual(1);
-    expect(purchase.minReserve.reservePct).toBe(
-      Math.min(...purchase.reserves.map((r) => r.reservePct)),
-    );
+    expect(purchase.sohCheck).toBe(purchase.sohEnd);
+    const atStart = exampleScenario();
+    atStart.parameters.sohReference = 'start';
+    const early = ok(computeOffer(atStart, first(offersOf(atStart)), 'mid'));
+    expect(early.sohCheck).toBeGreaterThanOrEqual(early.sohEnd);
+  });
+
+  it('S10: the smallest reserve is the smallest cell among the ways the plan drives, and not negative', () => {
+    for (const priceCase of CASES) {
+      for (const offer of offersOf(scenario)) {
+        const result = ok(computeOffer(scenario, offer, priceCase));
+        const drivenCells = result.reserves.filter((cell) =>
+          result.plan.some(
+            (p) =>
+              p.month === cell.month &&
+              p.choice === (cell.way === 'a' ? 'evA' : 'evB'),
+          ),
+        );
+        const min = result.minReserve;
+        if (!min) throw new Error('The EV drives in the example.');
+        const cell = drivenCells.find(
+          (c) => c.way === min.way && c.month === min.month,
+        );
+        expect(cell).toBeDefined();
+        expect(min.reserveKm).toBe(cell?.reserveKm);
+        expect(min.reservePct).toBe(cell?.reservePct);
+        expect(drivenCells.every((c) => c.reservePct >= min.reservePct)).toBe(
+          true,
+        );
+        expect(min.reserveKm).toBeGreaterThanOrEqual(-1e-9);
+        expect(min.reservePct).toBeGreaterThanOrEqual(-1e-9);
+      }
+    }
   });
 
   it('S10: every kind of result parses with the result schema, and a broken one does not', () => {
@@ -420,5 +561,329 @@ describe('S10: the result agrees with the optimizer and with itself', () => {
         'mid',
       ),
     ).toThrow(RangeError);
+  });
+});
+
+describe('S10: cost parts against the spec', () => {
+  const scenario = exampleScenario();
+
+  it('TC7: the purchase of 40,000 EUR at 15 % over 48 months costs 19,119.75 EUR', () => {
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expectSpec(result.costs.acquisition, '19.119,75');
+  });
+
+  it('TC8: the lease is 16,364 EUR for rate and down payment plus the settlement of the km', () => {
+    // Rate 399, down payment 2,000, term 36, tier 15,000 km, extra 0.08 and refund 0.04 EUR/km.
+    const lease = exampleScenario();
+    lease.parameters.comparisonMonths = 36;
+    const result = ok(computeOffer(lease, at(offersOf(lease), 1), 'mid'));
+    const km = result.evKmPerYear;
+    const settlement =
+      3 * (Math.max(0, km - 15000) * 0.08 - Math.max(0, 15000 - km) * 0.04);
+    expectSpec(result.costs.acquisition - settlement, '16.364');
+  });
+
+  it('S10: the cost parts are what the formulas give for the plan', () => {
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    const { costs } = result;
+    expect(costs.total).toBe(
+      costs.acquisition + costs.electricity + costs.petrol + costs.maintenance,
+    );
+    // Maintenance: 4 years, EV 0.02 and petrol car 0.04 EUR/km on their km.
+    expect(costs.maintenance).toBeCloseTo(
+      4 * (0.02 * result.evKmPerYear + 0.04 * result.iceKmPerYear),
+      6,
+    );
+    // Petrol: only the km the petrol car drives cost petrol, so all-EV would save it.
+    expect(costs.petrol).toBeGreaterThan(0);
+    expect(costs.electricity).toBeGreaterThan(0);
+  });
+});
+
+describe('S10: warranty, extra mileage and echo of the result', () => {
+  it('S10: a plan forced over the budget warns and gives the years to each km limit', () => {
+    const scenario = exampleScenario();
+    const allWeek = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
+    scenario.workplaces.a = {
+      ...scenario.workplaces.a,
+      weekdays: [...allWeek],
+      freeDaysPerYear: 0,
+    };
+    scenario.workplaces.b = {
+      ...scenario.workplaces.b,
+      weekdays: [...allWeek],
+      freeDaysPerYear: 0,
+    };
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expect(result.warranty).toMatchObject({
+      budgetKmPerYear: 20000,
+      budgetExceeded: true,
+      noWarranty: false,
+    });
+    expect(result.warnings).toEqual(['budgetExceeded']);
+    expect(result.evKmPerYear).toBeGreaterThan(20000);
+    expect(result.warranty.yearsToKmLimit.vehicle).toBeCloseTo(
+      100000 / result.evKmPerYear,
+      9,
+    );
+    expect(result.warranty.yearsToKmLimit.battery).toBeCloseTo(
+      160000 / result.evKmPerYear,
+      9,
+    );
+  });
+
+  it('S10: within the budget the years to the limit are still shown, without a warning', () => {
+    const scenario = exampleScenario();
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expect(result.warranty.budgetExceeded).toBe(false);
+    expect(result.warnings).toEqual([]);
+    expect(result.warranty.yearsToKmLimit.vehicle).toBeCloseTo(
+      100000 / result.evKmPerYear,
+      9,
+    );
+  });
+
+  it('TC18: both warranties expired give "ohne Garantie", no budget and no years', () => {
+    const scenario = exampleScenario();
+    const candidate = first(scenario.candidates);
+    candidate.vehicleWarranty = { years: 0, km: 0 };
+    candidate.batteryWarranty = { years: 0, km: 0 };
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expect(result.warranty).toEqual({
+      noWarranty: true,
+      budgetKmPerYear: null,
+      budgetExceeded: false,
+      yearsToKmLimit: { vehicle: null, battery: null },
+    });
+  });
+
+  it('S10: the EV share of the extra mileage is a multiple of the step per month, or null without extra mileage', () => {
+    const scenario = exampleScenario();
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    for (const share of result.extraSharePct) {
+      expect(share).not.toBeNull();
+      expect((share as number) % 10).toBe(0);
+      expect(share).toBeLessThanOrEqual(100);
+    }
+    const none = exampleScenario();
+    none.extraMileage.kmPerMonth = { city: 0, rural: 0, highway: 0 };
+    const without = ok(computeOffer(none, first(offersOf(none)), 'mid'));
+    expect(without.extraSharePct.every((share) => share === null)).toBe(true);
+  });
+
+  it('S10: the result names the scenario and the comparison period it was computed for', () => {
+    const scenario = exampleScenario();
+    scenario.parameters.comparisonMonths = 30;
+    for (const result of [
+      computeOffer(scenario, first(offersOf(scenario)), 'mid'),
+      computeOffer(scenario, first(offersOf(scenario)), 'evFavorable'),
+    ]) {
+      expect(result.scenarioId).toBe(scenario.id);
+      expect(result.comparisonMonths).toBe(30);
+    }
+  });
+});
+
+describe('S10: the other reasons for unsuitable', () => {
+  const hw = (highway: number) => ({ city: 0, rural: 0, highway });
+  /** One mechanism at a time: mild weather, no extra mileage, no maintenance. */
+  const base = () => {
+    const s = exampleScenario();
+    s.extraMileage.kmPerMonth = { city: 0, rural: 0, highway: 0 };
+    s.iceVehicle.maintenancePerKm = 0;
+    s.parameters.evMaintenancePerKm = 0;
+    s.parameters.warrantyBudgetAsTarget = false;
+    s.parameters.sohReference = 'start';
+    s.parameters.monthlyTempC = Array.from({ length: 12 }, () => 23);
+    return s;
+  };
+
+  it('S10: strict mode names the way and month the EV cannot drive', () => {
+    const s = base();
+    s.workplaces.a = {
+      ...s.workplaces.a,
+      weekdays: ['mon'],
+      freeDaysPerYear: 0,
+      commute: hw(80),
+    };
+    s.workplaces.b = {
+      ...s.workplaces.b,
+      weekdays: ['tue'],
+      freeDaysPerYear: 0,
+      commute: { city: 5, rural: 5, highway: 10 },
+    };
+    s.parameters.monthlyTempC[0] = -10;
+    s.parameters.strictMode = true;
+    const result = computeOffer(s, first(offersOf(s)), 'mid');
+    expect(result.status).toBe('unsuitable');
+    if (result.status !== 'unsuitable') return;
+    expect(result.reason).toMatchObject({ kind: 'strict', way: 'a', month: 0 });
+    expect(OfferResultSchema.safeParse(result).success).toBe(true);
+    // The same scenario without strict mode is fine: the petrol car takes A in January.
+    s.parameters.strictMode = false;
+    expect(computeOffer(s, first(offersOf(s)), 'mid').status).toBe('ok');
+  });
+
+  it('S10: ageing that takes a way below its threshold gives the reason "coupling"', () => {
+    const s = base();
+    s.workplaces.a = {
+      ...s.workplaces.a,
+      weekdays: ['mon'],
+      freeDaysPerYear: 0,
+      commute: hw(60),
+      chargesFreeAtWork: false,
+    };
+    s.workplaces.b = {
+      ...s.workplaces.b,
+      weekdays: ['mon'],
+      freeDaysPerYear: 0,
+      commute: hw(80),
+      chargesFreeAtWork: true,
+    };
+    s.parameters.sohReference = 'end';
+    s.parameters.kmGridPerYear = 50;
+    s.parameters.kmToSohMin = 42857;
+    const flat = { mild: 141, cold: 141 };
+    first(s.candidates).rangeKm = { city: flat, highway: flat, combined: flat };
+    const result = computeOffer(s, first(offersOf(s)), 'mid');
+    expect(result.status).toBe('unsuitable');
+    if (result.status !== 'unsuitable') return;
+    expect(result.reason.kind).toBe('coupling');
+    expect(OfferResultSchema.safeParse(result).success).toBe(true);
+  });
+});
+
+describe('S10: the compute cache', () => {
+  const scenario = exampleScenario();
+  const offer = first(offersOf(scenario));
+
+  it('S10: slider prices that differ only in key order or value get their own problem', () => {
+    const cache = new ComputeCache();
+    const one = {
+      petrol: 1.5,
+      electricity: 0.2,
+      petrolEscalationPct: 0,
+      electricityEscalationPct: 0,
+    };
+    // Same numbers in other key order is the same prices; a swapped pair is not.
+    const reordered = {
+      electricityEscalationPct: 0,
+      petrolEscalationPct: 0,
+      electricity: 0.2,
+      petrol: 1.5,
+    };
+    const swapped = {
+      petrol: 0.2,
+      electricity: 1.5,
+      petrolEscalationPct: 0,
+      electricityEscalationPct: 0,
+    };
+    for (const sliderPrices of [one, swapped, reordered, one, swapped]) {
+      expect(
+        canonicalJson(
+          computeOffer(scenario, offer, 'slider', { sliderPrices, cache }),
+        ),
+      ).toBe(
+        canonicalJson(
+          computeOffer(scenario, offer, 'slider', { sliderPrices }),
+        ),
+      );
+    }
+  });
+
+  it('S10: slider prices that are not valid numbers are rejected', () => {
+    const bad = { ...SLIDER, petrol: Number.NaN };
+    expect(() =>
+      computeOffer(scenario, offer, 'slider', { sliderPrices: bad }),
+    ).toThrow(RangeError);
+    expect(() =>
+      computeOffer(scenario, offer, 'slider', {
+        sliderPrices: { ...SLIDER, electricity: -0.1 },
+      }),
+    ).toThrow(RangeError);
+  });
+
+  it('S10: a new scenario object makes the cache start over, an incomplete one becomes ok', () => {
+    const cache = new ComputeCache();
+    const gap = exampleScenario();
+    first(gap.candidates).purchasePrice = null;
+    expect(
+      computeOffer(gap, first(offersOf(gap)), 'mid', { cache }).status,
+    ).toBe('incomplete');
+    // The gap is filled in a new scenario object, as state updates do.
+    const filled = structuredClone(gap);
+    first(filled.candidates).purchasePrice = 40000;
+    expect(
+      computeOffer(filled, first(offersOf(filled)), 'mid', { cache }).status,
+    ).toBe('ok');
+    // And back: no stale result of the other scenario survives.
+    expect(
+      computeOffer(gap, first(offersOf(gap)), 'mid', { cache }).status,
+    ).toBe('incomplete');
+  });
+});
+
+describe('S10: the smallest reserve ignores ways the EV does not drive', () => {
+  const hw = (highway: number) => ({ city: 0, rural: 0, highway });
+  /** Mild weather, no extra mileage, no maintenance, no budget. */
+  const base = () => {
+    const s = exampleScenario();
+    s.extraMileage.kmPerMonth = { city: 0, rural: 0, highway: 0 };
+    s.iceVehicle.maintenancePerKm = 0;
+    s.parameters.evMaintenancePerKm = 0;
+    s.parameters.warrantyBudgetAsTarget = false;
+    s.parameters.sohReference = 'start';
+    s.parameters.monthlyTempC = Array.from({ length: 12 }, () => 23);
+    return s;
+  };
+
+  it('S10: a way the EV cannot drive in January shows red in the heatmap but does not make the smallest reserve negative', () => {
+    const s = base();
+    s.workplaces.a = {
+      ...s.workplaces.a,
+      weekdays: ['mon'],
+      freeDaysPerYear: 0,
+      commute: hw(80),
+    };
+    s.workplaces.b = {
+      ...s.workplaces.b,
+      weekdays: ['tue'],
+      freeDaysPerYear: 0,
+      commute: { city: 5, rural: 5, highway: 10 },
+    };
+    s.parameters.monthlyTempC[0] = -10;
+    const result = ok(computeOffer(s, first(offersOf(s)), 'mid'));
+    const january = result.reserves.find((r) => r.way === 'a' && r.month === 0);
+    expect(january?.reserveKm).toBeLessThan(0);
+    expect(january?.light).toBe('red');
+    // The petrol car takes A in January, so that cell does not count.
+    expect(
+      result.plan.find((p) => p.weekday === 'mon' && p.month === 0)?.choice,
+    ).toBe('rest');
+    const min = result.minReserve;
+    expect(min).not.toBeNull();
+    expect(min?.reserveKm).toBeGreaterThanOrEqual(0);
+    expect(min && `${min.way}:${min.month}`).not.toBe('a:0');
+  });
+
+  it('S10: an EV that never drives has no smallest reserve', () => {
+    const s = base();
+    // No day has both workplaces staffed, and electricity is so dear that the
+    // petrol car takes every way.
+    s.workplaces.a = { ...s.workplaces.a, weekdays: ['mon', 'wed', 'fri'] };
+    s.workplaces.b = { ...s.workplaces.b, weekdays: ['tue', 'thu'] };
+    s.parameters.electricityPrice = { min: 50, mid: 50, max: 50 };
+    const result = ok(computeOffer(s, first(offersOf(s)), 'mid'));
+    expect(result.evKmPerYear).toBe(0);
+    expect(result.plan.every((p) => p.choice === 'rest')).toBe(true);
+    expect(result.minReserve).toBeNull();
+    expect(OfferResultSchema.safeParse(result).success).toBe(true);
+    // Q6 still holds without the smallest reserve.
+    const trace = new Trace();
+    const traced = ok(computeOffer(s, first(offersOf(s)), 'mid', { trace }));
+    expect(
+      trace.entries.some((e) => e.resultPath?.startsWith('minReserve')),
+    ).toBe(false);
+    expect(traced).toEqual(result);
   });
 });
