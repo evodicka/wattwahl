@@ -15,6 +15,7 @@ export default defineConfig({
           environment: 'node',
           include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.ts'],
           exclude: ['src/ui/**'],
+          benchmark: { include: ['src/**/*.bench.ts', 'tests/**/*.bench.ts'] },
         },
       },
       {
@@ -23,6 +24,7 @@ export default defineConfig({
           name: 'ui',
           environment: 'jsdom',
           include: ['src/ui/**/*.test.{ts,tsx}'],
+          benchmark: { include: [] },
         },
       },
     ],
