@@ -2,7 +2,7 @@
 
 Nov 14, 2026 · @Eduard Vodicka
 
-Wattwahl entsteht in 31 Schritten über acht Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4 und der Änderungsschritt C1 (Phase 3b). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
+Wattwahl entsteht in 32 Schritten über acht Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4 und die Änderungsschritte C1a und C1b (Phase 3b). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
 
 ## Arbeitsweise
 
@@ -32,7 +32,7 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 ## Ablauf
 
-Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
+Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. In der App-Infrastruktur beginnt zunächst nur S15, Speicher und Worker (S12 bis S14) folgen nach der Änderung C1a und C1b (Phase 3b). Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
 **Fahrplan · 3 Spuren, 8 Phasen, 4 Freigaben**
 
@@ -69,12 +69,13 @@ flowchart TD
         S1213 --> S14
     end
 
-    P3b["<b>Phase 3b · Änderung</b><br/>C1 Garantie ab Erstzulassung"]
+    P3b["<b>Phase 3b · Änderung</b><br/>C1a Spezifikation und Architektur<br/>C1b Umsetzung: Garantie ab Erstzulassung"]
 
     G1 --> core
     G1 --> design
+    G1 --> S15
     core --> P3b
-    P3b --> app
+    P3b --> S1213
 
     P5["<b>Phase 5 · Oberfläche</b><br/>S16 App-Shell und Theme<br/>S17–S22 die fünf Bereiche, parallel baubar<br/>S23 Offline, Updates und Sicherheit"]
     P6["<b>Phase 6 · Qualität und Abnahme</b><br/>S24 Gesamtsuite und Messungen Q1–Q11<br/>S25 Doku und Release-Kandidat<br/>S26 Abnahme am iPhone und Android-Handy durch den Nutzer"]
@@ -95,7 +96,7 @@ flowchart TD
 
 *Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
 
-Claude Design arbeitet in D2 und D3, also parallel zu Phase 1 und 2. So liegen freigegebene Mockups vor, bevor der erste Bildschirm gebaut wird. Phase 3b ändert Spezifikation, Schema und Rechenkern nach dem Design-Review und muss vor Phase 4 fertig sein, weil Speicher und Export das Schema der Version 2 brauchen.
+Claude Design arbeitet in D2 und D3, also parallel zu Phase 1 und 2. So liegen freigegebene Mockups vor, bevor der erste Bildschirm gebaut wird. Phase 3b ändert Spezifikation, Schema und Rechenkern nach dem Design-Review und muss vor S12 fertig sein, weil Speicher und Export das Schema der Version 2 brauchen. S15 hängt nicht am Schema und läuft unabhängig davon.
 
 ## Phase 0 – Fundament
 
@@ -140,7 +141,7 @@ Der Nutzer öffnet die Pages-Adresse und bestätigt, dass die Adresse die endgü
 
 ## Phase 1 – Domäne
 
-Phase 1 legt das Datenmodell fest, auf dem Rechenkern, Speicher und Oberfläche aufbauen. Danach können Phase 2 und Phase 4 parallel laufen.
+Phase 1 legt das Datenmodell fest, auf dem Rechenkern, Speicher und Oberfläche aufbauen. Danach läuft Phase 2 parallel zu S15, S12 bis S14 folgen nach Phase 3b.
 
 ### S03 · Schemas und Standardwerte
 
@@ -192,7 +193,7 @@ Phase 1 legt das Datenmodell fest, auf dem Rechenkern, Speicher und Oberfläche 
 
 ## Phase 2 – Rechenkern
 
-Am Ende von Phase 2 bestehen alle 18 Testfälle der Spezifikation gegen den Kern, und die Laufzeit am Handy ist gemessen. Die Phase braucht keine Oberfläche und läuft parallel zu Phase 3 und 4.
+Am Ende von Phase 2 bestehen alle 18 Testfälle der Spezifikation gegen den Kern (Stand vor Phase 3b, C1a und C1b ergänzen Testfall 19), und die Laufzeit am Handy ist gemessen. Die Phase braucht keine Oberfläche und läuft parallel zu Phase 3 und S15.
 
 ### S06 · Deterministische Potenzfunktion
 
@@ -370,33 +371,57 @@ Der Nutzer gibt Design-System und Mockups frei. Erst danach beginnt Phase 5. Sp�
 
 ## Phase 3b – Änderung nach dem Design-Review
 
-Der Design-Review hat eine fachliche Änderung ausgelöst: Der Nutzer trägt die normale Garantie ein, die App rechnet die Restgarantie selbst aus. Die Änderung berührt Spezifikation, Schema und den fertigen Rechenkern und läuft deshalb als eigener Schritt nach dem Kern (G2) und vor Phase 4. Beschreibung und Entscheidungen: `docs/change-garantie.md`.
+Der Design-Review hat eine fachliche Änderung ausgelöst: Der Nutzer trägt die normale Garantie ein, die App rechnet die Restgarantie selbst aus. Die Änderung berührt Spezifikation, Schema und den fertigen Rechenkern und läuft deshalb nach dem Kern (G2) und vor S12. Beschreibung, Testfälle, Migration, betroffene Stellen und Entscheidungen: `docs/change-garantie.md`.
 
-### C1 · Garantie ab Erstzulassung
+Die Änderung ist in zwei Schritte geteilt: C1a ändert nur Spezifikation und Architektur, C1b setzt sie im Code um. So prüft der Nutzer die fachliche Änderung, bevor ein Agent gegen sie implementiert, und kein Schritt ändert die Spezifikation, gegen die er selbst geprüft wird.
+
+### C1a · Garantie ab Erstzulassung: Spezifikation und Architektur
 
 **Ausführung:** Agent
 
 **Aufgaben**
 
-- Spezifikation und Architektur nach `docs/change-garantie.md` ändern: Datenmodell, neuer Abschnitt Restgarantie, Parameter Stichtag der Garantieberechnung, Testfälle 18 und 19, Architektur 5.2, 8.1, 8.2, 8.6, 11 und Glossar.
-- Schema, Standardwerte und Ergebnisschema anpassen, Schemaversion 2 mit Migration v1 → v2, Beispieldatei Version 2 und Fixture.
-- `remainingWarranty` im Kern vor dem Garantie-Budget, Trace-Formel und Ergebnisfeld mit den berechneten Restwerten, auch für Leasingangebote (Anzeige der Jahre bis zur Kilometergrenze).
+- Spezifikation und Architektur an allen Dokument-Stellen der Tabelle „Betroffene Stellen“ in `docs/change-garantie.md` ändern. Die Restgarantie steht als Unterabschnitt im Garantie-Budget, nicht als neuer Abschnitt der Berechnungslogik. Neue ADR-17 für den Stichtag.
+- Testfälle 18 und 19 mit den Zahlen aus `docs/change-garantie.md` in die Spezifikation übernehmen.
+- Kein Code, keine Tests.
 
 **Validierung**
 
-- Testfall 18 neu: Gebraucht, Erstzulassung 03/2022, Stichtag 03/2025, Laufleistung 80.000 km. Fahrzeuggarantie 3 Jahre / 100.000 km ist abgelaufen. Akkugarantie 6 Jahre / 140.000 km hat Rest 3 Jahre / 60.000 km. B = 20.000 km pro Jahr.
-- Testfall 19: Beide Garantien nach Alter oder Kilometern abgelaufen. Kein Budget, „ohne Garantie“, keine Division durch 0.
+- Jede Dokument-Zeile der Tabelle „Betroffene Stellen“ ist einer Änderung im Pull Request zugeordnet, ohne Lücke.
+- Die Testfälle 18 und 19 sind von Hand nachgerechnet, der Rechenweg steht im Pull Request.
+- Keine Stelle in Spezifikation, Architektur oder Plan nennt noch „18 Testfälle“ oder die Restgarantie als Eingabe (Suche im Pull Request).
+- Der Nutzer liest die Änderung gegen und merged sie. Das ist die Freigabe für C1b.
+
+**Voraussetzung:** G2
+
+### C1b · Garantie ab Erstzulassung: Umsetzung
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+- Schema, Standardwerte und Ergebnisschema anpassen: Parameter Stichtag mit Kennzeichen „vom Nutzer gesetzt“, Kennzeichen „Garantiewerte prüfen“ am Kandidaten, Pflicht der Erstzulassung bei gebraucht im Rechenschema, Wert für Monat und Jahr in der Parameterliste, `createScenarioTemplate` mit dem aktuellen Monat als Argument.
+- Schemaversion 2 mit Migration v1 → v2 nach `docs/change-garantie.md`. Migrationsschritte erhalten einen Kontext mit dem Monat der Migration. Beispieldatei Version 2.
+- Plausibilitätswarnung „Erstzulassung nach dem Stichtag“.
+- `remainingWarranty` im Kern vor dem Garantie-Budget, Trace-Formel `OPT.remainingWarranty` und Ergebnisfeld mit den berechneten Restwerten. Budget, Ablaufprüfung und Jahre bis zur Kilometergrenze rechnen mit den Restwerten, auch bei Leasingangeboten.
+- Test-Fixtures `exampleScenario` und `q1Scenario` auf Version 2 bringen, Benchmark erneut laufen lassen und Architektur 11.1 nachführen, falls sich Werte ändern.
+
+**Validierung**
+
+- Testfall 18 und 19 nach `docs/change-garantie.md` bestehen mit der Toleranz aus Architektur 8.4, darunter der Grenzfall „Garantie endet genau am Stichtag“.
+- Die bisherigen Tests mit der Kennung TC18 bleiben unverändert erhalten und tragen die Kennung TC19 bzw. `OPT.budget`.
 - Neuwagen: Restwerte gleich Normalwerte, die Ergebnisse von Testfall 10 bleiben unverändert.
 - Gebraucht ohne Erstzulassung ist unvollständig mit Feldpfad `candidates[i].firstRegistration`.
 - Leasingangebot eines Gebrauchten zeigt die Jahre bis zur Kilometergrenze aus der berechneten Restgarantie, das Budget bleibt dort nicht aktiv.
-- Migration: Eine v1-Datei mit Gebrauchtem ergibt nach der Kette dieselbe Restgarantie wie vorher.
-- Gleiche Eingaben samt Stichtag liefern bitgleiche Ergebnisse (Q2). Kein bestehender Test wird abgeschwächt.
+- Migration: Die Beispieldatei Version 1 ergibt nach der Kette mit festem Monat der Migration dieselbe Restgarantie wie vorher (mit Toleranz), jedes Szenario hat danach einen Stichtag. Ein Gebrauchter ohne Erstzulassung behält seine Werte und trägt das Kennzeichen „Garantiewerte prüfen“.
+- Q6: Die neuen Ergebnisfelder haben je einen Rechenweg-Eintrag.
+- Gleiche Eingaben samt Stichtag liefern bitgleiche Ergebnisse (Q5). Kein bestehender Test wird abgeschwächt.
 
-**Voraussetzung:** G2, S05, S10
+**Voraussetzung:** C1a
 
 ## Phase 4 – App-Infrastruktur
 
-Phase 4 baut alles zwischen Rechenkern und Oberfläche, ohne sichtbare Bildschirme. Sie beginnt nach Phase 3b, weil Speicher und Export das Schema der Version 2 brauchen. S12, S13 und S15 laufen danach parallel, S14 braucht den fertigen Kern.
+Phase 4 baut alles zwischen Rechenkern und Oberfläche, ohne sichtbare Bildschirme. S12 bis S14 beginnen nach Phase 3b, weil Speicher und Export das Schema der Version 2 brauchen. S15 hängt nicht am Schema und läuft schon ab S01.
 
 ### S12 · Speicher
 
@@ -414,7 +439,7 @@ Phase 4 baut alles zwischen Rechenkern und Oberfläche, ohne sichtbare Bildschir
 - Ein simulierter Speicher-voll-Fehler führt zu einer Meldung, der Zustand im Speicher bleibt erhalten.
 - Kein anderes Modul öffnet die Datenbank (Lint-Regel oder Suche im Code).
 
-**Voraussetzung:** S05
+**Voraussetzung:** S05, C1b
 
 ### S13 · Export und Import
 
@@ -621,7 +646,7 @@ Phase 6 weist alle Abnahmekriterien der Spezifikation und alle Qualitätsszenari
 - Q5: Der Ergebnis-Hash des Messszenarios ist in Chromium, Firefox und WebKit gleich.
 - Q8: Mit persistentem Browser-Kontext ist der Stand nach Neuladen und Neustart des Browsers da.
 - Abnahmekriterium Viewports: Alle Bereiche bei 1280 px und 390 px ohne abgeschnittene Eingabefelder.
-- Eine Abdeckungstabelle im Pull Request ordnet Testfälle 1 bis 18 und Q1 bis Q11 je einem grünen Test zu, Q8 und Q9 mit Verweis auf den manuellen Teil in S26.
+- Eine Abdeckungstabelle im Pull Request ordnet Testfälle 1 bis 19 und Q1 bis Q11 je einem grünen Test zu, Q8 und Q9 mit Verweis auf den manuellen Teil in S26.
 
 **Voraussetzung:** S23
 
