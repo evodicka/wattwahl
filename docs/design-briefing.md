@@ -19,6 +19,8 @@ Wattwahl ist eine Entscheidungshilfe für einen Haushalt mit einem Bestands-Verb
 | Breiten | Handy 390 px, Desktop 1280 px, Umbruch bei 900 px | Spezifikation „Gestaltung“, Architektur 8.8 |
 | Layout Desktop (ab 900 px) | Seitenleiste links, Inhalt in zwei Spalten | Architektur 8.8 |
 | Layout Handy (unter 900 px) | Eine Spalte, untere Navigationsleiste mit fünf Bereichen | Architektur 8.8 |
+| Tablet hochkant (600 bis 899 px) | Handy-Layout, Inhalt höchstens 720 px breit und mittig. Formularkarten zeigen zwei Felder nebeneinander, Ergebniskarten zwei Spalten, Kostenbalken mit Beschriftung links | Design-Review, Abschnitt 13 |
+| Tablet quer (900 bis 1199 px) | Desktop-Layout mit Seitenleiste 200 px. Feldgruppen mit drei Feldern stehen untereinander, die Ergebnistabelle scrollt seitlich mit fester Spalte Kandidat | Design-Review, Abschnitt 13 |
 | Bedienhöhe | Alle Bedienelemente am Handy mindestens 44 px hoch | Spezifikation „Gestaltung“ |
 | Zahlenfelder | Einheit am Feldende, passende Tastatur, Eingabe mit Komma oder Punkt | Spezifikation „Eingabe“, „Validierung“ |
 | Farbschema | Hell und Dunkel nach Systemeinstellung, kein Umschalter in der App | Spezifikation „Gestaltung“ |
@@ -300,7 +302,7 @@ Jede Zeile der Tabellen „Bedienung“ und „Auswertung und Visualisierung“ 
 | P21 | Eingabe: Parameter änderbar, Änderung markiert | 4.3, Z15 | D4, M7, D8, M11 |
 | P22 | Szenarien: Anlegen, Umbenennen, Duplizieren, Löschen mit Bestätigung | 4.5, Z19 | D7, M10, D8, M11 |
 | P23 | Szenarien: Vergleich von zwei oder mehr Szenarien | 4.5, 5.2 | D7, M10 |
-| P24 | Gestaltung: Umbruch 900 px, Seitenleiste, untere Navigation | 2, 3 | alle Boards |
+| P24 | Gestaltung: Umbruch 900 px, Seitenleiste, untere Navigation | 2, 3, 13 | alle Boards, Tablet T1 bis T4 |
 | P25 | Gestaltung: 44 px, Einheit am Feldende | 2 | alle Boards |
 | P26 | Gestaltung: Hell und Dunkel, WCAG AA | 2, 8 | alle Boards (Tweak „theme“) |
 | P27 | Gestaltung: Deutsch, Dezimalkomma, Sprachdatei | 2 | alle Boards |
@@ -335,7 +337,9 @@ Mockups (D3): https://claude.ai/artifact/XLGoB4DrazZ4gj6HiqsBFy
 | M1 bis M2 | Fahrprofil, Kandidaten | 390 px |
 | M3 bis M6 | Kandidatenformular in vier Schritten | Allgemein und Preis, Akku und Reichweite, Garantie, Leasing |
 | M7 bis M10 | Parameter, Ergebnis, Ergebnis-Details, Szenarien und Daten | 390 px |
-| M11 | Zustände | Z01 bis Z20 |
+| M11 | Zustände | Z01 bis Z22 |
+| T1, T2 | Fahrprofil, Ergebnis | Tablet hochkant 820 px |
+| T3, T4 | Fahrprofil, Ergebnis | Tablet quer 1024 px |
 
 Jedes Board hat einen Tweak „theme“ (hell, dunkel). Die Zahlen sind konsistent aus den Testfällen der Spezifikation abgeleitet, Preise und Modelle sind frei gewählt. Der Kandidatenbereich der Handy-Zustände zeigt Z16 (Pflichteingabe) im Feld „Heimstrompreis“.
 
@@ -345,3 +349,16 @@ Jedes Board hat einen Tweak „theme“ (hell, dunkel). Die Zahlen sind konsiste
 - Garantie: Eingabe der normalen Garantie (Jahre, Kilometer). Die Restgarantie bei Gebrauchten berechnet die App. **Das weicht von Spezifikation (Datenmodell, Garantie) und Schema ab und braucht eine Entscheidung vor G3**: Spezifikation, `src/domain/schema.ts` und Rechenkern rechnen heute mit Restjahren und Restkilometern.
 - Zuordnungsplan: Statt Buchstaben zeigt er Symbole (Blitz E-Auto, Zapfsäule Verbrenner, Gebäude je Arbeitsstätte). Die Namen in der Legende („Büro Innenstadt“, „Werk Nord“) kommen aus dem Namen der Arbeitsstätten im Fahrprofil und ändern sich mit ihm. Die Mockups zeigen sie fest, die Umsetzung (S20/S21) liest sie aus dem Szenario.
 - Nach der Garantie-Änderung (`docs/change-garantie.md`, Phase 3b) ergänzt: Parameter „Stichtag der Garantieberechnung“ (D4, M7), Erstzulassung als Pflicht und berechnete Restgarantie im Gebraucht-Zweig (Z20), Hinweis „Garantiewerte prüfen“ (Z21), Warnung „Erstzulassung nach dem Stichtag“ (Z22), unvollständig wegen fehlender Erstzulassung (Z02), Restgarantie in der Garantie-Kachel und im Rechenweg (D6, M9, Formel `OPT.remainingWarranty`). Der Spec-Abgleich der Garantie ist damit kein offener Punkt mehr, sobald C1a gemerged ist.
+
+## 13. Tablet
+
+Die Spezifikation kennt nur den Umbruch bei 900 px. Tablets fallen damit hochkant (etwa 768 bis 834 px) in das Handy-Layout und quer (1024 bis 1366 px) in das Desktop-Layout. Zwei Zwischenstufen verhindern, dass Inhalte zu breit oder zu eng werden. Sie ändern keinen Umbruch und keinen Bereich, nur Breiten und Spalten innerhalb der Layouts.
+
+| Breite | Layout | Regeln |
+| --- | --- | --- |
+| unter 600 px | Handy | wie M1 bis M11 |
+| 600 bis 899 px | Handy, breit | Inhalt höchstens 720 px, mittig. Kopfzeile und untere Navigation über die volle Breite. Formularkarten mit zwei Feldern je Zeile, Überschriften, Hinweise, Schalter und Dreiergruppen über die volle Breite. Ergebniskarten in zwei Spalten. Kostenbalken mit Beschriftung links wie am Desktop. Preis-Regler in zwei Spalten. Preisfall-Umschalter mit vollen Bezeichnungen. |
+| 900 bis 1199 px | Desktop, schmal | Seitenleiste 200 px, Ränder 24 px. Zwei Spalten bleiben. Feldgruppen mit drei Feldern stehen untereinander, damit Zahl und Einheit Platz haben. Wochentage mit 2 px Abstand in einer Zeile. Ergebnistabelle mit Mindestbreite 880 px in der Scrollbox, Spalte Kandidat bleibt beim Scrollen stehen. |
+| ab 1200 px | Desktop | wie D1 bis D8 |
+
+Boards: T1 und T2 (820 px hochkant), T3 und T4 (1024 px quer). Die Stufen 600 und 1200 px setzt S16 als Container- oder Media-Queries im Theme um. Die Abnahme der Spezifikation (390 und 1280 px) bleibt unverändert; ein Test bei 820 und 1024 px ohne abgeschnittene Felder ist eine Ergänzung für S24.
