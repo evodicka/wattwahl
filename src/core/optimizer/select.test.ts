@@ -332,7 +332,7 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
     );
   });
 
-  it('Q4: 1,000 random small cases give the same cost, distance and budget result', () => {
+  it('Q4: 100,000 random small cases give the same cost, distance and budget result', () => {
     // Costs in 1/256 EUR so that costs within the 0.01 tie band occur and all
     // sums are exact in binary (no float noise decides a tie), km in halves so
     // that the rounding up to cells matters, and a reserve that is not
@@ -389,7 +389,7 @@ describe('TC13 / Q4: dynamic programming against brute force', () => {
           }),
         );
       }),
-      { numRuns: 1000 },
+      { numRuns: 100000 },
     );
   });
 });
