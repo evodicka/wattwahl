@@ -1,4 +1,7 @@
-// Scaffold only: the German heading is hardcoded until src/i18n lands (S15).
+import { useTranslation } from 'react-i18next';
+
+// Scaffold only: the app shell follows in S16.
 export function App() {
-  return <h1>Wattwahl</h1>;
+  const { t } = useTranslation();
+  return <h1>{t('appName')}</h1>;
 }

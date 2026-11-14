@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Wattwahl",
+    "nav": {
+      "label": "Bereiche",
+      "fahrprofil": "Fahrprofil",
+      "kandidaten": "Kandidaten",
+      "parameter": "Parameter",
+      "ergebnis": "Ergebnis",
+      "szenarien": "Szenarien und Daten",
+      "szenarienShort": "Szenarien"
+    }
+  },
+  "fahrprofil": {
+    "title": "Fahrprofil"
+  },
+  "kandidaten": {
+    "title": "Kandidaten"
+  },
+  "parameter": {
+    "title": "Parameter"
+  },
+  "ergebnis": {
+    "title": "Ergebnis"
+  },
+  "szenarien": {
+    "title": "Szenarien und Daten"
+  }
+}
