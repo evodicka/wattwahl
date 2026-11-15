@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   base: '/',
   plugins: [react()],
+  // The core worker is a module worker (src/worker), bundled as ES module.
+  worker: { format: 'es' },
   test: {
     projects: [
       {

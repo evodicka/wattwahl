@@ -1,4 +1,10 @@
-import { hashResult } from '../src/core';
+import { ComputeCache, computeOffer, hashResult } from '../src/core';
+import { listOffers, type Scenario } from '../src/domain';
+import {
+  BASE_PRICE_CASES,
+  spawnCoreWorker,
+  type OfferResults,
+} from '../src/worker';
 import { runQ1 } from '../tests/bench/q1';
 import { q1Scenario } from '../tests/fixtures/q1Scenario';
 
@@ -34,4 +40,62 @@ function runBench(runs: number): Q1BenchResult {
 }
 
 Object.assign(window, { runQ1Bench: runBench });
+
+// S14: the same workload through the real core worker (Comlink, structured
+// cloning), against the direct call on the main thread.
+
+export type WorkerBenchResult = {
+  workerMs: number[];
+  directMs: number[];
+  workerHash: string;
+  directHash: string;
+};
+
+function directResults(scenario: Scenario): OfferResults {
+  const cache = new ComputeCache();
+  const results: OfferResults = {};
+  for (const candidate of scenario.candidates) {
+    for (const offer of listOffers(candidate)) {
+      results[offer.offerId] = Object.fromEntries(
+        BASE_PRICE_CASES.map((priceCase) => [
+          priceCase,
+          computeOffer(scenario, offer, priceCase, { cache }),
+        ]),
+      );
+    }
+  }
+  return results;
+}
+
+async function runWorkerBench(runs: number): Promise<WorkerBenchResult> {
+  const scenario = q1Scenario();
+  const worker = spawnCoreWorker();
+  const workerMs: number[] = [];
+  const directMs: number[] = [];
+  let workerResults: OfferResults = {};
+  let direct: OfferResults = {};
+  try {
+    for (let run = 0; run < runs; run++) {
+      let start = performance.now();
+      const response = await worker.api.compute({ generation: run, scenario });
+      workerMs.push(performance.now() - start);
+      if (response.status !== 'done') throw new Error('worker run superseded');
+      workerResults = response.results;
+      start = performance.now();
+      direct = directResults(scenario);
+      directMs.push(performance.now() - start);
+    }
+  } finally {
+    worker.terminate();
+  }
+  return {
+    workerMs,
+    directMs,
+    workerHash: hashResult(workerResults),
+    directHash: hashResult(direct),
+  };
+}
+
+Object.assign(window, { runWorkerBench });
+
 document.title = 'Q1 benchmark ready';
