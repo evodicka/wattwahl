@@ -94,6 +94,12 @@ export const formatInput = (value: number, minDecimals = 0): string => {
   return withMinus(format.format(value));
 };
 
+/** A month and a year as "03/2022", for the Stichtag and the first registration. */
+export const formatMonthYear = (value: {
+  month: number;
+  year: number;
+}): string => `${String(value.month).padStart(2, '0')}/${value.year}`;
+
 // Dates and times for "Stand" and "Gespeichert". The time zone is the
 // device's; tests pass one so they do not depend on the machine.
 const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();

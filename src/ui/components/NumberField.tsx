@@ -80,6 +80,12 @@ type Props = {
   /** An error of a rule across fields, e.g. minimum above mid. */
   error?: string | null;
   onReset?: (() => void) | null;
+  placeholder?: string;
+  /**
+   * A rule across entries. A message shows at the field and keeps the value
+   * from being stored, like a failed check of the number itself.
+   */
+  validate?: (value: number | null) => string | null;
   id?: string;
 };
 
@@ -101,6 +107,8 @@ export function NumberField({
   warning = null,
   error: groupError = null,
   onReset = null,
+  placeholder,
+  validate,
   id: givenId,
 }: Props) {
   const { t } = useTranslation();
@@ -109,6 +117,7 @@ export function NumberField({
   /** The text while it differs from the stored value; `null` shows the value. */
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<NumberError | null>(null);
+  const [custom, setCustom] = useState<string | null>(null);
 
   const leave = () => {
     if (draft === null) return;
@@ -121,7 +130,13 @@ export function NumberField({
       setError(checked.error);
       return;
     }
+    const rejected = validate?.(checked.value) ?? null;
+    if (rejected) {
+      setCustom(rejected);
+      return;
+    }
     setError(null);
+    setCustom(null);
     setDraft(null);
     if (checked.value !== value) onCommit(checked.value);
   };
@@ -158,13 +173,15 @@ export function NumberField({
 
   // "Pflicht" disappears as soon as the field has a value again.
   const shownError = error === 'required' && value !== null ? null : error;
-  const message: FieldMessage | null = shownError
-    ? { tone: 'error', text: errorText(shownError) }
-    : groupError
-      ? { tone: 'error', text: groupError }
-      : warning
-        ? { tone: 'warn', text: warning }
-        : null;
+  const message: FieldMessage | null = custom
+    ? { tone: 'error', text: custom }
+    : shownError
+      ? { tone: 'error', text: errorText(shownError) }
+      : groupError
+        ? { tone: 'error', text: groupError }
+        : warning
+          ? { tone: 'warn', text: warning }
+          : null;
 
   const reset = onReset
     ? {
@@ -172,6 +189,7 @@ export function NumberField({
         onReset: () => {
           setDraft(null);
           setError(null);
+          setCustom(null);
           onReset();
         },
       }
@@ -195,6 +213,7 @@ export function NumberField({
             rules.integer && (rules.min ?? 0) >= 0 ? 'numeric' : 'decimal'
           }
           autoComplete="off"
+          placeholder={placeholder}
           value={draft ?? (value === null ? '' : formatInput(value, decimals))}
           aria-invalid={message?.tone === 'error' ? true : undefined}
           aria-describedby={

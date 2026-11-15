@@ -6,6 +6,7 @@ import {
   formatEuro,
   formatInput,
   formatKm,
+  formatMonthYear,
   formatPercent,
   formatTime,
 } from './format';
@@ -151,5 +152,12 @@ describe('formatDate and formatTime (S16: "Stand" and "Gespeichert")', () => {
 
   it('accepts a Date as well as an ISO string', () => {
     expect(formatTime(new Date(at), 'UTC')).toBe('11:04');
+  });
+});
+
+describe('formatMonthYear (S18)', () => {
+  it('writes month and year as MM/YYYY', () => {
+    expect(formatMonthYear({ month: 3, year: 2022 })).toBe('03/2022');
+    expect(formatMonthYear({ month: 11, year: 2026 })).toBe('11/2026');
   });
 });
