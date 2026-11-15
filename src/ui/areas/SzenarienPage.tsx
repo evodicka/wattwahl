@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   comparisonCleared,
@@ -8,7 +8,7 @@ import {
 } from '../../state';
 import { AreaHead } from './AreaHead';
 import { ExportImport } from './szenarien/ExportImport';
-import { ExportReminder } from './szenarien/ExportReminder';
+import { ExportReminder } from '../shell/ExportReminder';
 import { ScenarioComparison } from './szenarien/ScenarioComparison';
 import { ScenarioList } from './szenarien/ScenarioList';
 
@@ -22,11 +22,20 @@ export function SzenarienPage() {
   const compared = chosen.filter((id) => known[id]);
   const key = compared.join('|');
 
+  // The scenario objects the comparison was last started with: an import that
+  // replaces them under the same ids must compute the comparison again.
+  const started = useRef<unknown[]>([]);
   useEffect(() => {
     const ids = key === '' ? [] : key.split('|');
+    const objects = ids.map((id) => known[id]);
+    const same =
+      objects.length === started.current.length &&
+      objects.every((object, index) => object === started.current[index]);
+    if (same) return;
+    started.current = objects;
     if (ids.length < 2) dispatch(comparisonCleared());
     else void dispatch(compareScenarios(ids));
-  }, [dispatch, key]);
+  }, [dispatch, key, known]);
 
   return (
     <>

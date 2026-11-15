@@ -13,10 +13,10 @@ import {
   duplicateScenario,
   renameScenario,
 } from './scenarios';
-import { loaded } from './scenarioSlice';
+import { activeScenarioSet, loaded } from './scenarioSlice';
 import { selectActiveScenario, selectScenarios } from './selectors';
 import { createAppStore } from './store';
-import { checkExportReminder, exportScenarios } from './thunks';
+import { checkExportReminder, exportScenarios, flushSaves } from './thunks';
 
 // S22: scenario list, comparison and export reminder.
 
@@ -123,6 +123,56 @@ describe('S22: delete', () => {
     expect(names(store)).toEqual(['Zweites']);
   });
 
+  it('an autosave during the delete cannot bring the scenario back', async () => {
+    const { store, scenario, repository } = setup();
+    const other =
+      store.dispatch(duplicateScenario(scenario.id, 'Zweites')) ?? '';
+    expect(store.getState().scenario.dirty).toContain(other);
+    let release!: () => void;
+    vi.mocked(repository.delete).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ status: 'ok' });
+        }),
+    );
+    const run = store.dispatch(deleteScenario(other, 'Standard'));
+    // The debounced autosave fires now, while the database call is open.
+    await store.dispatch(flushSaves());
+    expect(
+      vi.mocked(repository.save).mock.calls.map(([saved]) => saved.id),
+    ).not.toContain(other);
+    release();
+    await run;
+    expect(names(store)).toEqual([scenario.name]);
+  });
+
+  it('a refused delete keeps the scenario and its unsaved edits dirty', async () => {
+    const { store, scenario, repository } = setup();
+    const other =
+      store.dispatch(duplicateScenario(scenario.id, 'Zweites')) ?? '';
+    vi.mocked(repository.delete).mockResolvedValue({ status: 'readOnly' });
+    await store.dispatch(deleteScenario(other, 'Standard'));
+    expect(store.getState().scenario.dirty).toContain(other);
+  });
+
+  it('a scenario the user chose during the delete stays the active one', async () => {
+    const { store, scenario, repository } = setup();
+    const other =
+      store.dispatch(duplicateScenario(scenario.id, 'Zweites')) ?? '';
+    let release!: () => void;
+    vi.mocked(repository.delete).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ status: 'ok' });
+        }),
+    );
+    const run = store.dispatch(deleteScenario(scenario.id, 'Standard'));
+    store.dispatch(activeScenarioSet(other));
+    release();
+    await run;
+    expect(store.getState().scenario.activeId).toBe(other);
+  });
+
   it('deleting the last scenario leaves an empty one, so the app has a scenario', async () => {
     const { store, scenario } = setup();
     expect(await store.dispatch(deleteScenario(scenario.id, 'Standard'))).toBe(
@@ -205,7 +255,7 @@ describe('S22: comparison', () => {
     expect(worker.compares).toHaveLength(0);
   });
 
-  it('answers of an older request are dropped when a newer one started', async () => {
+  it('answers of an older request are dropped, and it stops after its running call', async () => {
     const { store, scenario, worker } = setup();
     const other =
       store.dispatch(duplicateScenario(scenario.id, 'Zweites')) ?? '';
@@ -213,27 +263,41 @@ describe('S22: comparison', () => {
     await vi.waitFor(() => expect(worker.compares).toHaveLength(1));
     const second = store.dispatch(compareScenarios([other, scenario.id]));
     await vi.waitFor(() => expect(worker.compares).toHaveLength(2));
-    // The old request answers late, with a marker result.
+    // The old request answers late, with a marker result: dropped, and it asks for no more.
     worker.compares[0]?.answer.resolve({
       scenarioId: scenario.id,
       results: { old: {} },
     });
-    await vi.waitFor(() => expect(worker.compares).toHaveLength(3));
+    await first;
+    expect(worker.compares).toHaveLength(2);
     expect(store.getState().result.comparison?.results).toEqual({});
     worker.compares[1]?.answer.resolve({ scenarioId: other, results: {} });
-    await vi.waitFor(() => expect(worker.compares).toHaveLength(4));
-    worker.compares[3]?.answer.resolve({
+    await vi.waitFor(() => expect(worker.compares).toHaveLength(3));
+    worker.compares[2]?.answer.resolve({
       scenarioId: scenario.id,
       results: {},
     });
-    worker.compares[2]?.answer.resolve({ scenarioId: other, results: {} });
-    await Promise.all([first, second]);
+    await second;
     const comparison = store.getState().result.comparison;
+    expect(comparison?.status).toBe('done');
     expect(comparison?.scenarioIds).toEqual([other, scenario.id]);
-    expect(Object.keys(comparison?.results ?? {}).sort()).toEqual(
-      [scenario.id, other].sort(),
-    );
     expect(comparison?.results[scenario.id]).toEqual({});
+  });
+
+  it('clearing the comparison stops a run that is going', async () => {
+    const { store, scenario, worker } = setup();
+    const other =
+      store.dispatch(duplicateScenario(scenario.id, 'Zweites')) ?? '';
+    const run = store.dispatch(compareScenarios([scenario.id, other]));
+    await vi.waitFor(() => expect(worker.compares).toHaveLength(1));
+    await store.dispatch(compareScenarios([scenario.id]));
+    worker.compares[0]?.answer.resolve({
+      scenarioId: scenario.id,
+      results: {},
+    });
+    await run;
+    expect(worker.compares).toHaveLength(1);
+    expect(store.getState().result.comparison).toBeNull();
   });
 
   it('a worker error ends in an error state', async () => {

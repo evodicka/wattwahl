@@ -39,7 +39,7 @@ const normalise = (name: string) => name.trim().toLowerCase();
  * ignored) plus offer kind: a purchase, or a lease with the same tier in km
  * per year. An offer that only some scenarios have is a row with empty cells.
  * Rows are in the order they first appear. Two candidates of one scenario
- * with the same name and kind: the first one counts.
+ * with the same name and kind: the first one with a result counts.
  */
 export function comparisonRows(scenarios: ComparedScenario[]): ComparisonRow[] {
   const rows = new Map<string, ComparisonRow>();

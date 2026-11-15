@@ -88,6 +88,10 @@ export const scenarioSlice = createSlice({
       state.byId[scenario.id] = scenario;
       markDirty(state, scenario.id);
     },
+    /** A scenario about to be deleted is not saved any more: a save after the delete would bring it back. */
+    scenarioSaveCancelled(state, action: PayloadAction<string>) {
+      state.dirty = state.dirty.filter((id) => id !== action.payload);
+    },
     /** A deleted scenario is gone from the lists; the thunk chooses the next active one. */
     scenarioRemoved(state, action: PayloadAction<string>) {
       const id = action.payload;
@@ -135,6 +139,7 @@ export const {
   scenarioAdded,
   scenarioUpdated,
   scenarioRemoved,
+  scenarioSaveCancelled,
   activeScenarioSet,
   settingsUpdated,
   scenarioSaved,

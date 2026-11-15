@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { noticeDismissed, useAppDispatch, useAppSelector } from '../../state';
 import { Button, Notice } from '../components';
-import { ExportReminder } from '../areas/szenarien/ExportReminder';
+import { ExportReminder } from './ExportReminder';
 
 /**
  * Notices of the frame (briefing §3): full storage (Z07), a newer tab, a
