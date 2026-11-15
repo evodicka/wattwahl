@@ -234,7 +234,7 @@ Speichern und Rechnen starten unabhängig voneinander nach 300 ms Ruhe. Kommt w�
 1. Der Nutzer wählt Datei und Modus (ersetzen oder hinzufügen).
 2. Größe prüfen, `JSON.parse`, Format-Kennung `eauto-export` prüfen.
 3. Jedes Szenario migrieren (aktueller Monat als Monat der Migration) und mit `safeParse` prüfen. Beim ersten Fehler erscheint die Meldung mit Pfad, es wird nichts geschrieben.
-4. Beim Hinzufügen vergibt src/state neue IDs, dann werden alle Szenarien in einer Transaktion geschrieben.
+4. Beim Hinzufügen vergibt src/state neue IDs, dann werden alle Szenarien in einer Transaktion geschrieben. Was „Ersetzen“ entfernt und behält, steht in 8.3.
 5. Die Stores laden neu, die Berechnung für das aktive Szenario startet.
 
 ### 6.4 App-Update
@@ -326,7 +326,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 
 - Exportformat: `{ format: "eauto-export", schemaVersion, exportedAt, scenarios: [...] }`. Dateiname `eauto-export-JJJJ-MM-TT-vN.json`, wahlweise ein oder alle Szenarien.
 - Import liest die Datei nur mit `JSON.parse`, prüft die Größe (höchstens 1 MB, festgelegt in S13), migriert und validiert mit `safeParse`. Dateien mit höherer schemaVersion als die App werden abgelehnt, ebenso Dateien ohne Szenario und Dateien mit einer ID doppelt. Fehler nennen einen Code (`tooLarge`, `invalidJson`, `wrongFormat`, `newerVersion`, `invalidFile`, `noScenarios`, `invalidScenario`, `duplicateId`) und den Pfad im Schema, zum Beispiel `scenarios[0].candidates[2].price`.
-- „Ersetzen“ und „Hinzufügen“ schreiben in einer einzigen IndexedDB-Transaktion. Bei einem Fehler wird nichts geändert. „Ersetzen“ entfernt nur die Szenarien, die die App lesen kann. Datensätze einer neueren App bleiben erhalten, ein Import mit derselben ID wird abgewiesen. Datensätze, die sich nicht laden lassen, bleiben ebenfalls erhalten, außer die Datei bringt ein Szenario mit derselben ID. Beim Hinzufügen erhalten Szenarien neue IDs aus src/state, doppelte Namen den Zusatz „(Import)“.
+- „Ersetzen“ und „Hinzufügen“ schreiben in einer einzigen IndexedDB-Transaktion. Bei einem Fehler wird nichts geändert. „Ersetzen“ entfernt nur die Szenarien, die die App lesen kann. Datensätze einer neueren App bleiben erhalten, ein Import mit derselben ID wird abgewiesen. Datensätze, die sich nicht laden lassen, bleiben ebenfalls erhalten, außer die Datei bringt ein Szenario mit derselben ID. Eine beim Hinzufügen schon vergebene ID bricht die Transaktion mit `ConstraintError` ab, das ist ein Programmfehler, weil die IDs aus `crypto.randomUUID()` stammen. Der Export enthält nur Szenarien, die die App lesen kann, und nennt die übrigen (`skipped`), damit die Oberfläche darauf hinweist. Beim Hinzufügen erhalten Szenarien neue IDs aus src/state, doppelte Namen den Zusatz „(Import)“.
 - Die Export-Erinnerung vergleicht das gespeicherte Exportdatum mit dem Intervall aus settings (Standard 14 Tage).
 
 ### 8.4 Rechenkern und Determinismus
@@ -470,7 +470,7 @@ Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die We
 | --- | --- | --- | --- | --- |
 | Q1 | Performance | 10 Kandidaten mit Kauf und 4 Leasingstufen, 3 Preisfälle, Preis-Regler aus: Ergebnis in ≤ 5 s am Mittelklasse-Handy, ≤ 2 s am Desktop | Playwright-Messung, Handy mit CPU-Drosselung, Abnahme am echten Gerät | **Erfüllt** in der Messung (S11, 11.1): Desktop 0,8 bis 1,7 s, gedrosselt 3,4 s. Offen: fertige App (S24), echtes Handy (S26) |
 | Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung | Offen (S24), braucht Worker und Oberfläche (S14, S17) |
-| Q3 | Korrektheit | Testfälle 1 bis 19 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13, 16 und 17 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04), Testfälle 18 und 19 zur Restgarantie (C1b). Testfall 14 Unit-Teil (S13). Offen: Testfall 14 End-to-End (S22), Testfall 15 Oberfläche (S17) |
+| Q3 | Korrektheit | Testfälle 1 bis 19 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13, 16 und 17 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04), Testfälle 18 und 19 zur Restgarantie (C1b). Testfall 14 Unit-Teil grün (S13). Offen: Testfall 14 End-to-End (S22), Testfall 15 Oberfläche (S17) |
 | Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,3 s lokal und etwa 8 s im CI (G2) |
 | Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11). Offen: Prüfung im CI (S24) |
 | Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder | **Erfüllt** im Kern (S10): jede Zahl eines Ergebnisses hat genau einen Eintrag mit demselben Wert. Oberfläche offen (S21) |
@@ -505,7 +505,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 - Anzahl der Fälle in Q4: 100.000 (Lauf etwa 2,3 s lokal, etwa 8 s im CI).
 - DP-Zelle: 1 km (`DP_CELL_KM`).
 
-**In S13 festgelegt:** Maximale Importgröße 1 MB (`MAX_IMPORT_BYTES`), etwa das Zwanzigfache eines großen Exports.
+**In S13 festgelegt:** Maximale Importgröße 1 MB (`MAX_IMPORT_BYTES`), etwa das Vierzigfache eines Exports des Messszenarios mit 10 Kandidaten (rund 25 KB).
 
 ### 11.1 Q1-Messung (S11) und Optimierungspfade
 
