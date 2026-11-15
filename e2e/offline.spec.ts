@@ -300,7 +300,9 @@ test.describe('S23: update (6.4)', () => {
       await controlledByWorker(page);
       const build = () =>
         page.locator('meta[name="build-id"]').getAttribute('content');
-      expect(await build()).toBe('local');
+      // Build A is whatever `npm run build` made: "local", or the commit in CI.
+      const buildA = await build();
+      expect(buildA).not.toBe('b');
       await expect(page.getByText('Neue Version verfügbar')).toHaveCount(0);
 
       // Build B goes online; the running app looks for it.
@@ -330,7 +332,7 @@ test.describe('S23: update (6.4)', () => {
         });
       }
       // Still the old version until the user agrees.
-      expect(await build()).toBe('local');
+      expect(await build()).toBe(buildA);
 
       // An input made right before the click is saved first (the autosave waits 300 ms).
       await page.getByLabel(/^Name/).first().fill('Mein Golf');
