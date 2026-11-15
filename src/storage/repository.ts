@@ -9,6 +9,7 @@ import {
   type UpgradeResult,
   type YearMonth,
 } from '../domain';
+import { buildExport, type ExportFile, type ImportMode } from './exportImport';
 
 // The only place that opens the database (architecture 8.2, enforced by lint).
 // Writes never throw for the cases the app has to show: a full storage, a
@@ -77,6 +78,17 @@ export type Repository = {
   save(scenario: Scenario): Promise<WriteResult>;
   loadSettings(): Promise<DeviceSettings>;
   saveSettings(settings: DeviceSettings): Promise<WriteResult>;
+  /** The export file (8.3) of the given scenarios, or of all readable ones. */
+  exportFile(ids?: readonly string[]): Promise<ExportFile>;
+  /**
+   * Writes checked import scenarios in one transaction (8.3): all or nothing.
+   * `replace` removes the readable scenarios first and keeps records of a
+   * newer app. Ids must be new for `add` (see prepareAddImport).
+   */
+  writeImport(
+    scenarios: readonly Scenario[],
+    mode: ImportMode,
+  ): Promise<WriteResult>;
   close(): void;
 };
 
@@ -279,7 +291,75 @@ export async function openRepository(
     }
   }
 
+  async function exportFile(ids?: readonly string[]): Promise<ExportFile> {
+    const { scenarios } = await loadAll();
+    const wanted = ids && new Set(ids);
+    return buildExport(
+      wanted
+        ? scenarios.filter((scenario) => wanted.has(scenario.id))
+        : scenarios,
+      now(),
+    );
+  }
+
+  async function writeImport(
+    scenarios: readonly Scenario[],
+    importMode: ImportMode,
+  ): Promise<WriteResult> {
+    if (mode === 'readOnly') return { status: 'readOnly' };
+    const database = db;
+    if (!database) return { status: 'closed' };
+    const tx = database.transaction('scenarios', 'readwrite');
+    const done = tx.done;
+    done.catch(() => undefined); // handled below; avoids an unhandled rejection
+    const writes: Promise<unknown>[] = [];
+    try {
+      const existing = await tx.store.getAll();
+      const newer = new Set(
+        existing.filter(isNewer).map((record) => record.id),
+      );
+      if (scenarios.some((scenario) => newer.has(scenario.id))) {
+        tx.abort();
+        return { status: 'readOnly' };
+      }
+      if (importMode === 'replace') {
+        // Only what this app can read is replaced. Records of a newer app and
+        // records that fail to load stay untouched (8.2), unless the file
+        // brings a scenario with the same id.
+        const context = { migrationMonth: monthOf(now()) };
+        const imported = new Set(scenarios.map((scenario) => scenario.id));
+        for (const record of existing) {
+          if (newer.has(record.id)) continue;
+          const upgrade = upgradeScenario(record, context);
+          const readable =
+            upgrade.status === 'ok' && upgrade.scenario.id === record.id;
+          if (imported.has(record.id) || readable) {
+            writes.push(tx.store.delete(record.id));
+          }
+        }
+      }
+      // `add`, not `put`: an id that is already taken aborts the whole import.
+      for (const scenario of scenarios) {
+        writes.push(tx.store.add(toRecord(scenario)));
+      }
+      await Promise.all([...writes, done]);
+      return { status: 'ok' };
+    } catch (error) {
+      // A request that throws does not abort the transaction by itself: undo
+      // the writes already queued. Their promises then reject with AbortError.
+      writes.forEach((write) => write.catch(() => undefined));
+      try {
+        tx.abort();
+      } catch {
+        // Already aborted or finished.
+      }
+      return writeFailure(error);
+    }
+  }
+
   return {
+    exportFile,
+    writeImport,
     get mode() {
       return mode;
     },
