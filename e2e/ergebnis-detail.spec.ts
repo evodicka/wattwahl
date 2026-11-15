@@ -146,12 +146,13 @@ test.describe('S20: accessibility (Q10)', () => {
         page,
         browserName,
       }) => {
-        // Firefox on the CI runner ends this analysis with "Page crashed", on
-        // every try; it does not on a developer machine. The DOM rules are the
-        // same in every engine, so Chromium and WebKit check this page.
-        test.skip(
+        // Known defect, cause unknown: on the CI runner Firefox ends this
+        // analysis with "Page crashed", on every try; it passes on a developer
+        // machine. Chromium and WebKit run it, which covers the DOM and the
+        // rendering-dependent rules there, not in Firefox.
+        test.fixme(
           browserName === 'firefox',
-          'Firefox crashes in the accessibility analysis of the chart page on CI.',
+          'Firefox crashes in the accessibility analysis of the chart page on CI (cause unknown).',
         );
         await seedScenario(page);
         await page.emulateMedia({ colorScheme });

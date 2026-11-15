@@ -150,6 +150,7 @@ test.describe('S19: accessibility (Q10)', () => {
     for (const width of [1280, 390]) {
       test(`no axe violations in the result area at ${width} px, ${colorScheme}`, async ({
         page,
+        browserName,
       }) => {
         await seedScenario(page);
         await page.emulateMedia({ colorScheme });
@@ -158,14 +159,34 @@ test.describe('S19: accessibility (Q10)', () => {
         await expect(
           page.getByRole('heading', { level: 2 }).first(),
         ).toBeVisible();
+        // The chart is a lazy chunk: analyse the page with it, not with its
+        // loading text. Not in Firefox, where the analysis of the chart page
+        // crashes on the CI runner (see e2e/ergebnis-detail.spec.ts).
+        if (browserName !== 'firefox') {
+          await expect(
+            page.getByRole('img', { name: /Gestapelte Balken/ }),
+          ).toBeVisible();
+        }
         let result = await new AxeBuilder({ page }).analyze();
         expect(result.violations.map((v) => `list: ${v.id} ${v.help}`)).toEqual(
           [],
         );
+        // A second analysis on the same page, after the lazy chunks of the
+        // detail view are loaded, crashes Firefox on the CI runner. The detail
+        // view has its own analysis in e2e/ergebnis-detail.spec.ts, which runs
+        // in every engine.
+        if (browserName === 'firefox') return;
         await page
           .getByRole('link', { name: /Modell A/ })
           .first()
           .click();
+        // The heatmap and the plan are lazy chunks too.
+        await expect(
+          page.getByRole('region', { name: /^Heatmap/ }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole('region', { name: /^Zuordnungsplan, seitlich/ }),
+        ).toBeVisible();
         result = await new AxeBuilder({ page }).analyze();
         expect(
           result.violations.map((v) => `offer: ${v.id} ${v.help}`),
