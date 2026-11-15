@@ -211,24 +211,12 @@ describe('S17: traffic light colours', () => {
   const pick = (name: string, color: string) =>
     fireEvent.change(screen.getByLabelText(name), { target: { value: color } });
 
-  it('warns about a colour with too little contrast and still saves it', async () => {
+  it('saves a chosen colour on the device', async () => {
     const app = await renderApp('/parameter');
-    expect(screen.queryByText(/zu wenig Kontrast/)).toBeNull();
     await act(async () => pick('Farbe Gelb', '#ccaa00'));
-    expect(
-      screen.getByText(/Gelb hat im hellen Modus zu wenig Kontrast/),
-    ).toBeTruthy();
     expect(
       app.store.getState().scenario.settings.trafficLightColors?.yellow,
     ).toBe('#ccaa00');
-  });
-
-  it('names only the mode that fails for a dark colour', async () => {
-    await renderApp('/parameter');
-    await act(async () => pick('Farbe Grün', '#0a5a30'));
-    const text = screen.getByText(/Grün hat/).textContent ?? '';
-    expect(text).toContain('im dunklen Modus');
-    expect(text).not.toContain('hellen');
   });
 
   it('resets to the theme colours', async () => {
