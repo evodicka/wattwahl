@@ -40,13 +40,15 @@ export function StatusLine() {
     status === 'computing' ||
     status === 'stale' ||
     (latest !== null && latest.scenarioId !== active?.id);
+  // The run failed: the numbers on screen stay, marked as outdated (8.10).
+  const outdated = status === 'error';
 
   const parts = [
     name !== null ? t('status.scenario', { name }) : null,
     t('status.priceCase', { name: t(`priceCase.${priceCase}`) }),
     months !== null ? t('status.period', { count: months }) : null,
     computedAt !== null
-      ? t(updating ? 'status.lastResult' : 'status.asOf', {
+      ? t(updating || outdated ? 'status.lastResult' : 'status.asOf', {
           date: formatDate(computedAt),
           time: formatTime(computedAt),
         })
@@ -54,7 +56,10 @@ export function StatusLine() {
   ].filter((part) => part !== null);
 
   return (
-    <p className={styles.status}>
+    <p className={styles.status} data-testid="status-line">
+      {outdated && (
+        <TrafficLight level="yellow">{t('status.outdated')}</TrafficLight>
+      )}
       {updating && (
         <TrafficLight level="none" symbol="↻">
           {t('status.updating')}

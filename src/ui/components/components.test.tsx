@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '../../i18n';
 import { Button, ConfirmDialog, EmptyState, Notice, TrafficLight } from '.';
 
@@ -86,44 +86,65 @@ describe('EmptyState (Z01)', () => {
 });
 
 describe('ConfirmDialog (Z19)', () => {
-  // jsdom has no modal dialog: open and close set the attribute only.
-  HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
-    this.open = true;
-  };
-  HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
-    this.open = false;
-  };
-
-  const renderDialog = (open: boolean) => {
-    const onConfirm = vi.fn();
-    const onCancel = vi.fn();
-    const view = render(
-      <I18nextProvider i18n={i18n}>
-        <ConfirmDialog
-          open={open}
-          title="Kandidat „Modell D“ löschen?"
-          confirmLabel="Löschen"
-          danger
-          onConfirm={onConfirm}
-          onCancel={onCancel}
-        >
-          Das lässt sich nicht rückgängig machen.
-        </ConfirmDialog>
-      </I18nextProvider>,
-    );
-    return { ...view, onConfirm, onCancel };
-  };
-
-  it('opens as a modal labelled by its title', () => {
-    renderDialog(true);
-    const dialog = screen.getByRole('dialog', {
-      name: 'Kandidat „Modell D“ löschen?',
+  // jsdom has no modal dialog: the spies stand in for showModal and close,
+  // and the test checks that the component calls the modal variant.
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = vi.fn(function (
+      this: HTMLDialogElement,
+    ) {
+      this.open = true;
+      // As in browsers: the first focusable element gets the focus.
+      this.querySelector<HTMLElement>('button')?.focus();
     });
-    expect((dialog as HTMLDialogElement).open).toBe(true);
+    HTMLDialogElement.prototype.close = vi.fn(function (
+      this: HTMLDialogElement,
+    ) {
+      this.open = false;
+    });
+  });
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+    Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
+  });
+
+  const dialog = (open: boolean, danger = true) => (
+    <I18nextProvider i18n={i18n}>
+      <ConfirmDialog
+        open={open}
+        title="Kandidat „Modell D“ löschen?"
+        confirmLabel="Löschen"
+        danger={danger}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      >
+        Das lässt sich nicht rückgängig machen.
+      </ConfirmDialog>
+    </I18nextProvider>
+  );
+  const onConfirm = vi.fn();
+  const onCancel = vi.fn();
+  beforeEach(() => {
+    onConfirm.mockClear();
+    onCancel.mockClear();
+  });
+
+  it('opens with showModal, labelled by its title', () => {
+    render(dialog(true));
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole('dialog', { name: 'Kandidat „Modell D“ löschen?' }),
+    ).toBeTruthy();
+  });
+
+  it('a danger dialog opens with the focus on "Abbrechen", not on the destructive button', () => {
+    render(dialog(true));
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Abbrechen' }),
+    );
   });
 
   it('confirms, cancels and treats Escape as cancel', () => {
-    const { onConfirm, onCancel } = renderDialog(true);
+    render(dialog(true));
     fireEvent.click(screen.getByRole('button', { name: 'Löschen' }));
     expect(onConfirm).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
@@ -131,19 +152,10 @@ describe('ConfirmDialog (Z19)', () => {
     expect(onCancel).toHaveBeenCalledTimes(2);
   });
 
-  it('closes when open turns false', () => {
-    const { rerender } = renderDialog(true);
-    rerender(
-      <I18nextProvider i18n={i18n}>
-        <ConfirmDialog
-          open={false}
-          title="t"
-          confirmLabel="Löschen"
-          onConfirm={() => {}}
-          onCancel={() => {}}
-        />
-      </I18nextProvider>,
-    );
+  it('closes with close when open turns false', () => {
+    const { rerender } = render(dialog(true));
+    rerender(dialog(false));
+    expect(HTMLDialogElement.prototype.close).toHaveBeenCalledOnce();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

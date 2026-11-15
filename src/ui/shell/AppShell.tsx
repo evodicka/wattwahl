@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet, useMatches } from 'react-router';
 import { formatTime } from '../../i18n';
@@ -28,6 +28,18 @@ export function AppShell() {
     .map((match) => match.handle)
     .findLast(isAreaHandle)?.area;
   const scenarioName = active?.name ?? t('frame.noScenario');
+
+  // A route change is silent with a hash router: the title names the area,
+  // and after a change of area the focus moves to the content, so keyboard
+  // and screen reader users land in the new area. Not on the first render.
+  const shownArea = useRef(area);
+  useEffect(() => {
+    document.title = area
+      ? `${t(`nav.${area}`)}${t('separator')}${t('appName')}`
+      : t('appName');
+    if (shownArea.current !== area) main.current?.focus();
+    shownArea.current = area;
+  }, [area, t]);
 
   return (
     <div className="app-frame">
