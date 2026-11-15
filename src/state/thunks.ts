@@ -228,6 +228,7 @@ export function openTrace(
     const scenario = selectActiveScenario(state);
     if (!scenario) return;
     dispatch(traceRequested({ offerId, priceCase }));
+    const requestId = getState().result.trace?.requestId ?? 0;
     try {
       const { result, trace } = await core.explain({
         scenario,
@@ -237,6 +238,7 @@ export function openTrace(
       });
       dispatch(
         traceLoaded({
+          requestId,
           offerId,
           priceCase,
           result,
@@ -247,7 +249,7 @@ export function openTrace(
     } catch (error) {
       // A worker crash or a bad offer id: the area shows the error and can
       // open the Rechenweg again.
-      dispatch(traceFailed({ offerId, priceCase, message: messageOf(error) }));
+      dispatch(traceFailed({ requestId, message: messageOf(error) }));
     }
   };
 }

@@ -35,10 +35,11 @@ function priceRange(
   };
 }
 
-function escalationRange(mid: number, value: number): SliderRange {
+/** From the scenario's own value and the fixed ends, so the track does not move while the slider is dragged. */
+function escalationRange(mid: number): SliderRange {
   return {
-    min: Math.min(ESCALATION_RANGE.min, floorTo(value, ESCALATION_STEP)),
-    max: Math.max(ESCALATION_RANGE.max, ceilTo(value, ESCALATION_STEP)),
+    min: Math.min(ESCALATION_RANGE.min, floorTo(mid, ESCALATION_STEP)),
+    max: Math.max(ESCALATION_RANGE.max, ceilTo(mid, ESCALATION_STEP)),
     step: ESCALATION_STEP,
     mid,
   };
@@ -65,11 +66,9 @@ export function sliderRanges(
     ),
     petrolEscalationPct: escalationRange(
       scenario.iceVehicle.petrolEscalationPct,
-      values.petrolEscalationPct,
     ),
     electricityEscalationPct: escalationRange(
       scenario.parameters.electricityEscalationPct,
-      values.electricityEscalationPct,
     ),
   };
 }

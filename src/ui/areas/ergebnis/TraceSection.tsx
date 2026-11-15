@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FormulaId, OkOfferResult, PriceCase } from '../../../domain';
 import {
+  DEBOUNCE_MS,
   closeTrace,
   openTrace,
+  selectActiveScenario,
   useAppDispatch,
   useAppSelector,
 } from '../../../state';
@@ -103,14 +105,33 @@ export function TraceSection({ offerId, priceCase }: Props) {
   const [open, setOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const trace = useAppSelector((state) => state.result.trace);
+  // The Rechenweg is computed again when what it was computed from changes
+  // while it is open: the slider's prices and the active scenario.
+  const slider = useAppSelector((state) => state.ui.sliderPrices);
+  const scenario = useAppSelector(selectActiveScenario);
 
+  // Opening, another price case and a retry compute at once. A change of the
+  // slider or of an input while it is open waits for a quiet moment, like every
+  // other recomputation, so that dragging does not queue a step per pixel.
+  const last = useRef<{ slider: unknown; scenario: unknown } | null>(null);
   useEffect(() => {
-    if (!open) return;
-    void dispatch(openTrace(offerId, priceCase));
+    if (!open) {
+      last.current = null;
+      return;
+    }
+    const inputsChanged =
+      last.current !== null &&
+      (last.current.slider !== slider || last.current.scenario !== scenario);
+    last.current = { slider, scenario };
+    const start = () => void dispatch(openTrace(offerId, priceCase));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (inputsChanged) timer = setTimeout(start, DEBOUNCE_MS);
+    else start();
     return () => {
+      clearTimeout(timer);
       dispatch(closeTrace());
     };
-  }, [open, offerId, priceCase, attempt, dispatch]);
+  }, [open, offerId, priceCase, attempt, slider, scenario, dispatch]);
 
   const current =
     trace && trace.offerId === offerId && trace.priceCase === priceCase
@@ -118,7 +139,12 @@ export function TraceSection({ offerId, priceCase }: Props) {
       : null;
   const result: OkOfferResult | null =
     current?.result?.status === 'ok' ? current.result : null;
-  const view = result && current ? traceView(current.entries, result) : null;
+  const view = useMemo(
+    () => (result && current ? traceView(current.entries, result) : null),
+    [result, current],
+  );
+  // An answer without a computed result: the offer cannot be computed now.
+  const noResult = open && current?.result != null && result === null;
 
   return (
     <details
@@ -138,6 +164,10 @@ export function TraceSection({ offerId, priceCase }: Props) {
             }
           >
             {t('detail.trace.failedBody')}
+          </Notice>
+        ) : noResult ? (
+          <Notice tone="warn" title={t('detail.trace.noResultTitle')}>
+            {t('detail.trace.noResultBody')}
           </Notice>
         ) : open && !view ? (
           <p className="t-sm muted" role="status">

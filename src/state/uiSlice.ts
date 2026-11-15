@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { PriceCase, SliderPrices } from '../domain';
 import type { ImportError } from '../storage';
+import { activeScenarioSet, loaded } from './scenarioSlice';
 
 // Transient UI state: the price slider (never saved, 8.5) and the notices the
 // areas show. The texts belong to the language file; here are only the facts.
@@ -39,6 +40,16 @@ const initialState: UiState = {
 export const uiSlice = createSlice({
   name: 'ui',
   initialState,
+  extraReducers: (builder) => {
+    // The slider belongs to the scenario it started from (its prices are that
+    // scenario's mids): another scenario, or a reload of the stores, drops it.
+    const dropSlider = (state: UiState) => {
+      state.sliderPrices = null;
+      if (state.priceCase === 'slider') state.priceCase = 'mid';
+    };
+    builder.addCase(activeScenarioSet, dropSlider);
+    builder.addCase(loaded, dropSlider);
+  },
   reducers: {
     sliderPricesSet(state, action: PayloadAction<SliderPrices | null>) {
       state.sliderPrices = action.payload;

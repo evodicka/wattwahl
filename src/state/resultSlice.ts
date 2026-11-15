@@ -16,6 +16,8 @@ export type ResultStatus =
   | 'error';
 
 export type TraceState = {
+  /** Counts the requests: an answer to an earlier request of the same offer is dropped. */
+  requestId: number;
   offerId: string;
   priceCase: PriceCase;
   /** `null` while the worker recomputes the offer with its Rechenweg. */
@@ -33,6 +35,8 @@ export type ResultState = {
   /** When `latest` arrived (ISO 8601): "Stand der Berechnung". */
   computedAt: string | null;
   trace: TraceState | null;
+  /** Requests of a Rechenweg so far; the next one gets this number plus one. */
+  traceRequests: number;
   error: string | null;
 };
 
@@ -42,6 +46,7 @@ const initialState: ResultState = {
   latest: null,
   computedAt: null,
   trace: null,
+  traceRequests: 0,
   error: null,
 };
 
@@ -88,40 +93,27 @@ export const resultSlice = createSlice({
       state,
       action: PayloadAction<{ offerId: string; priceCase: PriceCase }>,
     ) {
+      state.traceRequests += 1;
       state.trace = {
         ...action.payload,
+        requestId: state.traceRequests,
         result: null,
         entries: [],
         error: null,
       };
     },
     traceLoaded(state, action: PayloadAction<TraceState>) {
-      const { offerId, priceCase } = action.payload;
-      // Another offer was opened meanwhile: only the open one is kept.
-      if (
-        state.trace?.offerId !== offerId ||
-        state.trace.priceCase !== priceCase
-      ) {
-        return;
-      }
+      // Another request came meanwhile (another offer, the same offer opened
+      // again, a retry): only the answer to the latest one is kept.
+      if (state.trace?.requestId !== action.payload.requestId) return;
       state.trace = action.payload;
     },
     traceFailed(
       state,
-      action: PayloadAction<{
-        offerId: string;
-        priceCase: PriceCase;
-        message: string;
-      }>,
+      action: PayloadAction<{ requestId: number; message: string }>,
     ) {
-      const { offerId, priceCase, message } = action.payload;
-      if (
-        state.trace?.offerId !== offerId ||
-        state.trace.priceCase !== priceCase
-      ) {
-        return;
-      }
-      state.trace.error = message;
+      if (state.trace?.requestId !== action.payload.requestId) return;
+      state.trace.error = action.payload.message;
     },
     traceClosed(state) {
       state.trace = null;

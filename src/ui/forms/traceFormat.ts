@@ -87,14 +87,48 @@ const t = (key: string, options: Record<string, unknown> = {}): string =>
 const years = (value: number) =>
   `${formatDecimal(value, 1)} ${t('units.years')}`;
 
+/**
+ * The core writes `Number.MAX_VALUE` for "no limit" (an offer that needs no
+ * reserve, an unlimited ratio). Anything this large is shown in words.
+ */
+const UNLIMITED_FROM = 1e15;
+
+/** Strings the core writes as values or inputs, in words. */
+const WORDS: Record<string, string> = {
+  none: 'detail.trace.none',
+  city: 'roadTypes.city',
+  rural: 'roadTypes.rural',
+  highway: 'roadTypes.highway',
+  combined: 'roadTypes.combined',
+  new: 'kandidaten:form.conditionNew',
+  used: 'kandidaten:form.conditionUsed',
+  years: 'units.years',
+  km: 'units.km',
+};
+const word = (value: string): string => {
+  const key = WORDS[value];
+  if (!key) return value;
+  return key.startsWith('detail.') ? t(key, { ns: 'ergebnis' }) : t(key);
+};
+
 /** The value of a step as text, in the unit of its formula. */
 export function formatTraceValue(entry: TraceEntry): string {
   const { value } = entry;
+  if (typeof value === 'number' && Math.abs(value) >= UNLIMITED_FROM) {
+    return t('detail.trace.unlimited', { ns: 'ergebnis' });
+  }
+  // The extra mileage of a month is chosen as a share in percent.
+  if (
+    entry.formula === 'OPT.select' &&
+    entry.inputs.decision === 'extraShare'
+  ) {
+    return typeof value === 'number' ? formatPercent(value) : String(value);
+  }
   if (typeof value === 'boolean') return t(value ? 'yesNo.yes' : 'yesNo.no');
   if (typeof value === 'string') {
     return value === 'green' || value === 'yellow' || value === 'red'
       ? t(`light.${value}`)
-      : value;
+      : word(value);
   }
   const kind = KIND[entry.formula];
   switch (kind) {
@@ -139,7 +173,11 @@ export function formatTraceValue(entry: TraceEntry): string {
 
 /** An input of a step as text: numbers with decimal comma, other values as they are. */
 export function formatTraceInput(value: number | string | boolean): string {
-  if (typeof value === 'number') return formatInput(value);
+  if (typeof value === 'number') {
+    return Math.abs(value) >= UNLIMITED_FROM
+      ? t('detail.trace.unlimited', { ns: 'ergebnis' })
+      : formatInput(value);
+  }
   if (typeof value === 'boolean') return t(value ? 'yesNo.yes' : 'yesNo.no');
-  return value;
+  return word(value);
 }

@@ -10,7 +10,12 @@ import { formatEuro } from '../../../i18n';
 
 // The text of a node has its no-break spaces turned into spaces by Testing Library.
 const plain = (text: string) => text.replace(/\u00a0/g, ' ');
-import { selectActiveScenario, selectScenarios } from '../../../state';
+import {
+  DEBOUNCE_MS,
+  selectActiveScenario,
+  selectScenarios,
+  setSliderPrice,
+} from '../../../state';
 import { renderApp } from '../../__tests__/renderApp';
 
 // S21: Rechenweg (boards D6, M9) and price slider (boards D5, M8, T2, T4).
@@ -188,6 +193,49 @@ describe('S21: Rechenweg', () => {
     expect(app.worker.explains[1]?.request).toMatchObject({
       priceCase: 'evFavorable',
     });
+  });
+
+  it('computes again after a quiet moment when the slider moves while it is open', async () => {
+    const scenario = exampleScenario();
+    const app = await open(pathOf(scenario), scenario);
+    toggle(await traceDetails(), true);
+    await act(async () =>
+      app.worker.finishExplain(
+        explainOffer(scenario, offerIdOf(scenario), 'mid'),
+      ),
+    );
+    await act(async () => {
+      app.store.dispatch(setSliderPrice({ petrol: 2.4 }));
+    });
+    // Not at once: the slider may still be dragged.
+    expect(app.worker.explains).toHaveLength(1);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS + 100));
+    });
+    expect(app.worker.explains).toHaveLength(2);
+    expect(app.worker.explains[1]?.request).toMatchObject({
+      priceCase: 'slider',
+      sliderPrices: { petrol: 2.4 },
+    });
+  });
+
+  it('says so when the offer cannot be computed any more instead of loading for ever', async () => {
+    const scenario = exampleScenario();
+    const app = await open(pathOf(scenario), scenario);
+    toggle(await traceDetails(), true);
+    const broken = {
+      ...scenario,
+      iceVehicle: { ...scenario.iceVehicle, maintenancePerKm: null },
+    };
+    await act(async () =>
+      app.worker.finishExplain(
+        explainOffer(broken, offerIdOf(scenario), 'mid'),
+      ),
+    );
+    expect(
+      screen.getByText('Für dieses Angebot gibt es keinen Rechenweg'),
+    ).toBeTruthy();
+    expect(screen.queryByText('Der Rechenweg wird berechnet …')).toBeNull();
   });
 
   it('says that it failed, keeps the inputs, and tries again on request', async () => {

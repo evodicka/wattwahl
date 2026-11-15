@@ -720,7 +720,11 @@
           "F7": "Preisfaktoren",
           "F8": "Gesamtkosten",
           "OPT": "Optimierung und Garantie-Budget"
-        }
+        },
+        "unlimited": "unbegrenzt",
+        "none": "keine",
+        "noResultTitle": "Für dieses Angebot gibt es keinen Rechenweg",
+        "noResultBody": "Das Angebot ist nicht mehr berechenbar. Prüfe die Eingaben."
       },
       "compare": {
         "title": "Szenariovergleich",
