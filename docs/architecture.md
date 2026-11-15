@@ -181,9 +181,9 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 | --- | --- | --- |
 | `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts`, `result.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `OfferResultSchema`, `TraceEntrySchema`, `SliderPricesSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data, context)` (Kontext mit dem Monat der Migration), `createScenarioTemplate(…)` (mit dem aktuellen Monat als Argument), `checkWarnings(scenario)` |
 | `src/core` | `compute.ts`, `calc/`, `optimizer/`, `math/`, `trace.ts`, `hash.ts` | `computeOffer(scenario, offer, priceCase, { sliderPrices?, trace?, cache? })`, `ComputeCache`, `hashResult(value)`, `Trace` |
-| `src/worker` | `core.worker.ts` | ` compute({  ``generation, scenario, sliderPrices?` `})`, `explain({ scenario, offerId, priceCase, sliderPrices? })` über Comlink |
+| `src/worker` | `core.worker.ts`, `endpoint.ts`, `index.ts` (`spawnCoreWorker()`) | ` compute({  ``generation, scenario, sliderPrices?` `})`, `explain({ scenario, offerId, priceCase, sliderPrices? })` über Comlink |
 | `src/storage` | `repository.ts`, `exportImport.ts` | `loadAll()`, `save(scenario)`, `exportFile(ids)`, `parseImport(file)`, `writeImport(scenarios, mode)` |
-| `src/state` | `store.ts`, `scenarioSlice.ts`, `resultSlice.ts`, `uiSlice.ts`, `listeners.ts`, `coreClient.ts` | `useAppSelector`, `useAppDispatch`, Thunk `requestCompute()` mit Debounce |
+| `src/state` | `store.ts`, `scenarioSlice.ts`, `resultSlice.ts`, `uiSlice.ts`, `listeners.ts`, `coreClient.ts`, `thunks.ts`, `selectors.ts`, `types.ts` | `createAppStore(…)`, `useAppSelector`, `useAppDispatch`, Thunks `requestCompute()` mit Debounce, `startApp()`, `importFile()`, `exportScenarios()`, `openTrace()` |
 | `src/ui` | `areas/`, `components/`, `charts/`, `theme.css` | Routen aus 8.8 |
 | `src/i18n` | `de.json`, `index.ts`, `format.ts` | `t()`, `formatEuro()`, `formatKm()`, `formatConsumption()` |
 | `src/pwa` | `register.ts` | `useUpdatePrompt()` |
@@ -472,7 +472,7 @@ Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die We
 | Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung | Offen (S24), braucht Worker und Oberfläche (S14, S17) |
 | Q3 | Korrektheit | Testfälle 1 bis 19 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13, 16 und 17 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04), Testfälle 18 und 19 zur Restgarantie (C1b). Testfall 14 Unit-Teil grün (S13). Offen: Testfall 14 End-to-End (S22), Testfall 15 Oberfläche (S17) |
 | Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,3 s lokal und etwa 8 s im CI (G2) |
-| Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11). Offen: Prüfung im CI (S24) |
+| Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11), auch durch den echten Worker und gleich dem direkten Aufruf (S14). Offen: Prüfung im CI (S24) |
 | Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder | **Erfüllt** im Kern (S10): jede Zahl eines Ergebnisses hat genau einen Eintrag mit demselben Wert. Oberfläche offen (S21) |
 | Q7 | Robustheit | Import einer beschädigten oder fremden Datei ändert keinen gespeicherten Datensatz und nennt die Fehlerstelle | Vitest und Playwright | **Teilweise:** Unit-Teil grün (S13). Offen: End-to-End (S22) |
 | Q8 | Persistenz | Nach Neuladen, Schließen des Browsers und Geräteneustart ist der Stand vollständig da | Playwright mit persistentem Kontext, Geräteneustart manuell | Offen (S24 automatisiert, S26 am Gerät) |
@@ -519,7 +519,7 @@ Gemessen wurde das Messszenario aus `tests/fixtures/q1Scenario.ts`: 10 Kandidate
 | WebKit | 842 ms | 778 ms | 2 s | 42 % |
 | Chromium, CPU 4× gedrosselt (Handy-Näherung) | 3.397 ms | 3.304 ms | 5 s | 68 % |
 
-Die Drosselung ist nur eine Näherung. Maßgeblich ist die Messung am echten Handy in S26. Der Ergebnis-Hash (Q5) war in Node, Chromium, Firefox und WebKit gleich. Die Messung lief ohne Worker, im fertigen System kommt das Kopieren von Szenario und Ergebnissen hinzu. Es ist klein gegenüber den 840 ms, wird aber in S14 und S24 nachgemessen.
+Die Drosselung ist nur eine Näherung. Maßgeblich ist die Messung am echten Handy in S26. Der Ergebnis-Hash (Q5) war in Node, Chromium, Firefox und WebKit gleich. Die Messung lief ohne Worker, im fertigen System kommt das Kopieren von Szenario und Ergebnissen hinzu. S14 hat es nachgemessen (`bench/worker.browser.ts`, Median aus drei warmen Läufen, ohne Drosselung): Worker gegenüber direktem Aufruf in Chromium 853 zu 857 ms, in WebKit 788 zu 784 ms, in Firefox 1946 zu 1623 ms. In Chromium und WebKit kostet der Worker nichts Messbares, in Firefox etwa 20 %, damit liegt Firefox bei 97 % von 2 s. S24 misst erneut in der fertigen App.
 
 **Wohin die Zeit geht** (warm, Node):
 
