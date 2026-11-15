@@ -4,6 +4,7 @@ import {
   formatDate,
   formatDecimal,
   formatEuro,
+  formatInput,
   formatKm,
   formatPercent,
   formatTime,
@@ -107,6 +108,22 @@ describe('formatDecimal (decimal comma for other values)', () => {
 
   it('uses the thousands point', () => {
     expect(formatDecimal(200000, 0)).toBe('200.000');
+  });
+});
+
+describe('formatInput (S17: the value in an input field)', () => {
+  it('keeps every typed decimal instead of rounding', () => {
+    expect(formatInput(0.035)).toBe('0,035');
+    expect(formatInput(12.5)).toBe('12,5');
+  });
+
+  it('pads to the minimum decimals and groups thousands', () => {
+    expect(formatInput(1.9, 2)).toBe('1,90');
+    expect(formatInput(200000)).toBe('200.000');
+  });
+
+  it('writes negative values with the true minus sign', () => {
+    expect(formatInput(-10)).toBe(`${minus}10`);
   });
 });
 

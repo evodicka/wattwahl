@@ -74,6 +74,26 @@ export const formatPercent = (valuePct: number, decimals = 0): string =>
 export const formatDecimal = (value: number, decimals: number): string =>
   withMinus(decimalFormat(decimals).format(value));
 
+const inputFormats = new Map<number, Intl.NumberFormat>();
+
+/**
+ * A value as it stands in an input field: every decimal the user typed is
+ * kept (up to 6), never rounded to a display precision. `minDecimals` pads
+ * prices: 1.9 → "1,90". parseDecimal in src/domain reads the result back.
+ */
+export const formatInput = (value: number, minDecimals = 0): string => {
+  let format = inputFormats.get(minDecimals);
+  if (!format) {
+    format = new Intl.NumberFormat(LOCALE, {
+      maximumFractionDigits: Math.max(6, minDecimals),
+      minimumFractionDigits: minDecimals,
+      signDisplay: 'negative',
+    });
+    inputFormats.set(minDecimals, format);
+  }
+  return withMinus(format.format(value));
+};
+
 // Dates and times for "Stand" and "Gespeichert". The time zone is the
 // device's; tests pass one so they do not depend on the machine.
 const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();

@@ -55,6 +55,7 @@ export {
   formatDate,
   formatDecimal,
   formatEuro,
+  formatInput,
   formatKm,
   formatPercent,
   formatTime,

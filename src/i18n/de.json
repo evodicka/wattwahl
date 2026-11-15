@@ -80,7 +80,8 @@
       "monthYear": "Monat und Jahr",
       "month": "Monat",
       "year": "Jahr",
-      "optional": "Optional"
+      "optional": "Optional",
+      "resetField": "{{label}} zurücksetzen"
     },
     "validation": {
       "required": "Bitte einen Wert eingeben.",
@@ -95,7 +96,13 @@
       "freeDays": "Höchstens so viele freie Tage wie Arbeitstage.",
       "tempOrder": "Die kalte Bezugstemperatur muss unter der milden liegen.",
       "uniqueName": "Dieser Name ist schon vergeben.",
-      "noCalculation": "Ohne diesen Wert wird nicht gerechnet."
+      "noCalculation": "Ohne diesen Wert wird nicht gerechnet.",
+      "notNegative": "Negativ nicht möglich.",
+      "integer": "Bitte eine ganze Zahl eingeben.",
+      "atLeast": "Bitte mindestens {{min}} eingeben.",
+      "atMost": "Bitte höchstens {{max}} eingeben.",
+      "chargeOrder": "Die untere Ladegrenze muss unter der oberen liegen.",
+      "year": "Bitte ein Jahr von {{min}} bis {{max}} eingeben."
     },
     "warning": {
       "coldAboveMild": "Kalt ist größer als mild, bitte prüfen. Das blockiert nicht.",
@@ -418,7 +425,16 @@
     "chooseColors": "Farben wählen",
     "lightColorsHint": "Symbol und Zahl bleiben bei jeder Farbwahl erhalten.",
     "exportReminder": "Export-Erinnerung",
-    "exportReminderHint": "Geräteeinstellung, gilt für alle Szenarien, wird nicht exportiert"
+    "exportReminderHint": "Geräteeinstellung, gilt für alle Szenarien, wird nicht exportiert",
+    "extraFixedShare": "Fester E-Auto-Anteil",
+    "monthlyTempsHint": "Durchschnitt je Monat am Wohnort",
+    "missingTitle": "Pflichteingaben fehlen",
+    "missingBody": "Ohne diese Werte wird nicht gerechnet: {{fields}}.",
+    "lightColor": "Farbe {{light}}",
+    "contrastWarning": "{{light}} hat {{scheme}} zu wenig Kontrast ({{ratio}} : 1, nötig 4,5 : 1). Gespeichert wird trotzdem.",
+    "schemeLight": "im hellen Modus",
+    "schemeDark": "im dunklen Modus",
+    "schemeBoth": "im hellen und im dunklen Modus"
   },
   "ergebnis": {
     "title": "Ergebnis",
