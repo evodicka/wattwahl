@@ -77,7 +77,7 @@ describe('S14: generations', () => {
     await settle();
     expect(store.getState().result).toMatchObject({
       status: 'error',
-      error: 'Error: boom',
+      error: 'boom',
     });
   });
 });
@@ -160,5 +160,68 @@ describe('S14: Rechenweg only for the open offer (8.5)', () => {
       'sliderPrices',
     ]);
     expect(at(workers, 0).api.explain).not.toHaveBeenCalled();
+  });
+});
+
+describe('S14: review follow-ups', () => {
+  it('a crash during the Rechenweg shows an error instead of loading forever', async () => {
+    const { store, workers, scenario } = setup(2);
+    const offerId = `${at(scenario.candidates, 0).id}:purchase`;
+    const opening = store.dispatch(openTrace(offerId, 'mid'));
+    at(workers, 0).crash();
+    await opening;
+    expect(store.getState().result.trace).toMatchObject({
+      offerId,
+      result: null,
+      error: 'The core worker stopped during the call.',
+    });
+  });
+
+  it('a Rechenweg answered after closing stays closed', async () => {
+    const { store, workers, scenario } = setup();
+    const offerId = `${at(scenario.candidates, 0).id}:purchase`;
+    const opening = store.dispatch(openTrace(offerId, 'mid'));
+    store.dispatch(closeTrace());
+    at(at(workers, 0).explains, 0).answer.resolve({
+      result: { status: 'incomplete' } as unknown as OfferResult,
+      trace: [],
+    });
+    await opening;
+    expect(store.getState().result.trace).toBeNull();
+  });
+
+  it('a crash before the first result marks the empty result as outdated', async () => {
+    const { store, workers } = setup(2);
+    void store.dispatch(requestCompute());
+    at(workers, 0).crash();
+    await settle();
+    expect(store.getState().result).toMatchObject({
+      status: 'stale',
+      latest: null,
+    });
+    at(workers, 1).finish(0);
+    await settle();
+    expect(store.getState().result.status).toBe('idle');
+  });
+
+  it('a result resets the crash count, so later crashes are retried again', async () => {
+    const { store, workers } = setup(2 * MAX_RESTARTS + 2);
+    void store.dispatch(requestCompute());
+    let index = 0;
+    for (let crash = 0; crash < MAX_RESTARTS; crash++) {
+      at(workers, index++).crash();
+      await settle();
+    }
+    // The retry on the current worker succeeds.
+    at(workers, index).finish(at(workers, index).computes.length - 1);
+    await settle();
+    expect(store.getState().result.status).toBe('idle');
+    for (let crash = 0; crash < MAX_RESTARTS; crash++) {
+      void store.dispatch(requestCompute());
+      at(workers, index++).crash();
+      await settle();
+    }
+    expect(store.getState().result.status).toBe('stale');
+    expect(at(workers, index).computes.length).toBeGreaterThan(0);
   });
 });

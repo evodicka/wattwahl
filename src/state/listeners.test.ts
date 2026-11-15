@@ -7,7 +7,13 @@ import {
   spawnSequence,
 } from './__tests__/fakes';
 import { DEBOUNCE_MS, attachLifecycle } from './listeners';
-import { loaded, scenarioAdded, scenarioUpdated } from './scenarioSlice';
+import {
+  activeScenarioSet,
+  loaded,
+  scenarioAdded,
+  scenarioUpdated,
+} from './scenarioSlice';
+import { selectResultIsCurrent } from './selectors';
 import { createAppStore } from './store';
 import { sliderPricesSet } from './uiSlice';
 
@@ -128,6 +134,32 @@ describe('S14: debounce of saving and computing', () => {
     store.dispatch(scenarioAdded({ ...active, name: 'x' }));
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     expect(store.getState().ui.notices.reloadRequired).toBe(true);
+  });
+});
+
+describe('S14: "wird aktualisiert" from the first input (8.5)', () => {
+  it('marks the result as updating at once, not only after the debounce', async () => {
+    const { store, worker, active } = setup();
+    store.dispatch(scenarioUpdated({ ...active, name: 'x' }));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    worker.finish(0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(selectResultIsCurrent(store.getState())).toBe(true);
+
+    store.dispatch(scenarioUpdated({ ...active, name: 'y' }));
+    expect(store.getState().result.status).toBe('computing');
+    expect(selectResultIsCurrent(store.getState())).toBe(false);
+  });
+
+  it('results of another scenario are not current', async () => {
+    const { store, worker, active, other } = setup();
+    store.dispatch(scenarioUpdated({ ...active, name: 'x' }));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    worker.finish(0);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(selectResultIsCurrent(store.getState())).toBe(true);
+    store.dispatch(activeScenarioSet(other.id));
+    expect(selectResultIsCurrent(store.getState())).toBe(false);
   });
 });
 

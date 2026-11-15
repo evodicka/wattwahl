@@ -4,7 +4,12 @@ import {
   type TypedStartListening,
 } from '@reduxjs/toolkit';
 import type { CoreClient } from './coreClient';
-import { computeFailed, computeSucceeded, workerCrashed } from './resultSlice';
+import {
+  computeFailed,
+  computeScheduled,
+  computeSucceeded,
+  workerCrashed,
+} from './resultSlice';
 import {
   activeScenarioSet,
   scenarioAdded,
@@ -48,6 +53,7 @@ export function createListeners(services: Services) {
         action.payload.id === state.scenario.activeId),
     effect: async (_action, api) => {
       api.cancelActiveListeners();
+      api.dispatch(computeScheduled());
       await api.delay(DEBOUNCE_MS);
       await api.dispatch(requestCompute());
     },
@@ -110,7 +116,11 @@ export function attachLifecycle(
     document: EventHost & Pick<Document, 'visibilityState'>;
   } = { window, document },
 ): () => void {
-  const flush = () => void dispatch(flushSaves());
+  // A rejection here is a bug in the repository; the page is going away, so
+  // it is only logged.
+  const flush = () => {
+    dispatch(flushSaves()).catch((error: unknown) => console.error(error));
+  };
   const onVisibility = () => {
     if (target.document.visibilityState === 'hidden') flush();
   };
