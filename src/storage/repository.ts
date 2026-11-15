@@ -1,4 +1,9 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import {
+  openDB,
+  type DBSchema,
+  type IDBPDatabase,
+  type IDBPTransaction,
+} from 'idb';
 import {
   CURRENT_SCHEMA_VERSION,
   DEFAULT_DEVICE_SETTINGS,
@@ -78,12 +83,20 @@ export type Repository = {
   save(scenario: Scenario): Promise<WriteResult>;
   loadSettings(): Promise<DeviceSettings>;
   saveSettings(settings: DeviceSettings): Promise<WriteResult>;
-  /** The export file (8.3) of the given scenarios, or of all readable ones. */
-  exportFile(ids?: readonly string[]): Promise<ExportFile>;
+  /**
+   * The export file (8.3) of the given scenarios, or of all readable ones.
+   * `skipped` names the requested records this app cannot read (newer app,
+   * failed to load): they are not in the file, and the UI must say so.
+   */
+  exportFile(
+    ids?: readonly string[],
+  ): Promise<ExportFile & { skipped: string[] }>;
   /**
    * Writes checked import scenarios in one transaction (8.3): all or nothing.
    * `replace` removes the readable scenarios first and keeps records of a
-   * newer app. Ids must be new for `add` (see prepareAddImport).
+   * newer app. Ids must be new for `add` (see prepareAddImport): a taken id
+   * rejects with a `ConstraintError` and nothing is written. Ids come from
+   * `crypto.randomUUID()`, so that is a bug, not a state to show.
    */
   writeImport(
     scenarios: readonly Scenario[],
@@ -291,15 +304,21 @@ export async function openRepository(
     }
   }
 
-  async function exportFile(ids?: readonly string[]): Promise<ExportFile> {
-    const { scenarios } = await loadAll();
+  async function exportFile(
+    ids?: readonly string[],
+  ): Promise<ExportFile & { skipped: string[] }> {
+    const { scenarios, readOnly, invalid } = await loadAll();
     const wanted = ids && new Set(ids);
-    return buildExport(
-      wanted
-        ? scenarios.filter((scenario) => wanted.has(scenario.id))
-        : scenarios,
-      now(),
-    );
+    const isWanted = (id: string) => !wanted || wanted.has(id);
+    return {
+      ...buildExport(
+        scenarios.filter((scenario) => isWanted(scenario.id)),
+        now(),
+      ),
+      skipped: [...readOnly, ...invalid]
+        .map((record) => record.id)
+        .filter(isWanted),
+    };
   }
 
   async function writeImport(
@@ -309,11 +328,12 @@ export async function openRepository(
     if (mode === 'readOnly') return { status: 'readOnly' };
     const database = db;
     if (!database) return { status: 'closed' };
-    const tx = database.transaction('scenarios', 'readwrite');
-    const done = tx.done;
-    done.catch(() => undefined); // handled below; avoids an unhandled rejection
+    let tx: IDBPTransaction<EautoDB, ['scenarios'], 'readwrite'> | undefined;
     const writes: Promise<unknown>[] = [];
     try {
+      tx = database.transaction('scenarios', 'readwrite');
+      const done = tx.done;
+      done.catch(() => undefined); // handled below; avoids an unhandled rejection
       const existing = await tx.store.getAll();
       const newer = new Set(
         existing.filter(isNewer).map((record) => record.id),
@@ -349,9 +369,9 @@ export async function openRepository(
       // the writes already queued. Their promises then reject with AbortError.
       writes.forEach((write) => write.catch(() => undefined));
       try {
-        tx.abort();
+        tx?.abort();
       } catch {
-        // Already aborted or finished.
+        // Not started, already aborted or finished.
       }
       return writeFailure(error);
     }

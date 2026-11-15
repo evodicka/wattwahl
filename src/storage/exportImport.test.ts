@@ -115,6 +115,29 @@ describe('S13: export file (8.3)', () => {
   });
 });
 
+describe('S13: export leaves out what this app cannot read', () => {
+  it('names the skipped records', async () => {
+    const dbName = freshName();
+    const repo = await repository(dbName);
+    await repo.save(scenario(ids.first, 'A'));
+    const db = await openDB(dbName);
+    await db.put('scenarios', {
+      id: ids.third,
+      schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+      updatedAt: '2027-01-01T00:00:00.000Z',
+      data: {},
+    });
+    db.close();
+
+    const all = await repo.exportFile();
+    expect(
+      JSON.parse(all.content).scenarios.map((s: Scenario) => s.id),
+    ).toEqual([ids.first]);
+    expect(all.skipped).toEqual([ids.third]);
+    expect((await repo.exportFile([ids.first])).skipped).toEqual([]);
+  });
+});
+
 describe('S13: TC14 (unit part) export, empty database, import', () => {
   it('restores the same scenarios', async () => {
     const source = await repository();
@@ -193,26 +216,42 @@ describe('S13: Q7 (unit part) a broken file changes nothing', () => {
       'scenarios[1].candidates[0].purchasePrice',
     ],
   ])('%s', async (_name, file, code, path) => {
-    for (const mode of ['replace', 'add'] as const) {
-      const dbName = freshName();
-      const repo = await repository(dbName);
-      await repo.save(scenario(ids.third, 'kept'));
-      const before = await rawRecords(dbName);
+    const dbName = freshName();
+    const repo = await repository(dbName);
+    await repo.save(scenario(ids.third, 'kept'));
+    const before = await rawRecords(dbName);
+    const writeImport = vi.spyOn(repo, 'writeImport');
 
-      const parsed = await importInto(repo, file, mode);
-      expect(parsed).toMatchObject({ status: 'error', code });
-      if (parsed.status === 'error') expect(parsed.path).toBe(path);
-      expect(await rawRecords(dbName)).toEqual(before);
+    const parsed = await importInto(repo, file, 'replace');
+    expect(parsed).toMatchObject({ status: 'error', code });
+    if (parsed.status === 'error') {
+      expect(parsed.path).toBe(path);
+      if (code === 'invalidScenario')
+        expect(parsed.message).toEqual(expect.any(String));
     }
+    // The check fails before anything is written.
+    expect(writeImport).not.toHaveBeenCalled();
+    expect(await rawRecords(dbName)).toEqual(before);
+  });
+
+  it('measures the size in bytes, not in characters', async () => {
+    // Under the limit in characters, over it in UTF-8 bytes.
+    const file = fileOf('ä'.repeat(MAX_IMPORT_BYTES / 2 + 1));
+    expect(file.size).toBeGreaterThan(MAX_IMPORT_BYTES);
+    expect(await parseImport(file)).toMatchObject({ code: 'tooLarge' });
   });
 
   it('accepts a file of exactly the size limit', async () => {
-    const content = JSON.stringify(envelope([exampleScenario()]));
-    const padded = content + ' '.repeat(MAX_IMPORT_BYTES - content.length);
-    expect((await parseImport(fileOf(padded))).status).toBe('ok');
+    const content = JSON.stringify(
+      envelope([{ ...exampleScenario(), name: 'Pendeln für Ölwechsel' }]),
+    );
+    const bytes = fileOf(content).size;
+    const padded = fileOf(content + ' '.repeat(MAX_IMPORT_BYTES - bytes));
+    expect(padded.size).toBe(MAX_IMPORT_BYTES);
+    expect((await parseImport(padded)).status).toBe('ok');
   });
 
-  it.each([
+  it.each<[string, unknown, string, string | undefined]>([
     ['no scenarios', envelope([]), 'noScenarios', undefined],
     [
       'a missing scenario list',
@@ -225,6 +264,27 @@ describe('S13: Q7 (unit part) a broken file changes nothing', () => {
       envelope([scenario(ids.first, 'a'), scenario(ids.first, 'b')]),
       'duplicateId',
       'scenarios[1].id',
+    ],
+    ['an array', [envelope([])], 'wrongFormat', 'format'],
+    ['null', null, 'wrongFormat', 'format'],
+    ['a number', 42, 'wrongFormat', 'format'],
+    [
+      'a missing format',
+      { ...envelope([exampleScenario()]), format: undefined },
+      'wrongFormat',
+      'format',
+    ],
+    ...[0, '2', 1.5].map((schemaVersion): [string, unknown, string, string] => [
+      `schema version ${JSON.stringify(schemaVersion)}`,
+      envelope([exampleScenario()], { schemaVersion }),
+      'invalidFile',
+      'schemaVersion',
+    ]),
+    [
+      'a scenario that is not an object',
+      envelope([null]),
+      'invalidScenario',
+      'scenarios[0]',
     ],
   ])('rejects %s', async (_name, value, code, path) => {
     const parsed = await parseImport(fileOf(value));
@@ -358,6 +418,14 @@ describe('S13: add and replace', () => {
       await repo.writeImport([scenario(ids.first, 'A')], 'replace'),
     ).toEqual({ status: 'readOnly' });
     expect(await rawRecords(dbName)).toEqual(before);
+  });
+
+  it('a closed connection gives a status, not an error', async () => {
+    const repo = await repository();
+    repo.close();
+    expect(
+      await repo.writeImport([scenario(ids.first, 'A')], 'replace'),
+    ).toEqual({ status: 'closed' });
   });
 
   it('a write that fails halfway leaves the store unchanged', async () => {
