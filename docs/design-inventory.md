@@ -31,7 +31,7 @@ Jedes Board gehört genau einem Schritt. Teile eines Boards, die ein anderer Sch
 | M2 Kandidaten | dasselbe, 390 px | S18 | |
 | D3 Kandidatenformular | alle Gruppen untereinander, Leasing | S18 | |
 | M3 bis M6 Formular, Schritte 1 bis 4 | Allgemein und Preis, Akku und Reichweite, Garantie, Leasing | S18 | |
-| D4 Parameter | alle Parameter, Annahme, Stichtag, Ampelfarben | S17 | Ampelfarben zur Laufzeit S16 |
+| D4 Parameter | alle Parameter, Annahme, Stichtag, Ampelfarben (ohne freie Tage, die stehen je Arbeitsstätte im Fahrprofil) | S17 | Ampelfarben zur Laufzeit S16 |
 | M7 Parameter | dasselbe, 390 px | S17 | |
 | D5 Ergebnis | Ergebnistabelle, Kostenvergleich, Preis-Regler | S19 | Kostenvergleich S20, Preis-Regler S21 |
 | M8 Ergebnis | Angebotskarten, Kostenbalken, Preis-Regler | S19 | Kostenbalken S20, Preis-Regler S21 |

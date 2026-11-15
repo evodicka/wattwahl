@@ -147,7 +147,6 @@ Alle Parameter mit Standardwert, Einheit, Hinweis. Ein geänderter Standardwert 
 | Heimstrompreis Minimum, Mittel, Maximum | Pflichteingabe | €/kWh | |
 | Preissteigerung Benzin, Strom | 0 | % pro Jahr | |
 | Arbeitswochen pro Jahr | 52 | Wochen | |
-| Freie Tage je Arbeitsstätte | 30 | Tage pro Jahr | ja |
 | Zuordnung der Zusatzstrecke | frei optimiert | Auswahl, Alternative: fester E-Auto-Anteil in % | |
 | Anteilsschritt Zusatzstrecke | 10 | % | |
 | Streng-Modus | aus | Schalter | |
@@ -155,6 +154,8 @@ Alle Parameter mit Standardwert, Einheit, Hinweis. Ein geänderter Standardwert 
 | Kilometerraster der Optimierung | 250 | km pro Jahr | |
 | Stichtag der Garantieberechnung | Monat der Anlage des Szenarios | Monat und Jahr. Zurücksetzen setzt den aktuellen Monat, „geändert“ nur nach eigener Eingabe | ja |
 | Export-Erinnerung | 14 | Tage (Geräteeinstellung, nicht im Export) | |
+
+Die freien Tage je Arbeitsstätte (Standard 30, Annahme) stehen nicht hier, sondern je Arbeitsstätte im Fahrprofil (4.1), mit „geändert“ und „Zurücksetzen“. Ein gemeinsames Feld im Parameterbereich würde die Werte beider Arbeitsstätten überschreiben.
 
 Pflichteingaben ohne Standardwert brauchen einen eigenen leeren Zustand mit Hinweis, dass ohne sie nicht gerechnet wird.
 
