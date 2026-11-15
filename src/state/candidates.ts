@@ -128,37 +128,24 @@ export function setCandidateCondition(
  * candidate does not have yet. Does nothing at four tiers.
  */
 export function addLeaseTier(candidateId: string): AppThunk<string | null> {
-  return (dispatch, getState, { randomId }) => {
+  return (dispatch, _getState, { randomId }) => {
     const tierId = randomId();
     const added = dispatch(
-      editCandidates((scenario) =>
-        replaceCandidate(scenario, candidateId, (candidate) => {
-          const used = new Set(
-            candidate.leaseTiers.map((t) => t.tierKmPerYear),
-          );
-          const free = LEASE_TIER_PRESETS.find((km) => !used.has(km));
-          if (
-            candidate.leaseTiers.length >= MAX_LEASE_TIERS ||
-            free === undefined
-          ) {
-            return candidate;
-          }
-          return {
-            ...candidate,
-            leaseTiers: [
-              ...candidate.leaseTiers,
-              createLeaseTierTemplate(tierId, free),
-            ],
-          };
-        }),
-      ),
+      editCandidates((scenario) => {
+        const candidate = scenario.candidates.find((c) => c.id === candidateId);
+        if (!candidate || candidate.leaseTiers.length >= MAX_LEASE_TIERS) {
+          return null;
+        }
+        const used = new Set(candidate.leaseTiers.map((t) => t.tierKmPerYear));
+        const free = LEASE_TIER_PRESETS.find((km) => !used.has(km));
+        if (free === undefined) return null;
+        return replaceCandidate(scenario, candidateId, (c) => ({
+          ...c,
+          leaseTiers: [...c.leaseTiers, createLeaseTierTemplate(tierId, free)],
+        }));
+      }),
     );
-    return added &&
-      selectActiveScenario(getState())
-        ?.candidates.find((c) => c.id === candidateId)
-        ?.leaseTiers.some((t) => t.id === tierId)
-      ? tierId
-      : null;
+    return added ? tierId : null;
   };
 }
 

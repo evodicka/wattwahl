@@ -333,11 +333,13 @@ function Warranty({ candidate, path, scenario }: GroupProps) {
         <Notice
           tone="info"
           title={
-            ok?.warranty.budgetKmPerYear != null
-              ? t('form.budgetInfoTitle', {
-                  km: `${formatDecimal(ok.warranty.budgetKmPerYear, 0)} ${c('units.kmPerYear')}`,
-                })
-              : t('form.budgetNone')
+            ok === null
+              ? t('form.warrantyHintTitle')
+              : ok.warranty.budgetKmPerYear === null
+                ? t('form.budgetNone')
+                : t('form.budgetInfoTitle', {
+                    km: `${formatDecimal(ok.warranty.budgetKmPerYear, 0)} ${c('units.kmPerYear')}`,
+                  })
           }
         >
           {t('form.warrantyHint')}
@@ -594,14 +596,7 @@ export function CandidateForm({ id }: { id: string }) {
       ) : (
         <>
           <div className="stack-sm">
-            <div
-              className={styles.steps}
-              role="img"
-              aria-label={t('form.step', {
-                current: current + 1,
-                total: STEPS.length,
-              })}
-            >
+            <div className={styles.steps} aria-hidden="true">
               {STEPS.map((key, i) => (
                 <span
                   key={key}
