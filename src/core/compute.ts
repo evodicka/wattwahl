@@ -520,22 +520,13 @@ function okResult(
     link(input.optimizeFrom, 'OPT.budget', 'warranty.budgetKmPerYear');
   }
   if (trace) {
-    // Written in this order by optimizeOffer: vehicle years, km, battery years, km.
-    const remainingPaths = (['vehicle', 'battery'] as const).flatMap((part) =>
-      (['years', 'km'] as const).map(
-        (quantity) => `warranty.remaining.${part}.${quantity}`,
-      ),
-    );
-    trace.entries
-      .map((entry, at) => ({ entry, at }))
-      .filter(
-        ({ entry, at }) =>
-          at >= input.optimizeFrom && entry.formula === 'OPT.remainingWarranty',
-      )
-      .forEach(({ at }, order) => {
-        const path = remainingPaths[order];
-        if (path) trace.link(at, path);
-      });
+    // Each entry names its warranty and quantity, so the order does not matter.
+    trace.entries.forEach((entry, at) => {
+      if (at < input.optimizeFrom || entry.formula !== 'OPT.remainingWarranty')
+        return;
+      const { part, quantity } = entry.inputs;
+      trace.link(at, `warranty.remaining.${String(part)}.${String(quantity)}`);
+    });
     const entries = trace.entries
       .map((entry, at) => ({ entry, at }))
       .filter(

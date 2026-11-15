@@ -37,9 +37,9 @@ function must<T>(value: T | undefined): T {
 }
 
 const ID_A = '00000000-0000-4000-8000-0000000000aa';
+const ID_B = '00000000-0000-4000-8000-0000000000bb';
 /** The month src/state would pass in as the current one. */
 const NOV_2026 = { month: 11, year: 2026 };
-const ID_B = '00000000-0000-4000-8000-0000000000bb';
 
 /** Compute schema applies to the scenario without candidates. */
 const computeIssuePaths = (result: {
