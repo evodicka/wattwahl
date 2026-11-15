@@ -22,7 +22,6 @@ type Props = {
   scenario: Scenario;
   /** Name of the shown price case, for the cost column. */
   priceCaseName: string;
-  selectedOfferId?: string;
   busy: boolean;
 };
 
@@ -31,13 +30,7 @@ type Props = {
  * unsuitable and incomplete ones greyed out with their reason. A click on a
  * row, or the link in its first cell, opens the detail view.
  */
-export function ResultTable({
-  rows,
-  scenario,
-  priceCaseName,
-  selectedOfferId,
-  busy,
-}: Props) {
+export function ResultTable({ rows, scenario, priceCaseName, busy }: Props) {
   const { t } = useTranslation('ergebnis');
   const navigate = useNavigate();
   const offerLabel = useOfferLabel();
@@ -75,18 +68,29 @@ export function ResultTable({
           return (
             <tr
               key={row.offerId}
-              aria-selected={row.offerId === selectedOfferId || undefined}
-              className={rowClass({ muted: ok === null, clickable: true })}
-              onClick={() => void navigate(offerPath(row.offerId))}
+              className={rowClass({
+                muted: ok === null,
+                clickable: ok !== null,
+              })}
+              onClick={
+                ok
+                  ? (event) => {
+                      // A link or button in the row does its own thing.
+                      if ((event.target as HTMLElement).closest('a, button'))
+                        return;
+                      void navigate(offerPath(row.offerId));
+                    }
+                  : undefined
+              }
             >
               <td>
-                <Link
-                  className={styles.name}
-                  to={offerPath(row.offerId)}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {name}
-                </Link>
+                {ok ? (
+                  <Link className={styles.name} to={offerPath(row.offerId)}>
+                    {name}
+                  </Link>
+                ) : (
+                  <span className={styles.name}>{name}</span>
+                )}
               </td>
               <td>{offerLabel(row)}</td>
               <td>

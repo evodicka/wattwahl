@@ -1,26 +1,11 @@
 import {
   listOffers,
   type Candidate,
-  type OfferResult,
   type OkOfferResult,
-  type PriceCase,
   type UnsuitableReason,
 } from '../../domain';
 import { MONTH_KEYS, formatKm, formatPercent, i18n } from '../../i18n';
-
-export type Results = Record<string, Partial<Record<PriceCase, OfferResult>>>;
-
-/** The light of the cell with the smallest reserve; `null` if the EV never drives. */
-export function reserveLightOf(
-  result: OkOfferResult,
-): 'green' | 'yellow' | 'red' | null {
-  const min = result.minReserve;
-  if (!min) return null;
-  return (
-    result.reserves.find((r) => r.way === min.way && r.month === min.month)
-      ?.light ?? null
-  );
-}
+import { reserveLightOf, type Results } from './resultRows';
 
 /** What a candidate card says (boards D2, M2, Z02, Z03). */
 export type CandidateStatus =
@@ -62,14 +47,10 @@ export function candidateStatus(
     .sort((a, b) => a.costs.total - b.costs.total);
   const best = ok[0];
   if (best) {
-    const cell = best.minReserve
-      ? best.reserves.find(
-          (r) =>
-            r.way === best.minReserve?.way &&
-            r.month === best.minReserve?.month,
-        )
-      : undefined;
-    return { kind: cell?.light === 'yellow' ? 'tight' : 'suitable', best };
+    return {
+      kind: reserveLightOf(best) === 'yellow' ? 'tight' : 'suitable',
+      best,
+    };
   }
 
   const issues = found.flatMap((r) =>
@@ -99,6 +80,19 @@ const t = (key: string, options: Record<string, unknown> = {}): string =>
 const month = (index: number): string =>
   t(`months.${MONTH_KEYS[index] ?? 'jan'}`);
 
+const KEYS = {
+  card: {
+    both: 'kandidaten:card.unsuitableBoth',
+    strict: 'kandidaten:card.unsuitableStrict',
+    coupling: 'kandidaten:card.unsuitableCoupling',
+  },
+  table: {
+    both: 'ergebnis:unsuitable.both',
+    strict: 'ergebnis:unsuitable.strict',
+    coupling: 'ergebnis:unsuitable.coupling',
+  },
+} as const;
+
 /**
  * The reason of an unsuitable offer as a sentence (Z03): `card` for the
  * candidate list, `table` for the result table (texts of the Ergebnis area).
@@ -107,25 +101,22 @@ export function unsuitableText(
   reason: UnsuitableReason,
   variant: 'card' | 'table' = 'card',
 ): string {
-  const key = (name: 'both' | 'strict' | 'coupling') =>
-    variant === 'card'
-      ? `kandidaten:card.unsuitable${name[0]?.toUpperCase()}${name.slice(1)}`
-      : `ergebnis:unsuitable.${name}`;
+  const key = KEYS[variant];
   switch (reason.kind) {
     case 'both':
-      return t(key('both'), {
+      return t(key.both, {
         weekday: t(`weekdays.${reason.weekday}`),
         month: month(reason.month),
         a: formatKm(reason.reserveKm.a),
         b: formatKm(reason.reserveKm.b),
       });
     case 'strict':
-      return t(key('strict'), {
+      return t(key.strict, {
         way: reason.way.toUpperCase(),
         month: month(reason.month),
         km: formatKm(reason.reserveKm),
       });
     case 'coupling':
-      return t(key('coupling'), { soh: formatPercent(reason.soh) });
+      return t(key.coupling, { soh: formatPercent(reason.soh) });
   }
 }

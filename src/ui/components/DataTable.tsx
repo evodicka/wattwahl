@@ -17,7 +17,11 @@ type Props = {
  */
 export function DataTable({ caption, busy = false, children }: Props) {
   return (
-    <div className={`${styles.scroll} ${busy ? styles.busy : ''}`}>
+    <div
+      className={[styles.scroll, busy ? styles.busy : undefined]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <table className={styles.table} aria-busy={busy || undefined}>
         <caption className={styles.caption}>{caption}</caption>
         {children}

@@ -3,11 +3,12 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import type { PriceCase } from '../../domain';
 import {
   priceCaseSet,
+  requestCompute,
   selectActiveScenario,
   useAppDispatch,
   useAppSelector,
 } from '../../state';
-import { Button, EmptyState, SegmentedControl } from '../components';
+import { Button, EmptyState, Notice, SegmentedControl } from '../components';
 import { resultRows } from '../forms/resultRows';
 import { useIsDesktop } from '../layout/useIsDesktop';
 import { StatusLine } from '../shell/StatusLine';
@@ -42,6 +43,7 @@ export function ErgebnisPage() {
   const shown: PriceCase =
     priceCase === 'slider' && !sliderPrices ? 'mid' : priceCase;
   const rows = available ? resultRows(scenario, available.results, shown) : [];
+  const failed = status === 'error';
   const busy =
     status === 'computing' || status === 'stale' || available === null;
 
@@ -64,10 +66,12 @@ export function ErgebnisPage() {
       : []),
   ];
 
+  // Only a computed offer has a detail view. Wait for a finished run before
+  // deciding that an id does not exist: a new offer may still be coming.
   const selected = offerId
-    ? rows.find((row) => row.offerId === offerId)
+    ? rows.find((row) => row.offerId === offerId && row.total !== null)
     : undefined;
-  if (offerId && available && rows.length > 0 && !selected) {
+  if (offerId && available && status === 'idle' && !selected) {
     return <Navigate to="/ergebnis" replace />;
   }
 
@@ -140,14 +144,33 @@ export function ErgebnisPage() {
     <>
       {head}
       {rows.length === 0 ? (
-        <p className="t-sm muted" role="status">
-          {t('computing')}
-        </p>
+        failed ? (
+          <Notice
+            tone="error"
+            title={t('failedTitle')}
+            actions={
+              <Button onClick={() => void dispatch(requestCompute())}>
+                {c('actions.retry')}
+              </Button>
+            }
+          >
+            {t('failedBody')}
+          </Notice>
+        ) : (
+          <p className="t-sm muted" role="status">
+            {t('computing')}
+          </p>
+        )
       ) : (
         <section className="stack" aria-labelledby="offers">
           <h2 className="h-title" id="offers">
             {desktop ? t('table.title') : t('offersHeading')}
           </h2>
+          {failed && (
+            <Notice tone="warn" title={t('outdatedTitle')}>
+              {t('outdatedBody')}
+            </Notice>
+          )}
           {desktop ? (
             <ResultTable
               rows={rows}

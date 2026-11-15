@@ -12,6 +12,7 @@ import { TrafficLight } from '../../components';
 import { unsuitableText } from '../../forms/candidateStatus';
 import { labelOfPath } from '../../forms/fieldLabels';
 import {
+  reserveLightOf,
   warrantyStatus,
   type ResultRow,
   type WarrantyStatus,
@@ -56,9 +57,7 @@ export function ReserveCell({ result }: { result: OkOfferResult }) {
   const { t: c } = useTranslation();
   const min = result.minReserve;
   if (!min) return <span className="muted">{t('table.noDrive')}</span>;
-  const light =
-    result.reserves.find((r) => r.way === min.way && r.month === min.month)
-      ?.light ?? 'green';
+  const light = reserveLightOf(result) ?? 'none';
   return (
     <>
       <TrafficLight level={light}>
@@ -82,7 +81,7 @@ export function WarrantyBadge({ result }: { result: OkOfferResult }) {
   const status: WarrantyStatus = warrantyStatus(result);
   switch (status.kind) {
     case 'none':
-      return <span className="muted">{t('table.noTotal')}</span>;
+      return <span className="muted">{t('table.noValue')}</span>;
     case 'noWarranty':
       return (
         <TrafficLight level="none">
