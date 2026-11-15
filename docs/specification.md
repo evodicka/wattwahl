@@ -51,7 +51,7 @@ Die folgenden Entscheidungen sind verbindlich und bilden die Grundlage aller wei
 | Kauf | Jeder Kandidat hat immer ein Kaufangebot, Leasingangebote sind optional zum Vergleich. Wertverlust in % pro Jahr ergibt den Restwert. Die Vergleichsdauer ist einstellbar. |
 | Weitere Kosten | Nur Wartung und Reifen in €/km, getrennt für E-Auto und Verbrenner. |
 | Leasing | Stufen 10.000, 15.000, 20.000 und 25.000 km pro Jahr mit Rate, Laufzeit, Anzahlung, Mehr- und Minderkilometer. Überführung und Zulassung werden weder bei Kauf noch bei Leasing erfasst. |
-| Garantie | Jahres-km-Budget = Garantie-km ÷ Garantiejahre (bei Gebrauchten die Restgarantie). Ziel des Optimierers, Verletzung nur Warnung. Abgelaufene Restgarantie (0 Jahre oder 0 km): kein Budget, Hinweis „ohne Garantie“. |
+| Garantie | Jahres-km-Budget aus der Restgarantie (Restkilometer ÷ Restjahre). Die Restgarantie berechnet die App aus der normalen Garantie (Dauer in Jahren, Kilometer), Erstzulassung, Laufleistung und dem Stichtag der Garantieberechnung. Ziel des Optimierers, Verletzung nur Warnung. Abgelaufene Restgarantie (0 Jahre oder 0 km): kein Budget, Hinweis „ohne Garantie“. |
 | Kriterien | Nur Kosten, Reichweite und Garantie. |
 | Kennzahlen | Gesamtkosten über die Vergleichsdauer und Reichweitenreserve je Weg und Monat. |
 | Szenarien | Benannte Szenarien speichern, duplizieren und vergleichen. |
@@ -129,13 +129,13 @@ Ein Szenario bündelt alle Eingaben und ist die kleinste speicher- und vergleich
 | Name, Notiz | Text | Name Pflicht |
 | Zustand | neu oder gebraucht | Pflicht |
 | Kaufpreis | € | Pflicht, > 0. Jeder Kandidat hat ein Kaufangebot |
-| Erstzulassung | Monat und Jahr | nur bei gebraucht |
+| Erstzulassung | Monat und Jahr | Pflicht bei gebraucht, bei neu nicht erfasst |
 | Laufleistung | km | neu: 0, gebraucht: ≥ 0 |
 | Netto-Akkukapazität | kWh | > 0 |
 | Reichweite Stadt, Autobahn, kombiniert, jeweils mild und kalt | km | sechs Felder > 0, Warnung wenn kalt > mild |
 | SoH aktuell | % | optional, nur gebraucht, 50 bis 100 |
-| Fahrzeuggarantie | Restjahre und Restkilometer | neu: volle Garantie, gebraucht: Restgarantie, 0 = abgelaufen |
-| Akkugarantie | Restjahre und Restkilometer | wie Fahrzeuggarantie |
+| Fahrzeuggarantie | Garantiedauer in Jahren und Garantie-Kilometer | Normale Garantie des Herstellers ab Erstzulassung, auch bei gebraucht. Die Restgarantie berechnet die App (Optimierung, Garantie-Budget, Restgarantie) |
+| Akkugarantie | Garantiedauer in Jahren und Garantie-Kilometer | wie Fahrzeuggarantie |
 | Wertverlust | % pro Jahr | optional, überschreibt den Szenario-Standard |
 | Wartung und Reifen | €/km | optional, überschreibt den Szenario-Standard |
 | Leasingangebote | 0 bis 4 Objekte | optional zum Vergleich mit dem Kauf, je Stufe höchstens eines |
@@ -154,7 +154,7 @@ Ein Szenario bündelt alle Eingaben und ist die kleinste speicher- und vergleich
 ### Validierung
 
 - Jedes Feld prüft Typ, Einheit und Bereich beim Verlassen. Pflichtfelder mit Fehler blockieren die Berechnung des betroffenen Kandidaten, nicht die der anderen.
-- Unplausible Werte (Kalt-Reichweite größer als Mild-Reichweite, Netto-Kapazität über 200 kWh, Weg über 300 km) lösen eine Warnung aus und blockieren nicht.
+- Unplausible Werte (Kalt-Reichweite größer als Mild-Reichweite, Netto-Kapazität über 200 kWh, Weg über 300 km, Erstzulassung nach dem Stichtag der Garantieberechnung) lösen eine Warnung aus und blockieren nicht. Liegt die Erstzulassung nach dem Stichtag, rechnet die Restgarantie mit dem Alter 0.
 - Dezimalkomma und Punkt werden bei der Eingabe akzeptiert. Ein Punkt, auf den genau drei Ziffern folgen, gilt als Tausenderpunkt („40.000“ ergibt 40000, „1.234,5“ ergibt 1234,5), sonst ist ein einzelner Punkt oder ein einzelnes Komma das Dezimaltrennzeichen („12.5“ und „12,5“ ergeben 12,5). Mehrdeutige oder unlesbare Eingaben werden mit Meldung abgewiesen.
 
 ## Berechnungslogik
@@ -291,13 +291,25 @@ Die Optimierung läuft je Preisfall: Mittel, "E-Auto günstig" (Benzin Maximum, 
 
 ### Garantie-Budget
 
-Das Jahresbudget ist B = min(Fahrzeugkilometer ÷ Fahrzeugjahre, Akkukilometer ÷ Akkujahre) auf Basis der Restgarantie. Es soll verhindern, dass die Kilometergrenze lange vor dem Zeitende erreicht wird. Eine abgelaufene Restgarantie (0 Jahre oder 0 km) fließt nicht in B ein. Sind beide abgelaufen, ist das Budget aus und das Angebot zeigt „ohne Garantie“.
+Das Jahresbudget ist B = min(Fahrzeugkilometer ÷ Fahrzeugjahre, Akkukilometer ÷ Akkujahre) auf Basis der Restgarantie (Unterabschnitt Restgarantie). Es soll verhindern, dass die Kilometergrenze lange vor dem Zeitende erreicht wird. Eine abgelaufene Restgarantie (0 Jahre oder 0 km) fließt nicht in B ein. Sind beide abgelaufen, ist das Budget aus und das Angebot zeigt „ohne Garantie“.
 
 - Liegt die kostenoptimale Strecke bei K\_EV ≤ B, wird sie gewählt.
 - Liegt sie darüber, wählt der Optimierer die günstigste Strecke mit K\_EV ≤ B und weist die Mehrkosten als "Mehrkosten durch Garantie-Budget" aus.
 - Erzwingen die Plan-Bedingungen ein K\_EV > B (zum Beispiel weil A und B am selben Tag besetzt sind und nur das E-Auto einen Weg schafft), wird die kleinste zulässige Strecke gewählt und eine Warnung mit Jahren bis zur Kilometergrenze angezeigt. Das Angebot bleibt im Vergleich.
 - Bei Leasing ist die Stufe die Kilometergrenze. Das Garantie-Budget ist dort nicht aktiv.
 - Das Verhalten ist umschaltbar (Standard: Ziel aktiv).
+
+#### Restgarantie
+
+Der Nutzer trägt die normale Garantie des Herstellers ein, die App berechnet daraus die Restgarantie. Für Fahrzeug- und Akkugarantie getrennt gilt:
+
+- Alter in Monaten: a = (Jahr und Monat des Stichtags) − (Jahr und Monat der Erstzulassung), mindestens 0.
+- Restjahre = max(0, Garantiedauer − a ÷ 12). Keine Rundung, Monate zählen genau.
+- Restkilometer = max(0, Garantie-Kilometer − Laufleistung).
+- Neu: Restjahre = Garantiedauer, Restkilometer = Garantie-Kilometer.
+- Abgelaufen heißt: Restjahre = 0 oder Restkilometer = 0. Endet die Garantie genau im Monat des Stichtags, ist sie abgelaufen.
+
+Der Stichtag ist der Parameter „Stichtag der Garantieberechnung“ (Monat und Jahr) des Szenarios, kein Blick auf die Uhr. So liefert dasselbe Szenario auch später dasselbe Ergebnis. Die Ableitung läuft für jedes Angebot, auch für Leasingangebote: Dort zeigt die Anzeige „Jahre bis zur Kilometergrenze“ die Restgarantie, das Budget bleibt bei Leasing nicht aktiv. Formel-ID ist `OPT.remainingWarranty`.
 
 ## Auswertung und Visualisierung
 
@@ -308,7 +320,7 @@ Die Ergebnisansicht zeigt für jedes Angebot die Gesamtkosten über die Vergleic
 | Kostenvergleich | Gesamtkosten der Flotte über D, aufgeteilt in Anschaffung oder Leasing, Strom, Benzin, Wartung und Reifen | Gestapelte Balken je Angebot, aufsteigend sortiert. Ein Strich zeigt die Spanne von "E-Auto günstig" bis "E-Auto ungünstig". Daneben dieselben Werte als Tabelle. |
 | Reichweitenreserve | Reserve in km und % je Weg (A, B) und Monat, SoH am Ende der Vergleichsdauer | Heatmap mit Ampelfarbe und Zahl in der Zelle, ein Kandidat per Auswahl. Auf dem Handy horizontal scrollbar. |
 | Zuordnungsplan | Welches Auto fährt je Wochentag, Monat und Anwesenheitszustand zu welcher Arbeitsstätte | Raster Wochentag × Monat, je Zelle eine Zeile für beide, nur A und nur B, mit "E→A", "E→B" oder "E ruht". Winterwechsel sind hervorgehoben. |
-| Garantie | Jahresbudget in km, geplante E-Auto-Kilometer, Jahre bis zur Kilometergrenze gegenüber der Restgarantie | Kachel mit Ampel und Mehrkosten durch das Budget |
+| Garantie | Berechnete Restgarantie beider Garantien (Jahre und km), Jahresbudget in km, geplante E-Auto-Kilometer, Jahre bis zur Kilometergrenze gegenüber der Restgarantie | Kachel mit Ampel und Mehrkosten durch das Budget |
 | Rechenweg | Zwischenwerte je Angebot: Reichweiten je Monat, Verbrauch in kWh/100 km, Energie pro Tag, Jahresmengen, Preisfaktoren | Aufklappbar, jede Zahl mit Formelverweis |
 | Szenariovergleich | Gesamtkosten je Kandidat in zwei oder mehr Szenarien | Nebeneinanderliegende Balken je Kandidat |
 
@@ -346,6 +358,7 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 - Auf dem Handy führt das Formular in Schritten (Allgemein, Akku und Reichweite, Garantie, Leasing). Auf dem Desktop stehen alle Gruppen untereinander.
 - Ungeeignete oder unvollständige Kandidaten bleiben in der Liste und zeigen den Grund auf der Karte.
 - Alle Parameter sind in der Oberfläche änderbar. Geänderte Standardwerte sind markiert.
+- Der Stichtag der Garantieberechnung ist beim Anlegen eines Szenarios mit dem aktuellen Monat vorbelegt. „Zurücksetzen“ setzt den aktuellen Monat. Als geändert markiert ist der Stichtag nur, wenn der Nutzer ihn selbst gesetzt hat, nicht weil der Anlagemonat vergangen ist. Duplizieren, Import und „Als Szenario speichern“ übernehmen den Stichtag unverändert.
 
 ### Szenarien
 
@@ -472,6 +485,7 @@ Jeder Parameter ist in der Oberfläche änderbar. "Platzhalter" heißt: Der Wert
 | Anteilsschritt Zusatzstrecke | 10 | % |  |
 | Streng-Modus | aus | Schalter | siehe Optimierung |
 | Garantie-Budget als Ziel | an | Schalter |  |
+| Stichtag der Garantieberechnung | aktueller Monat | Monat und Jahr | Platzhalter, beim Anlegen des Szenarios vorbelegt |
 | Kilometerraster der Optimierung | 250 | km pro Jahr |  |
 | Export-Erinnerung | 14 | Tage |  Geräteeinstellung, gilt für alle Szenarien, nicht im Export |
 
@@ -479,7 +493,7 @@ Jeder Parameter ist in der Oberfläche änderbar. "Platzhalter" heißt: Der Wert
 
 Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Rechenkerns. Preise in den Beispielen sind frei gewählt und keine Marktdaten.
 
-**Gemeinsame Beispieldaten:** Kandidat mit 60 kWh Netto-Kapazität, neu. Reichweite mild: Stadt 420, Autobahn 300, kombiniert 360 km. Reichweite kalt: Stadt 300, Autobahn 220, kombiniert 260 km. Puffer 10 %, Autobahn-Abschlag 0 %, ΔT 0, η = 90 %. Weg A: 10 km Stadt, 15 km Land, 35 km Autobahn (einfach 60 km).
+**Gemeinsame Beispieldaten:** Kandidat mit 60 kWh Netto-Kapazität, neu. Reichweite mild: Stadt 420, Autobahn 300, kombiniert 360 km. Reichweite kalt: Stadt 300, Autobahn 220, kombiniert 260 km. Puffer 10 %, Autobahn-Abschlag 0 %, ΔT 0, η = 90 %. Weg A: 10 km Stadt, 15 km Land, 35 km Autobahn (einfach 60 km). Weil der Kandidat neu ist, ist die Restgarantie in Testfall 10 gleich der normalen Garantie.
 
 | Nr | Prüfung | Eingabe | Erwartet |
 | --- | --- | --- | --- |
@@ -500,11 +514,12 @@ Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Re
 | 15 | Eingabeprüfung | "12,5" und "12.5", negative Zahl, leeres Pflichtfeld | Beide Schreibweisen ergeben 12,5. Negative Zahl und leeres Pflichtfeld werden mit Meldung abgewiesen. |
 | 16 | Plan je Zustand | Daten wie 4 und 5, Wartung 0. Montag A und B besucht, Plan bei beiden besetzt „E-Auto fährt B“, A an 0,37 Montagen je Monat allein besetzt (wie 9) | Plan für „nur A“ ist „E→A“, weil das E-Auto 10,00 € statt 15,77 € je Tag kostet. Der Verbrenner ruht an diesen Tagen. |
 | 17 | Laufleistung Verbrenner | aktuell 120.000 km, K\_ICE = 8.000 km pro Jahr, D = 48 | Geplante Laufleistung am Ende 152.000 km. Die Gesamtkosten ändern sich nicht. |
-| 18 | Abgelaufene Garantie | Gebraucht, Fahrzeuggarantie 0 J / 0 km, Akku 3 J / 60.000 km. Zweiter Fall: beide 0 | B = 20.000 km pro Jahr aus der Akkugarantie. Beide abgelaufen: kein Budget, Status „ohne Garantie“, kein Fehler durch Division durch 0. |
+| 18 | Restgarantie eines Gebrauchten | Gebraucht, Erstzulassung 03/2022, Stichtag 03/2025, Laufleistung 80.000 km. Fahrzeuggarantie 3 J / 100.000 km, Akku 6 J / 140.000 km | a = 36 Monate. Fahrzeug: 0 J / 20.000 km, abgelaufen. Akku: 3 J / 60.000 km. B = 20.000 km pro Jahr aus der Akkugarantie. |
+| 19 | Abgelaufene Garantie | Gebraucht, Erstzulassung 01/2020, Stichtag 03/2025, Laufleistung 170.000 km. Fahrzeuggarantie 5 J / 200.000 km, Akku 8 J / 160.000 km. Zweiter Fall: Erstzulassung 03/2020, sonst gleich | a = 62 Monate. Fahrzeug nach Alter abgelaufen (0 J / 30.000 km), Akku nach Kilometern abgelaufen (2,83 J / 0 km). Kein Budget, Status „ohne Garantie“, kein Fehler durch Division durch 0. Zweiter Fall: a = 60, Fahrzeug endet genau am Stichtag (0 J), ebenfalls „ohne Garantie“. |
 
 ### Abnahmekriterien
 
-- Alle 18 Testfälle bestehen automatisiert.
+- Alle 19 Testfälle bestehen automatisiert.
 - Die App läuft nach der Installation auf dem Home-Bildschirm offline und behält ihre Daten nach Neustart des Geräts.
 - Desktop (1280 px), Tablet (820 px hochkant und 1024 px quer) und Handy (390 px Breite) zeigen alle Bereiche ohne abgeschnittene Eingabefelder.
 - Die Leistungswerte aus dem Abschnitt Nicht-funktionale Anforderungen sind gemessen und erreicht.
@@ -512,7 +527,7 @@ Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Re
 
 ## Risiken, Grenzen und Entscheidungen
 
-Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschnitte oben eingearbeitet.
+Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschnitte oben eingearbeitet. Die Garantie-Änderung nach dem Design-Review ist am 14.11.2026 entschieden und ebenfalls eingearbeitet.
 
 | Punkt | Entscheidung | Wirkung |
 | --- | --- | --- |
@@ -524,7 +539,8 @@ Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschni
 | Kauf und Leasing | Jeder Kandidat hat ein Kaufangebot, Leasing ist optional zum Vergleich | Kaufpreis bleibt Pflichtfeld |
 | Überführung und Zulassung | Weder bei Kauf noch bei Leasing erfasst | Kauf und Leasing werden gleich behandelt |
 | Leasing für Gebrauchtwagen | Erlaubt | Garantie-Budget ist bei Leasing nicht aktiv |
-| Abgelaufene Garantie | Fließt nicht ins Budget ein, Hinweis „ohne Garantie“ | Kein Rechenfehler bei Restgarantie 0 |
+| Abgelaufene Garantie | Fließt nicht ins Budget ein, Hinweis „ohne Garantie“ | Kein Rechenfehler bei berechneter Restgarantie 0 |
+| Restgarantie (14.11.2026) | Der Nutzer trägt die normale Garantie ein, die App berechnet die Restgarantie zu einem Stichtag. Der Stichtag ist ein Parameter, die Erstzulassung Pflicht bei gebraucht. Die Ableitung gilt auch für Leasingangebote | Dasselbe Szenario liefert auch später dasselbe Ergebnis. Gebrauchte ohne Erstzulassung sind unvollständig |
 | Ladedauer zu Hause | Nicht geprüft, als Modellgrenze dokumentiert | Siehe Grenzen des Modells |
 
 ### Grenzen des Modells
@@ -533,6 +549,7 @@ Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschni
 - **Temperatur:** Monatsmittel und lineare Mischung zwischen zwei Stützpunkten sind grob. Die Kältereserve ΔT mildert das, ersetzt aber keine Messung.
 - **Autobahntempo:** Der Referenztest der EV Database nutzt ein festes Tempo. Der Abschlag ist eine Schätzung.
 - **Heim-Ladezeit:** Die Eignung setzt voraus, dass das E-Auto jede Nacht wieder 80 % erreicht. Bei schwacher Heimladeleistung kann der Plan zu optimistisch sein.
+- **Laufleistung am Stichtag:** Die Restkilometer rechnen mit der eingetragenen Laufleistung. Liegt der Stichtag in der Zukunft, etwa beim geplanten Kauf, gilt die Laufleistung als Stand an diesem Tag.
 - **Konstante Jahre:** Mengen, Plan und Preissteigerung gelten für jedes Jahr gleich. Änderungen im Fahrprofil während der Haltedauer werden nicht abgebildet.
 - **Kosten nicht vollständig:** Versicherung, Kfz-Steuer, Förderung, THG-Quote, Wallbox, Überführung und Zulassung sind nicht enthalten. Die Gesamtkosten taugen für den Vergleich der Kandidaten, nicht als absolute Betriebskosten.
 - **Leasing-Fortschreibung:** Weicht die Leasingdauer von der Vergleichsdauer ab, wird mit gleichen Konditionen hochgerechnet oder gekürzt.
