@@ -85,6 +85,27 @@ test.describe('S21: price slider', () => {
     );
   });
 
+  test('sliding back to the original value is no change and cannot be saved', async ({
+    page,
+  }) => {
+    await seedScenario(page);
+    await open(page, '/ergebnis');
+    await page.getByLabel('Benzinpreis').fill('2.5');
+    await expect(
+      page.getByRole('button', { name: 'Als Szenario speichern' }),
+    ).toBeEnabled();
+    await page.getByLabel('Benzinpreis').fill('1.9');
+    await expect(
+      page.getByText('Regler entsprechen dem Mittel, nichts geändert.'),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Als Szenario speichern' }),
+    ).toBeDisabled();
+    await expect(page.getByTestId('status-line')).toContainText(
+      'Preisfall Mittel',
+    );
+  });
+
   test('"Zurücksetzen" goes back to the mid prices', async ({ page }) => {
     await seedScenario(page);
     await open(page, '/ergebnis');

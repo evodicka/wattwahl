@@ -271,6 +271,38 @@ describe('S21: the slider in the store', () => {
     expect(store.getState().ui.sliderPrices).toBeNull();
   });
 
+  it("moving every value back to the scenario's own puts the slider away: no change, no slider case", () => {
+    const { store } = setup();
+    store.dispatch(setSliderPrice({ petrol: 2.2 }));
+    expect(store.getState().ui.sliderPrices).not.toBeNull();
+    store.dispatch(setSliderPrice({ petrol: 1.9 }));
+    expect(store.getState().ui.sliderPrices).toBeNull();
+    expect(store.getState().ui.priceCase).toBe('mid');
+    // Nothing is left to save.
+    expect(store.dispatch(saveSliderAsScenario('X'))).toBeNull();
+    expect(selectScenarios(store.getState())).toHaveLength(1);
+  });
+
+  it('with two values changed, one moved back is still a change', () => {
+    const { store } = setup();
+    store.dispatch(setSliderPrice({ petrol: 2.2 }));
+    store.dispatch(setSliderPrice({ electricity: 0.4 }));
+    store.dispatch(setSliderPrice({ petrol: 1.9 }));
+    expect(store.getState().ui.sliderPrices).toEqual({
+      petrol: 1.9,
+      electricity: 0.4,
+      petrolEscalationPct: 0,
+      electricityEscalationPct: 0,
+    });
+  });
+
+  it('a first move onto the own value changes nothing', () => {
+    const { store } = setup();
+    store.dispatch(setSliderPrice({ petrol: 1.9 }));
+    expect(store.getState().ui.sliderPrices).toBeNull();
+    expect(store.getState().ui.priceCase).toBe('mid');
+  });
+
   it('a reset puts the slider away and the shown price case back to "Mittel"', () => {
     const { store } = setup();
     store.dispatch(setSliderPrice({ petrol: 2.2 }));

@@ -343,6 +343,45 @@ describe('S21: price slider', () => {
     expect(screen.getByText(/Gesamtkosten \(Regler\)/)).toBeTruthy();
   });
 
+  it('sliding back to the original value is no change: nothing to save, back to "Mittel"', async () => {
+    const app = await open('/ergebnis');
+    await act(async () => {
+      fireEvent.change(slider('Benzinpreis'), { target: { value: '2.4' } });
+    });
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Als Szenario speichern',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    await act(async () => {
+      fireEvent.change(slider('Benzinpreis'), { target: { value: '1.9' } });
+    });
+    expect(app.store.getState().ui.sliderPrices).toBeNull();
+    expect(app.store.getState().ui.priceCase).toBe('mid');
+    expect(
+      screen.getByText('Regler entsprechen dem Mittel, nichts geändert.'),
+    ).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Als Szenario speichern',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Zurücksetzen',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(screen.getByTestId('status-line').textContent).toContain(
+      'Preisfall Mittel',
+    );
+  });
+
   it('a reset puts the slider back to the mid prices and the table to "Mittel"', async () => {
     const app = await open('/ergebnis');
     await act(async () => {
