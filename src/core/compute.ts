@@ -513,12 +513,29 @@ function okResult(
     }
   }
 
-  // Warranty: the budget, and the years to each running warranty's km limit.
-  const { budget, yearsToKmLimit } = outcome;
+  // Warranty: the remaining warranties, the budget, and the years to each
+  // running warranty's km limit.
+  const { remaining, budget, yearsToKmLimit } = outcome;
   if (budget.budgetKmPerYear !== null) {
     link(input.optimizeFrom, 'OPT.budget', 'warranty.budgetKmPerYear');
   }
   if (trace) {
+    // Written in this order by optimizeOffer: vehicle years, km, battery years, km.
+    const remainingPaths = (['vehicle', 'battery'] as const).flatMap((part) =>
+      (['years', 'km'] as const).map(
+        (quantity) => `warranty.remaining.${part}.${quantity}`,
+      ),
+    );
+    trace.entries
+      .map((entry, at) => ({ entry, at }))
+      .filter(
+        ({ entry, at }) =>
+          at >= input.optimizeFrom && entry.formula === 'OPT.remainingWarranty',
+      )
+      .forEach(({ at }, order) => {
+        const path = remainingPaths[order];
+        if (path) trace.link(at, path);
+      });
     const entries = trace.entries
       .map((entry, at) => ({ entry, at }))
       .filter(
@@ -555,6 +572,7 @@ function okResult(
     minReserve,
     warranty: {
       noWarranty: budget.noWarranty,
+      remaining,
       budgetKmPerYear: budget.budgetKmPerYear,
       budgetExceeded: outcome.budgetExceeded,
       yearsToKmLimit,

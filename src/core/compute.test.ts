@@ -5,7 +5,9 @@ import {
   exampleScenarioCompute,
 } from '../../tests/fixtures/exampleScenario';
 import {
+  CandidateComputeSchema,
   OfferResultSchema,
+  ScenarioComputeSchema,
   TraceEntrySchema,
   createCandidateTemplate,
   listOffers,
@@ -54,6 +56,21 @@ const ok = (result: OfferResult): OkOfferResult => {
   }
   return result;
 };
+
+/**
+ * The example candidate as the used car of TC18: first registration 03/2022,
+ * reference month 03/2025, 80,000 km, vehicle 3 years / 100,000 km, battery
+ * 6 years / 140,000 km.
+ */
+function makeTc18(scenario: Scenario): void {
+  scenario.parameters.warrantyReferenceMonth = { month: 3, year: 2025 };
+  const candidate = first(scenario.candidates);
+  candidate.condition = 'used';
+  candidate.firstRegistration = { month: 3, year: 2022 };
+  candidate.mileageKm = 80000;
+  candidate.vehicleWarranty = { years: 3, km: 100000 };
+  candidate.batteryWarranty = { years: 6, km: 140000 };
+}
 
 const LABELS = new Set(['month', 'comparisonMonths']);
 
@@ -141,6 +158,7 @@ describe('Q6: every number of the result has a Rechenweg entry', () => {
         s.parameters.warrantyBudgetAsTarget = false;
       },
     ],
+    ['used car with a derived remaining warranty (TC18)', makeTc18],
   ];
 
   it.each(variants)(
@@ -267,6 +285,23 @@ describe('Q5: determinism (in Node)', () => {
     changed.iceVehicle.petrolPrice = { min: 1.7, mid: 1.95, max: 2.1 };
     expect(hashResult(computeOffer(changed, offer, 'mid'))).not.toBe(
       hashResult(computeOffer(scenario, offer, 'mid')),
+    );
+  });
+
+  it('Q5: the same input with the same reference month gives the same hash; another reference month changes a used car', () => {
+    const used = exampleScenario();
+    makeTc18(used);
+    const offer = first(offersOf(used));
+    const same = exampleScenario();
+    makeTc18(same);
+    expect(hashResult(computeOffer(used, offer, 'mid'))).toBe(
+      hashResult(computeOffer(same, offer, 'mid')),
+    );
+    const later = exampleScenario();
+    makeTc18(later);
+    later.parameters.warrantyReferenceMonth = { month: 9, year: 2025 };
+    expect(hashResult(computeOffer(later, offer, 'mid'))).not.toBe(
+      hashResult(computeOffer(used, offer, 'mid')),
     );
   });
 
@@ -643,7 +678,7 @@ describe('S10: warranty, extra mileage and echo of the result', () => {
     );
   });
 
-  it('TC18: both warranties expired give "ohne Garantie", no budget and no years', () => {
+  it('TC19: both warranties expired give "ohne Garantie", no budget and no years', () => {
     const scenario = exampleScenario();
     const candidate = first(scenario.candidates);
     candidate.vehicleWarranty = { years: 0, km: 0 };
@@ -651,6 +686,10 @@ describe('S10: warranty, extra mileage and echo of the result', () => {
     const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
     expect(result.warranty).toEqual({
       noWarranty: true,
+      remaining: {
+        vehicle: { years: 0, km: 0 },
+        battery: { years: 0, km: 0 },
+      },
       budgetKmPerYear: null,
       budgetExceeded: false,
       yearsToKmLimit: { vehicle: null, battery: null },
@@ -885,5 +924,126 @@ describe('S10: the smallest reserve ignores ways the EV does not drive', () => {
       trace.entries.some((e) => e.resultPath?.startsWith('minReserve')),
     ).toBe(false);
     expect(traced).toEqual(result);
+  });
+});
+
+describe('C1b: remaining warranty in the offer result', () => {
+  it('TC18: the used car shows vehicle 0 years / 20,000 km and battery 3 years / 60,000 km, B = 20,000 km per year', () => {
+    const scenario = exampleScenario();
+    makeTc18(scenario);
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expect(result.warranty.remaining).toEqual({
+      vehicle: { years: 0, km: 20000 },
+      battery: { years: 3, km: 60000 },
+    });
+    expect(result.warranty.noWarranty).toBe(false);
+    expect(result.warranty.budgetKmPerYear).toBe(20000);
+    // The expired vehicle warranty has no years to its limit.
+    expect(result.warranty.yearsToKmLimit.vehicle).toBeNull();
+    expect(result.warranty.yearsToKmLimit.battery).toBeCloseTo(
+      60000 / result.evKmPerYear,
+      9,
+    );
+  });
+
+  it.each([
+    ['01/2020, a = 62', { month: 1, year: 2020 }],
+    [
+      '03/2020, a = 60: the vehicle warranty ends exactly at the reference month',
+      { month: 3, year: 2020 },
+    ],
+  ])(
+    'TC19: first registration %s gives "ohne Garantie", no budget and no error',
+    (_name, firstRegistration) => {
+      const scenario = exampleScenario();
+      scenario.parameters.warrantyReferenceMonth = { month: 3, year: 2025 };
+      const candidate = first(scenario.candidates);
+      candidate.condition = 'used';
+      candidate.firstRegistration = firstRegistration;
+      candidate.mileageKm = 170000;
+      candidate.vehicleWarranty = { years: 5, km: 200000 };
+      candidate.batteryWarranty = { years: 8, km: 160000 };
+      for (const offer of offersOf(scenario)) {
+        const result = computeOffer(scenario, offer, 'mid');
+        expect(OfferResultSchema.parse(result)).toEqual(result);
+        const { warranty } = ok(result);
+        expect(warranty.remaining.vehicle.years).toBe(0);
+        expect(warranty.remaining.vehicle.km).toBe(30000);
+        expect(warranty.remaining.battery.km).toBe(0);
+        expect(warranty).toMatchObject({
+          noWarranty: true,
+          budgetKmPerYear: null,
+          budgetExceeded: false,
+          yearsToKmLimit: { vehicle: null, battery: null },
+        });
+      }
+    },
+  );
+
+  it('C1b: a new car keeps its normal warranty as remaining warranty', () => {
+    const scenario = exampleScenario();
+    const result = ok(computeOffer(scenario, first(offersOf(scenario)), 'mid'));
+    expect(result.warranty.remaining).toEqual({
+      vehicle: { years: 3, km: 100000 },
+      battery: { years: 8, km: 160000 },
+    });
+  });
+
+  it('C1b: a used second candidate without first registration is incomplete at candidates[1].firstRegistration, the first one computes', () => {
+    const scenario = exampleScenario();
+    const second: Scenario['candidates'][number] = {
+      ...first(exampleScenario().candidates),
+      id: '00000000-0000-4000-8000-0000000000bb',
+      condition: 'used',
+      firstRegistration: null,
+      mileageKm: 30000,
+      leaseTiers: [],
+    };
+    scenario.candidates = [first(scenario.candidates), second];
+    const offerSecond = at(offersOf(scenario), 2);
+    expect(offerSecond.candidateId).toBe(second.id);
+    const result = computeOffer(scenario, offerSecond, 'mid');
+    expect(result.status).toBe('incomplete');
+    if (result.status !== 'incomplete') return;
+    expect(result.issues.map((issue) => issue.path)).toEqual([
+      'candidates[1].firstRegistration',
+    ]);
+    expect(
+      computeOffer(scenario, first(offersOf(scenario)), 'mid').status,
+    ).toBe('ok');
+  });
+
+  it('C1b: the lease of a used car takes the years to the km limit from the remaining warranty, the budget is not active', () => {
+    const scenario = exampleScenario();
+    makeTc18(scenario);
+    const lease = at(offersOf(scenario), 1);
+    expect(lease.kind).toBe('lease');
+    const result = ok(computeOffer(scenario, lease, 'mid'));
+    expect(result.warranty.remaining.battery).toEqual({
+      years: 3,
+      km: 60000,
+    });
+    expect(result.warranty.yearsToKmLimit.vehicle).toBeNull();
+    expect(result.warranty.yearsToKmLimit.battery).toBeCloseTo(
+      60000 / result.evKmPerYear,
+      9,
+    );
+
+    const compute = ScenarioComputeSchema.parse(scenario);
+    const candidate = CandidateComputeSchema.parse(first(scenario.candidates));
+    const prices = resolvePrices(compute.iceVehicle, compute.parameters, {
+      priceCase: 'mid',
+    });
+    const outcome = optimizeOffer(
+      compute,
+      candidate,
+      buildProblem(compute, candidate, prices),
+      { kind: 'lease', tier: first(candidate.leaseTiers) },
+    );
+    expect(outcome.budget).toEqual({
+      noWarranty: false,
+      budgetKmPerYear: 20000,
+      active: false,
+    });
   });
 });

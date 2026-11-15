@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { type Candidate, type LeaseTier, type Scenario } from './schema';
+import {
+  type Candidate,
+  type LeaseTier,
+  type Scenario,
+  type YearMonth,
+} from './schema';
 
 const UNITS = [
   'months',
@@ -17,15 +22,23 @@ const UNITS = [
   'switch',
   'kmPerYear',
   'days',
+  'monthYear',
 ] as const;
+
+/** Value of a default that is the month the scenario is created in. */
+export const CURRENT_MONTH = 'currentMonth';
 
 export const ParameterDefaultSchema = z.object({
   /** Label of the row in the spec table "Parameterliste mit Standardwerten". */
   specRow: z.string(),
   /** Dot path into a scenario, or into the device settings (`settings.`). */
   path: z.string(),
-  /** `null` for required inputs, which have no default on purpose. */
+  /**
+   * `null` for required inputs, which have no default on purpose.
+   * `CURRENT_MONTH` is resolved when a scenario is created.
+   */
   value: z.union([
+    z.literal(CURRENT_MONTH),
     z.number(),
     z.boolean(),
     z.string(),
@@ -226,6 +239,12 @@ export const PARAMETER_DEFAULTS: readonly ParameterDefault[] = [
     unit: 'kmPerYear',
     flag: 'fixed',
   }),
+  ...rows('Stichtag der Garantieberechnung', {
+    path: 'parameters.warrantyReferenceMonth',
+    value: CURRENT_MONTH,
+    unit: 'monthYear',
+    flag: 'placeholder',
+  }),
   ...rows('Export-Erinnerung', {
     path: 'settings.exportReminderDays',
     value: 14,
@@ -249,10 +268,15 @@ function setPath(target: object, path: string, value: unknown): void {
   node[last] = Array.isArray(value) ? [...value] : value;
 }
 
-/** Empty scenario: required fields are `null`, every other field has its default. */
+/**
+ * Empty scenario: required fields are `null`, every other field has its
+ * default. `currentMonth` comes from src/state, like the ids: the domain reads
+ * no clock (ADR-17). It becomes the warranty reference month.
+ */
 export function createScenarioTemplate(input: {
   id: string;
   name: string;
+  currentMonth: YearMonth;
 }): Scenario {
   const emptyCommute = { city: null, rural: null, highway: null };
   const emptyWorkplace = {
@@ -305,12 +329,18 @@ export function createScenarioTemplate(input: {
       strictMode: false,
       warrantyBudgetAsTarget: true,
       kmGridPerYear: 1,
+      warrantyReferenceMonth: { ...input.currentMonth },
+      warrantyReferenceMonthSetByUser: false,
     },
     candidates: [],
   };
   for (const entry of PARAMETER_DEFAULTS) {
     if (entry.flag !== 'required' && !entry.path.startsWith('settings.')) {
-      setPath(scenario, entry.path, entry.value);
+      setPath(
+        scenario,
+        entry.path,
+        entry.value === CURRENT_MONTH ? { ...input.currentMonth } : entry.value,
+      );
     }
   }
   return scenario;
@@ -335,6 +365,7 @@ export function createCandidateTemplate(id: string): Candidate {
     sohKnownPct: null,
     vehicleWarranty: { years: null, km: null },
     batteryWarranty: { years: null, km: null },
+    warrantyNeedsReview: false,
     depreciationPctPerYear: null,
     maintenancePerKm: null,
     leaseTiers: [],

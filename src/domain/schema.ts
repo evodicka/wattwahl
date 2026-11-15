@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Version of the stored scenario format (architecture 8.2). */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /** Longest comparison period in months (spec "Parameterliste"): 100 years. */
 export const MAX_COMPARISON_MONTHS = 1200;
@@ -28,6 +28,27 @@ export const RoadTypeSchema = z.enum(ROAD_TYPES);
 export const WeekdaySchema = z.enum(WEEKDAYS);
 export const PresenceStateSchema = z.enum(PRESENCE_STATES);
 export const PriceCaseSchema = z.enum(PRICE_CASES);
+
+/** A calendar month: first registration and the warranty reference month (architecture 8.1). */
+export const YearMonthSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int().min(1990).max(2100),
+});
+export type YearMonth = z.infer<typeof YearMonthSchema>;
+
+/** Whole months from `from` to `to`, negative if `from` is later. */
+export const monthsBetween = (from: YearMonth, to: YearMonth): number =>
+  (to.year - from.year) * 12 + (to.month - from.month);
+
+/**
+ * Age a in months at the warranty reference month (spec "Restgarantie"):
+ * at least 0. The migration and the core both use it, so a / 12 is the same
+ * number on both sides.
+ */
+export const ageInMonths = (
+  firstRegistration: YearMonth,
+  referenceMonth: YearMonth,
+): number => Math.max(0, monthsBetween(firstRegistration, referenceMonth));
 
 export type RoadType = z.infer<typeof RoadTypeSchema>;
 export type Weekday = z.infer<typeof WeekdaySchema>;
@@ -121,6 +142,10 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     strictMode: z.boolean(),
     warrantyBudgetAsTarget: z.boolean(),
     kmGridPerYear: positive,
+    /** Stichtag der Garantieberechnung (ADR-17): the core reads no clock. */
+    warrantyReferenceMonth: YearMonthSchema,
+    /** Set by the user, so it shows as changed; false while it is the month of creation. */
+    warrantyReferenceMonthSetByUser: z.boolean(),
   });
 
   const LeaseTier = z.object({
@@ -133,6 +158,7 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     underKmRefund: req(nonNegative),
   });
 
+  /** The normal warranty of the manufacturer from first registration, not the remaining one. */
   const warranty = z.object({
     years: req(nonNegative),
     km: req(nonNegative),
@@ -146,12 +172,8 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     note: z.string(),
     condition: z.enum(['new', 'used']),
     purchasePrice: req(positive),
-    firstRegistration: z
-      .object({
-        month: z.number().int().min(1).max(12),
-        year: z.number().int().min(1990).max(2100),
-      })
-      .nullable(),
+    /** Required for a used car in the compute schema. */
+    firstRegistration: YearMonthSchema.nullable(),
     mileageKm: req(nonNegative),
     netCapacityKwh: req(positive),
     rangeKm: z.object({
@@ -162,6 +184,11 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     sohKnownPct: z.number().min(50).max(100).nullable(),
     vehicleWarranty: warranty,
     batteryWarranty: warranty,
+    /**
+     * "Garantiewerte prüfen": the v1 -> v2 migration could not turn the stored
+     * remaining warranty into the normal one. A hint only, it blocks nothing.
+     */
+    warrantyNeedsReview: z.boolean(),
     depreciationPctPerYear: percent.nullable(),
     maintenancePerKm: nonNegative.nullable(),
     leaseTiers: z
@@ -237,6 +264,16 @@ export const CandidateComputeSchema = compute.Candidate.superRefine(
         code: 'custom',
         path: ['mileageKm'],
         message: 'A new car has a mileage of 0 km.',
+      });
+    }
+    if (
+      candidate.condition === 'used' &&
+      candidate.firstRegistration === null
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['firstRegistration'],
+        message: 'A used car needs its first registration.',
       });
     }
   },

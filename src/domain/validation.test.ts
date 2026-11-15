@@ -256,4 +256,26 @@ describe('S04: plausibility warnings', () => {
     ]).toEqual(before);
     expect(before).toEqual([true, true, true]);
   });
+
+  it('C1b: a first registration after the reference month warns, the same month does not', () => {
+    const scenario = exampleScenario();
+    scenario.parameters.warrantyReferenceMonth = { month: 3, year: 2025 };
+    const candidate = scenario.candidates[0];
+    if (!candidate) throw new Error('example candidate missing');
+    candidate.condition = 'used';
+    candidate.mileageKm = 10000;
+
+    candidate.firstRegistration = { month: 3, year: 2025 };
+    expect(checkWarnings(scenario)).toEqual([]);
+
+    candidate.firstRegistration = { month: 4, year: 2025 };
+    expect(checkWarnings(scenario)).toEqual([
+      {
+        code: 'firstRegistrationAfterReferenceMonth',
+        path: 'candidates.0.firstRegistration',
+      },
+    ]);
+    // Only a hint: the candidate still computes (with age 0).
+    expect(CandidateComputeSchema.safeParse(candidate).success).toBe(true);
+  });
 });
