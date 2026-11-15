@@ -16,6 +16,7 @@ export { SegmentedControl } from './SegmentedControl';
 export { SelectField } from './SelectField';
 export { Switch } from './Switch';
 export { TextField } from './TextField';
+export { Tile } from './Tile';
 export { TrafficLight } from './TrafficLight';
 export type { TrafficLightLevel } from './TrafficLight';
 export { WeekdayToggle } from './WeekdayToggle';

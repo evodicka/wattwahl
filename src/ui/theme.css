@@ -446,3 +446,11 @@ p {
 .card-actions {
   margin-top: var(--space-3);
 }
+
+/* Tiles side by side where there is room (board D6) */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}

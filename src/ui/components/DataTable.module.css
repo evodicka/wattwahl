@@ -1,4 +1,6 @@
 .scroll {
+  /* Contains the absolutely positioned visually hidden texts of its cells. */
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
