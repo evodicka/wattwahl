@@ -15,7 +15,7 @@ import {
   shiftedRange,
   sliderStart,
 } from './priceSlider';
-import { loaded } from './scenarioSlice';
+import { activeScenarioSet, loaded } from './scenarioSlice';
 import { selectActiveScenario, selectScenarios } from './selectors';
 import { createAppStore } from './store';
 import { priceCaseSet } from './uiSlice';
@@ -94,6 +94,80 @@ describe('S21: a price range moves with the slider', () => {
       mid: 3,
       max: 3,
     });
+  });
+});
+
+describe('S21: a slider belongs to its scenario', () => {
+  const twoScenarios = () => {
+    const { store, scenario } = setup();
+    const other = {
+      ...exampleScenario(),
+      id: '90000000-0000-4000-8000-000000000001',
+      name: 'Other',
+    };
+    store.dispatch(
+      loaded({
+        scenarios: [scenario, other],
+        readOnly: [],
+        invalid: [],
+        settings: { ...DEFAULT_DEVICE_SETTINGS, activeScenarioId: scenario.id },
+      }),
+    );
+    return { store, other };
+  };
+
+  it('is dropped, and the price case with it, when another scenario becomes active', () => {
+    const { store, other } = twoScenarios();
+    store.dispatch(setSliderPrice({ petrol: 2.4 }));
+    expect(store.getState().ui.priceCase).toBe('slider');
+    store.dispatch(activeScenarioSet(other.id));
+    expect(store.getState().ui.sliderPrices).toBeNull();
+    expect(store.getState().ui.priceCase).toBe('mid');
+  });
+
+  it('is dropped when the stores are loaded again (an import)', () => {
+    const { store, other } = twoScenarios();
+    store.dispatch(setSliderPrice({ petrol: 2.4 }));
+    store.dispatch(
+      loaded({
+        scenarios: [other],
+        readOnly: [],
+        invalid: [],
+        settings: { ...DEFAULT_DEVICE_SETTINGS, activeScenarioId: other.id },
+      }),
+    );
+    expect(store.getState().ui.sliderPrices).toBeNull();
+  });
+
+  it('keeps the price case of the table when it is not the slider case', () => {
+    const { store, other } = twoScenarios();
+    store.dispatch(priceCaseSet('evFavorable'));
+    store.dispatch(activeScenarioSet(other.id));
+    expect(store.getState().ui.priceCase).toBe('evFavorable');
+  });
+});
+
+describe('S21: a range keeps its width without float noise', () => {
+  it('writes shifted values as plain decimals', () => {
+    expect(shiftedRange({ min: 1.7, mid: 1.9, max: 2.1 }, 2.4)).toEqual({
+      min: 2.2,
+      mid: 2.4,
+      max: 2.6,
+    });
+  });
+
+  it('lets a bound that is not set follow the mid', () => {
+    expect(shiftedRange({ min: null, mid: 1.9, max: null }, 2.4)).toEqual({
+      min: 2.4,
+      mid: 2.4,
+      max: 2.4,
+    });
+  });
+
+  it('keeps the minimum at or below the mid', () => {
+    expect(
+      shiftedRange({ min: 2.5, mid: 1.9, max: 3 }, 2.4).min,
+    ).toBeLessThanOrEqual(2.4);
   });
 });
 

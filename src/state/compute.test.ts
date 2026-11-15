@@ -190,6 +190,47 @@ describe('S14: review follow-ups', () => {
     expect(store.getState().result.trace).toBeNull();
   });
 
+  it('S21: an answer to an earlier request of the same offer is dropped', async () => {
+    const { store, workers, scenario } = setup();
+    const worker = at(workers, 0);
+    const offerId = `${at(scenario.candidates, 0).id}:purchase`;
+    const answer = (value: string) => ({
+      result: { status: 'incomplete' } as unknown as OfferResult,
+      trace: [{ formula: 'OPT.select' as const, inputs: {}, value }],
+    });
+    const first = store.dispatch(openTrace(offerId, 'mid'));
+    store.dispatch(closeTrace());
+    // The same offer and price case again, with changed prices.
+    const second = store.dispatch(openTrace(offerId, 'mid'));
+    expect(store.getState().result.trace?.requestId).toBe(2);
+
+    at(worker.explains, 0).answer.resolve(answer('old'));
+    await first;
+    expect(store.getState().result.trace?.result).toBeNull();
+    at(worker.explains, 1).answer.resolve(answer('new'));
+    await second;
+    expect(store.getState().result.trace?.entries.map((e) => e.value)).toEqual([
+      'new',
+    ]);
+  });
+
+  it('S21: a failure of an earlier request does not mark the later one as failed', async () => {
+    const { store, workers, scenario } = setup();
+    const worker = at(workers, 0);
+    const offerId = `${at(scenario.candidates, 0).id}:purchase`;
+    const first = store.dispatch(openTrace(offerId, 'mid'));
+    const second = store.dispatch(openTrace(offerId, 'mid'));
+    at(worker.explains, 0).answer.reject(new Error('old failure'));
+    await first;
+    expect(store.getState().result.trace?.error).toBeNull();
+    at(worker.explains, 1).answer.resolve({
+      result: { status: 'incomplete' } as unknown as OfferResult,
+      trace: [],
+    });
+    await second;
+    expect(store.getState().result.trace?.error).toBeNull();
+  });
+
   it('a crash before the first result marks the empty result as outdated', async () => {
     const { store, workers } = setup(2);
     void store.dispatch(requestCompute());

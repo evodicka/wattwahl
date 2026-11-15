@@ -34,10 +34,15 @@ export function shiftedRange(
   value: number,
 ): { min: number; mid: number; max: number } {
   const delta = range.mid === null ? 0 : value - range.mid;
+  // A bound that is not set follows the mid; shifted values lose float noise.
+  const round = (n: number) => Number(n.toFixed(6));
   return {
-    min: Math.max(0, (range.min ?? value) + delta),
+    min:
+      range.min === null
+        ? value
+        : Math.max(0, Math.min(value, round(range.min + delta))),
     mid: value,
-    max: Math.max(value, (range.max ?? value) + delta),
+    max: range.max === null ? value : Math.max(value, round(range.max + delta)),
   };
 }
 

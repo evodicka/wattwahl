@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FORMULA_IDS, type OkOfferResult } from '../../src/domain';
 import de from '../../src/i18n/de.json';
-import { formatTraceValue } from '../../src/ui/forms/traceFormat';
+import {
+  formatTraceInput,
+  formatTraceValue,
+} from '../../src/ui/forms/traceFormat';
 import { traceView } from '../../src/ui/forms/traceView';
 import { sliderRanges } from '../../src/ui/forms/sliderRanges';
 import { exampleScenario } from '../fixtures/exampleScenario';
@@ -113,6 +116,34 @@ describe('S21: value formatting', () => {
     expect(formatTraceValue(entry('F3.trafficLight', 'red'))).toBe('Rot');
   });
 
+  it('writes "no limit" in words instead of a 300 digit number', () => {
+    expect(formatTraceValue(entry('F3.reservePct', Number.MAX_VALUE))).toBe(
+      'unbegrenzt',
+    );
+    expect(formatTraceValue(entry('F3.phi', Number.MAX_VALUE))).toBe(
+      'unbegrenzt',
+    );
+  });
+
+  it('writes the share of a month of extra mileage in percent, not in km', () => {
+    expect(
+      formatTraceValue(
+        entry('OPT.select', 40, { decision: 'extraShare', month: 3 }),
+      ),
+    ).toBe('40\u00a0%');
+    expect(
+      formatTraceValue(entry('OPT.select', 19996.7, { decision: 'plan' })),
+    ).toBe('19.997\u00a0km');
+  });
+
+  it('writes the strings of the core in German', () => {
+    expect(formatTraceValue(entry('OPT.budget', 'none'))).toBe('keine');
+    expect(formatTraceInput('highway')).toBe('Autobahn');
+    expect(formatTraceInput('years')).toBe('Jahre');
+    expect(formatTraceInput(Number.MAX_VALUE)).toBe('unbegrenzt');
+    expect(formatTraceInput(40000)).toBe('40.000');
+  });
+
   it('writes the remaining warranty in years or km, as the step says', () => {
     expect(
       formatTraceValue(
@@ -185,16 +216,31 @@ describe('S21: slider ranges', () => {
     });
   });
 
-  it('a range always holds the value of its slider', () => {
-    const ranges = sliderRanges(exampleScenario(), {
-      ...values,
-      petrol: 5,
-      petrolEscalationPct: 12,
-      electricityEscalationPct: -2,
+  it("an escalation range holds the scenario's own value and does not move with the slider", () => {
+    const scenario = exampleScenario();
+    scenario.iceVehicle.petrolEscalationPct = 12;
+    scenario.parameters.electricityEscalationPct = -2;
+    const at12 = sliderRanges(scenario, { ...values, petrolEscalationPct: 12 });
+    const at11 = sliderRanges(scenario, { ...values, petrolEscalationPct: 11 });
+    expect(at12?.petrolEscalationPct).toEqual({
+      min: 0,
+      max: 12,
+      step: 0.5,
+      mid: 12,
     });
-    expect(ranges?.petrol.max).toBeGreaterThanOrEqual(5);
-    expect(ranges?.petrolEscalationPct.max).toBe(12);
-    expect(ranges?.electricityEscalationPct.min).toBe(-2);
+    expect(at11?.petrolEscalationPct).toEqual(at12?.petrolEscalationPct);
+    expect(at12?.electricityEscalationPct).toEqual({
+      min: -2,
+      max: 10,
+      step: 0.5,
+      mid: -2,
+    });
+  });
+
+  it('a price range holds a value that lies outside it', () => {
+    expect(
+      sliderRanges(exampleScenario(), { ...values, petrol: 5 })?.petrol.max,
+    ).toBeGreaterThanOrEqual(5);
   });
 
   it('has no ranges while a mid price is missing', () => {

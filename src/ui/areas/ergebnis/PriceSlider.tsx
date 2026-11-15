@@ -78,6 +78,7 @@ export function PriceSlider({ scenario }: { scenario: Scenario }) {
   const { t } = useTranslation('ergebnis');
   const { t: c } = useTranslation();
   const dispatch = useAppDispatch();
+  const headingId = useId();
   const slider = useAppSelector((state) => state.ui.sliderPrices);
   const start = sliderStart(scenario);
   const values = slider ?? start;
@@ -87,8 +88,8 @@ export function PriceSlider({ scenario }: { scenario: Scenario }) {
     dispatch(setSliderPrice({ [field]: value }));
 
   return (
-    <Card className="stack" aria-labelledby="price-slider">
-      <h2 className="h-title" id="price-slider">
+    <Card className="stack" aria-labelledby={headingId}>
+      <h2 className="h-title" id={headingId}>
         {t('slider.title')}
       </h2>
       <p className="t-sm muted">{t('slider.intro')}</p>

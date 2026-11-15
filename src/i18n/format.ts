@@ -100,7 +100,7 @@ const scientific = new Intl.NumberFormat(LOCALE, {
   signDisplay: 'negative',
 });
 
-/** Very small or large values: 7.5e-7 → "7,5E-7". */
+/** Very small or large values: 7.5e-7 → "7,5E−7" (true minus sign, as everywhere). */
 export const formatScientific = (value: number): string =>
   withMinus(scientific.format(value));
 
