@@ -138,8 +138,10 @@ export async function openRepository(
     mode = 'readOnly';
   }
 
-  const hasStore = (database: IDBPDatabase<EautoDB>, name: string) =>
-    database.objectStoreNames.contains(name as 'scenarios' | 'settings');
+  const hasStore = (
+    database: IDBPDatabase<EautoDB>,
+    name: 'scenarios' | 'settings',
+  ) => database.objectStoreNames.contains(name);
 
   function connection(): IDBPDatabase<EautoDB> {
     const database = db;
@@ -153,7 +155,7 @@ export async function openRepository(
     if (!hasStore(database, 'scenarios')) return result;
     const records = await database.getAll('scenarios');
     const context = { migrationMonth: monthOf(now()) };
-    const migrated: StoredScenario[] = [];
+    const migrated: { read: StoredScenario; write: StoredScenario }[] = [];
     for (const record of records) {
       const upgrade = upgradeScenario(record, context);
       if (upgrade.status === 'readOnly') {
@@ -168,10 +170,27 @@ export async function openRepository(
           reason: upgrade.reason,
           issues: upgrade.issues,
         });
+      } else if (upgrade.scenario.id !== record.id) {
+        // Stored under another key than its id: saving it would write a
+        // second record. Left untouched, like any record that fails to load.
+        result.invalid.push({
+          id: record.id,
+          reason: 'schemaMismatch',
+          issues: [
+            { path: 'id', message: 'The id differs from the record key.' },
+          ],
+        });
       } else {
         result.scenarios.push(upgrade.scenario);
         if (upgrade.migrated) {
-          migrated.push(toRecord(upgrade.scenario));
+          // A migration is no edit: the record keeps its updatedAt.
+          migrated.push({
+            read: record,
+            write: {
+              ...toRecord(upgrade.scenario),
+              updatedAt: record.updatedAt,
+            },
+          });
         }
       }
     }
@@ -179,7 +198,7 @@ export async function openRepository(
       // Write the migrated records back. A failure here loses nothing: the
       // old record stays, it is migrated again on the next load, and the
       // next save of the scenario writes it anyway.
-      await writeRecords(migrated).catch(() => undefined);
+      await writeBack(migrated).catch(() => undefined);
     }
     return result;
   }
@@ -193,13 +212,23 @@ export async function openRepository(
     };
   }
 
-  async function writeRecords(records: StoredScenario[]): Promise<void> {
+  /**
+   * Writes migrated records back, each only if the stored record is still the
+   * one that was read: another tab or a save may have written it meanwhile,
+   * possibly a newer app (8.2).
+   */
+  async function writeBack(
+    records: { read: StoredScenario; write: StoredScenario }[],
+  ): Promise<void> {
     const tx = connection().transaction('scenarios', 'readwrite');
     await Promise.all([
-      ...records.map(async (record) => {
-        // Never write over a record of a newer app (8.2).
-        if (!isNewer(await tx.store.get(record.id))) {
-          await tx.store.put(record);
+      ...records.map(async ({ read, write }) => {
+        const stored = await tx.store.get(read.id);
+        if (
+          stored?.schemaVersion === read.schemaVersion &&
+          stored.updatedAt === read.updatedAt
+        ) {
+          await tx.store.put(write);
         }
       }),
       tx.done,
