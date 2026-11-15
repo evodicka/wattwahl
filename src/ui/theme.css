@@ -402,3 +402,42 @@ p {
     padding: var(--space-6) var(--space-7) var(--space-7);
   }
 }
+
+/* Letter badge of workplace A and B (boards D1, M1) */
+.badge-letter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--ink);
+  color: var(--surface);
+  font: 700 14px/20px var(--font-sans);
+}
+
+/* Twelve monthly temperatures: four per row, as on board D4 */
+.monthly-temps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+@media (min-width: 600px) {
+  .monthly-temps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Minimum, mid and maximum price: stacked on phones and tablets (M1, M7), side by side from 1200 px (D1, D4) */
+.f3-prices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (min-width: 1200px) {
+  .f3-prices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
