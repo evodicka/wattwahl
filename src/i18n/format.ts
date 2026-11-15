@@ -73,3 +73,32 @@ export const formatPercent = (valuePct: number, decimals = 0): string =>
 /** Any other number with decimal comma and thousands point. */
 export const formatDecimal = (value: number, decimals: number): string =>
   withMinus(decimalFormat(decimals).format(value));
+
+// Dates and times for "Stand" and "Gespeichert". The time zone is the
+// device's; tests pass one so they do not depend on the machine.
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+const dateTimeFormat = (
+  kind: 'date' | 'time',
+  timeZone: string | undefined,
+): Intl.DateTimeFormat => {
+  const key = `${kind}|${timeZone ?? ''}`;
+  let format = dateTimeFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(LOCALE, {
+      ...(kind === 'date'
+        ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+        : { hour: '2-digit', minute: '2-digit' }),
+      timeZone,
+    });
+    dateTimeFormats.set(key, format);
+  }
+  return format;
+};
+
+/** A calendar date: 2026-11-14T11:04Z → "14.11.2026". */
+export const formatDate = (value: Date | string, timeZone?: string): string =>
+  dateTimeFormat('date', timeZone).format(new Date(value));
+
+/** A time of day without seconds: 2026-11-14T11:04Z → "12:04" in Berlin. */
+export const formatTime = (value: Date | string, timeZone?: string): string =>
+  dateTimeFormat('time', timeZone).format(new Date(value));

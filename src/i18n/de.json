@@ -17,7 +17,8 @@
       "savedAt": "Gespeichert {{time}} Uhr",
       "back": "← {{area}}",
       "jumpTo": "Springen zu",
-      "skipToContent": "Zum Inhalt springen"
+      "skipToContent": "Zum Inhalt springen",
+      "noScenario": "Kein Szenario"
     },
     "status": {
       "scenario": "Szenario {{name}}",
@@ -34,10 +35,10 @@
     "priceCase": {
       "label": "Preisfall",
       "mid": "Mittel",
-      "evCheap": "E-Auto günstig",
-      "evExpensive": "E-Auto ungünstig",
-      "evCheapShort": "Günstig",
-      "evExpensiveShort": "Ungünstig",
+      "evFavorable": "E-Auto günstig",
+      "evUnfavorable": "E-Auto ungünstig",
+      "evFavorableShort": "Günstig",
+      "evUnfavorableShort": "Ungünstig",
       "slider": "Regler"
     },
     "actions": {
@@ -66,7 +67,9 @@
       "replace": "Ersetzen",
       "showDetails": "Details ansehen",
       "complete": "Ergänzen",
-      "completeFields": "Felder ergänzen"
+      "completeFields": "Felder ergänzen",
+      "reload": "Neu laden",
+      "toStart": "Zum Fahrprofil"
     },
     "field": {
       "required": "Pflicht",
@@ -142,7 +145,16 @@
       "updateTitle": "Neue Version verfügbar",
       "welcomeTitle": "Willkommen bei Wattwahl",
       "iosInstallBody": "Auf dem iPhone kann Safari Daten nach etwa sieben Tagen ohne Nutzung löschen. Tippe auf „Teilen“, dann „Zum Home-Bildschirm“, und exportiere regelmäßig. Die Zahlen mit „Annahme“ sind Platzhalter, bitte prüfe sie.",
-      "storageDenied": "Der Browser hat dauerhaften Speicher abgelehnt. Exportiere regelmäßig, damit nichts verloren geht."
+      "storageDenied": "Der Browser hat dauerhaften Speicher abgelehnt. Exportiere regelmäßig, damit nichts verloren geht.",
+      "storageDeniedTitle": "Speicher nicht dauerhaft",
+      "reloadTitle": "Neuere Version in einem anderen Tab",
+      "reloadBody": "Diese Seite speichert nichts mehr. Lade sie neu, um weiterzuarbeiten.",
+      "readOnlyTitle": "Nur lesbar",
+      "readOnlyBody": "Die gespeicherten Daten stammen von einer neueren Version der App. Bis zum Update wird nichts gespeichert.",
+      "startFailedTitle": "Die gespeicherten Daten lassen sich nicht laden",
+      "startFailedBody": "Der Browser erlaubt keinen Zugriff auf den Speicher. In einem privaten Fenster ist er oft gesperrt.",
+      "pageFailedTitle": "Diese Seite ist ausgefallen",
+      "pageFailedBody": "Deine Daten sind gespeichert."
     },
     "dialog": {
       "deleteCandidateTitle": "Kandidat „{{name}}“ löschen?",
@@ -588,6 +600,7 @@
     "empty": {
       "title": "Noch kein Szenario",
       "body": "Lege ein Szenario an. Es bündelt Fahrprofil, Parameter und Kandidaten."
-    }
+    },
+    "templateName": "Standard"
   }
 }

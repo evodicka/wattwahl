@@ -21,12 +21,15 @@ import { sliderPricesSet } from './uiSlice';
 
 const OTHER_ID = '20000000-0000-4000-8000-000000000001';
 
+const NOW = new Date('2026-11-14T11:04:00Z');
+
 function setup() {
   const repository = fakeRepository();
   const worker = controlledWorker();
   const store = createAppStore({
     repository,
     spawnWorker: spawnSequence(worker),
+    now: () => NOW,
   });
   const active = exampleScenario();
   const other: Scenario = { ...exampleScenario(), id: OTHER_ID, name: 'B' };
@@ -199,5 +202,15 @@ describe('S14: saving when the page is left (8.2)', () => {
     target.window.dispatchEvent(new Event('pagehide'));
     await vi.advanceTimersByTimeAsync(0);
     expect(repository.save).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('S16: time of the last save for the frame', () => {
+  it('the autosave records when it wrote', async () => {
+    const { store, active } = setup();
+    expect(store.getState().scenario.lastSavedAt).toBeNull();
+    store.dispatch(scenarioUpdated({ ...active, name: 'Changed' }));
+    await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+    expect(store.getState().scenario.lastSavedAt).toBe(NOW.toISOString());
   });
 });

@@ -23,6 +23,7 @@ export type { ResultState, ResultStatus, TraceState } from './resultSlice';
 export {
   importErrorCleared,
   noticeDismissed,
+  priceCaseSet,
   sliderPricesSet,
 } from './uiSlice';
 export type { Notices, UiState } from './uiSlice';

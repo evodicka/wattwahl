@@ -21,7 +21,9 @@ const TEMPLATE_NAME = 'Mein Szenario';
 let counter = 0;
 const opened: Repository[] = [];
 
-async function setup(options: { persist?: 'granted' | 'denied' } = {}) {
+async function setup(
+  options: { persist?: 'granted' | 'denied' | 'never' } = {},
+) {
   const repository = await openRepository({
     dbName: `eauto-state-test-${++counter}`,
     now: () => NOW,
@@ -32,7 +34,8 @@ async function setup(options: { persist?: 'granted' | 'denied' } = {}) {
 
 function storeOn(
   repository: Repository,
-  options: { persist?: 'granted' | 'denied' } = {},
+  /** `never`: the browser asks the user, who does not answer (Firefox). */
+  options: { persist?: 'granted' | 'denied' | 'never' } = {},
 ) {
   const worker = controlledWorker();
   const ids = [
@@ -40,7 +43,11 @@ function storeOn(
     '30000000-0000-4000-8000-000000000002',
     '30000000-0000-4000-8000-000000000003',
   ];
-  const requestPersistence = vi.fn(async () => options.persist ?? 'granted');
+  const requestPersistence = vi.fn(() =>
+    options.persist === 'never'
+      ? new Promise<'granted'>(() => {})
+      : Promise.resolve(options.persist ?? 'granted'),
+  );
   const store = createAppStore({
     repository,
     spawnWorker: spawnSequence(worker),
@@ -102,6 +109,15 @@ describe('S14: app start (6.2)', () => {
     const { store } = await setup({ persist: 'denied' });
     await store.dispatch(startApp({ templateName: TEMPLATE_NAME }));
     expect(store.getState().ui.notices.persistenceDenied).toBe(true);
+  });
+
+  it('S16: an unanswered request for persistent storage does not hold up the start', async () => {
+    const { store, worker } = await setup({ persist: 'never' });
+    await store.dispatch(startApp({ templateName: TEMPLATE_NAME }));
+    expect(selectActiveScenario(store.getState())?.name).toBe(TEMPLATE_NAME);
+    expect(store.getState().scenario.settings.firstRunCompleted).toBe(true);
+    expect(worker.computes).toHaveLength(1);
+    expect(store.getState().ui.notices.persistenceDenied).toBe(false);
   });
 
   it('a database of a newer app is shown read only, without a template', async () => {

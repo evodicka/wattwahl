@@ -52,8 +52,10 @@ void i18n.use(initReactI18next).init({
 
 export {
   formatConsumption,
+  formatDate,
   formatDecimal,
   formatEuro,
   formatKm,
   formatPercent,
+  formatTime,
 } from './format';

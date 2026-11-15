@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('app loads at the base path with all assets and no console errors', async ({
+test('app loads at the base path, starts and shows no console errors', async ({
   page,
 }) => {
   const failedAssets: string[] = [];
@@ -20,7 +20,14 @@ test('app loads at the base path with all assets and no console errors', async (
   await page.goto('/');
 
   await expect(page).toHaveTitle('Wattwahl');
-  await expect(page.getByRole('heading', { name: 'Wattwahl' })).toBeVisible();
+  // App start (6.2) with IndexedDB and the core worker: the template scenario
+  // is created and shown in the frame.
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Fahrprofil' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('complementary').getByText('Standard'),
+  ).toBeVisible();
   expect(failedAssets).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });
