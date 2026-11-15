@@ -1,4 +1,6 @@
 import type {
+  CompareRequest,
+  CompareResponse,
   ComputeRequest,
   ComputeResponse,
   CoreWorkerHandle,
@@ -17,6 +19,8 @@ export type CoreClient = {
   compute(request: ComputeRequest): Promise<ComputeResponse | CrashedResponse>;
   /** Rejects if the worker dies during the call. */
   explain(request: ExplainRequest): Promise<ExplainResponse>;
+  /** Another scenario's results in the price case "Mittel"; rejects if the worker dies. */
+  compare(request: CompareRequest): Promise<CompareResponse>;
   onRestart(listener: () => void): () => void;
   dispose(): void;
 };
@@ -55,6 +59,17 @@ export function createCoreClient(spawn: () => CoreWorkerHandle): CoreClient {
       const { handle, crashed } = current;
       const response = await Promise.race([
         handle.api.explain(request),
+        crashed,
+      ]);
+      if (response === 'crashed') {
+        throw new Error('The core worker stopped during the call.');
+      }
+      return response;
+    },
+    async compare(request) {
+      const { handle, crashed } = current;
+      const response = await Promise.race([
+        handle.api.compare(request),
         crashed,
       ]);
       if (response === 'crashed') {

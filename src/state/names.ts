@@ -4,12 +4,15 @@
 const same = (a: string, b: string): boolean =>
   a.trim().toLocaleLowerCase('de') === b.trim().toLocaleLowerCase('de');
 
+/** The name is already used by one of `taken` (same text without regard to case and edge spaces). */
+export const isNameTaken = (name: string, taken: readonly string[]): boolean =>
+  taken.some((other) => same(other, name));
+
 /** `base`, or `base (2)`, `base (3)` and so on: the first name that is not taken. */
 export function uniqueName(base: string, taken: readonly string[]): string {
-  const isTaken = (name: string) => taken.some((other) => same(other, name));
-  if (!isTaken(base)) return base;
+  if (!isNameTaken(base, taken)) return base;
   for (let n = 2; ; n += 1) {
     const candidate = `${base} (${n})`;
-    if (!isTaken(candidate)) return candidate;
+    if (!isNameTaken(candidate, taken)) return candidate;
   }
 }

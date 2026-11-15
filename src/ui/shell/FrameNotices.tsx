@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { noticeDismissed, useAppDispatch, useAppSelector } from '../../state';
 import { Button, Notice } from '../components';
+import { ExportReminder } from '../areas/szenarien/ExportReminder';
 
 /**
  * Notices of the frame (briefing §3): full storage (Z07), a newer tab, a
@@ -16,6 +17,7 @@ export function FrameNotices({
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const notices = useAppSelector((state) => state.ui.notices);
 
   return (
@@ -53,6 +55,9 @@ export function FrameNotices({
         <Notice tone="warn" title={t('notice.readOnlyTitle')}>
           {t('notice.readOnlyBody')}
         </Notice>
+      )}
+      {pathname !== '/szenarien' && (
+        <ExportReminder exportAction={() => void navigate('/szenarien')} />
       )}
       {notices.persistenceDenied && (
         <Notice

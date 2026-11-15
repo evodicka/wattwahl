@@ -88,6 +88,19 @@ export const scenarioSlice = createSlice({
       state.byId[scenario.id] = scenario;
       markDirty(state, scenario.id);
     },
+    /** A deleted scenario is gone from the lists; the thunk chooses the next active one. */
+    scenarioRemoved(state, action: PayloadAction<string>) {
+      const id = action.payload;
+      state.byId = Object.fromEntries(
+        Object.entries(state.byId).filter(([other]) => other !== id),
+      );
+      state.order = state.order.filter((other) => other !== id);
+      state.dirty = state.dirty.filter((other) => other !== id);
+      if (state.activeId === id) {
+        state.activeId = null;
+        state.settings.activeScenarioId = null;
+      }
+    },
     activeScenarioSet(state, action: PayloadAction<string>) {
       if (!state.byId[action.payload]) return;
       state.activeId = action.payload;
@@ -121,6 +134,7 @@ export const {
   loaded,
   scenarioAdded,
   scenarioUpdated,
+  scenarioRemoved,
   activeScenarioSet,
   settingsUpdated,
   scenarioSaved,

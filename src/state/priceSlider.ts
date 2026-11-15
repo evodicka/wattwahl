@@ -1,4 +1,5 @@
-import type { Candidate, Scenario, SliderPrices } from '../domain';
+import type { Scenario, SliderPrices } from '../domain';
+import { copyScenario } from './copyScenario';
 import { uniqueName } from './names';
 import { activeScenarioSet, scenarioAdded } from './scenarioSlice';
 import { selectActiveScenario, selectScenarios } from './selectors';
@@ -57,32 +58,22 @@ export function scenarioFromSlider(
   slider: SliderPrices,
   made: { name: string; newId: () => string },
 ): Scenario {
-  const candidates = scenario.candidates.map((candidate): Candidate => ({
-    ...candidate,
-    id: made.newId(),
-    leaseTiers: candidate.leaseTiers.map((tier) => ({
-      ...tier,
-      id: made.newId(),
-    })),
-  }));
+  const copy = copyScenario(scenario, made);
   return {
-    ...scenario,
-    id: made.newId(),
-    name: made.name,
+    ...copy,
     iceVehicle: {
-      ...scenario.iceVehicle,
+      ...copy.iceVehicle,
       petrolPrice: shiftedRange(scenario.iceVehicle.petrolPrice, slider.petrol),
       petrolEscalationPct: slider.petrolEscalationPct,
     },
     parameters: {
-      ...scenario.parameters,
+      ...copy.parameters,
       electricityPrice: shiftedRange(
         scenario.parameters.electricityPrice,
         slider.electricity,
       ),
       electricityEscalationPct: slider.electricityEscalationPct,
     },
-    candidates,
   };
 }
 

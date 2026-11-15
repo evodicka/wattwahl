@@ -102,6 +102,11 @@ export type Repository = {
     scenarios: readonly Scenario[],
     mode: ImportMode,
   ): Promise<WriteResult>;
+  /**
+   * Deletes one scenario. A record of a newer app is never deleted: the answer
+   * is `readOnly`, like for every write to it (8.2).
+   */
+  delete(id: string): Promise<WriteResult>;
   close(): void;
 };
 
@@ -377,9 +382,29 @@ export async function openRepository(
     }
   }
 
+  async function remove(id: string): Promise<WriteResult> {
+    if (mode === 'readOnly') return { status: 'readOnly' };
+    const database = db;
+    if (!database) return { status: 'closed' };
+    try {
+      const tx = database.transaction('scenarios', 'readwrite');
+      const done = tx.done;
+      done.catch(() => undefined); // handled below; avoids an unhandled rejection
+      if (isNewer(await tx.store.get(id))) {
+        tx.abort();
+        return { status: 'readOnly' };
+      }
+      await Promise.all([tx.store.delete(id), done]);
+      return { status: 'ok' };
+    } catch (error) {
+      return writeFailure(error);
+    }
+  }
+
   return {
     exportFile,
     writeImport,
+    delete: remove,
     get mode() {
       return mode;
     },

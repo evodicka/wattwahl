@@ -50,9 +50,15 @@ export type ExplainRequest = {
 
 export type ExplainResponse = { result: OfferResult; trace: TraceEntry[] };
 
+/** One scenario for the scenario comparison: price case "Mittel" only, no generation. */
+export type CompareRequest = { scenario: Scenario };
+
+export type CompareResponse = { scenarioId: string; results: OfferResults };
+
 export type CoreApi = {
   compute(request: ComputeRequest): Promise<ComputeResponse>;
   explain(request: ExplainRequest): Promise<ExplainResponse>;
+  compare(request: CompareRequest): Promise<CompareResponse>;
 };
 
 /**
@@ -119,5 +125,25 @@ export function createCoreEndpoint(
     return { result, trace: trace.entries };
   }
 
-  return { compute, explain };
+  /**
+   * Another scenario's offers in the price case "Mittel" (scenario comparison).
+   * It is not the active run: no generation, no effect on `latestGeneration`.
+   * It yields between offers, so a newer `compute` can still arrive and stop.
+   */
+  async function compare(request: CompareRequest): Promise<CompareResponse> {
+    const { scenario } = request;
+    const compareCache = new ComputeCache();
+    const results: OfferResults = {};
+    for (const candidate of scenario.candidates) {
+      for (const offer of listOffers(candidate)) {
+        await yieldToEventLoop();
+        results[offer.offerId] = {
+          mid: computeOffer(scenario, offer, 'mid', { cache: compareCache }),
+        };
+      }
+    }
+    return { scenarioId: scenario.id, results };
+  }
+
+  return { compute, explain, compare };
 }
