@@ -50,6 +50,11 @@ export function memoryRepository(
 
 /** A core worker whose compute calls stay open until `finish` answers them. */
 export function testWorker() {
+  const explains: {
+    request: { offerId: string; priceCase: string };
+    resolve: (response: unknown) => void;
+    reject: (error: unknown) => void;
+  }[] = [];
   const computes: {
     request: ComputeRequest;
     resolve: (response: unknown) => void;
@@ -60,7 +65,10 @@ export function testWorker() {
       new Promise((resolve, reject) =>
         computes.push({ request, resolve, reject }),
       ),
-    explain: () => new Promise(() => {}),
+    explain: (request: { offerId: string; priceCase: string }) =>
+      new Promise((resolve, reject) =>
+        explains.push({ request, resolve, reject }),
+      ),
   };
   const handle = {
     api,
@@ -70,6 +78,18 @@ export function testWorker() {
   return {
     handle,
     computes,
+    explains,
+    /** Answers the latest explain call with the result and the steps of its Rechenweg. */
+    finishExplain(response: unknown) {
+      const call = explains.at(-1);
+      if (!call) throw new Error('no explain call');
+      call.resolve(response);
+    },
+    failExplain(message = 'explain failed') {
+      const call = explains.at(-1);
+      if (!call) throw new Error('no explain call');
+      call.reject(new Error(message));
+    },
     /** Answers the latest compute call with these results. */
     finish(results: Results = {}) {
       const call = computes.at(-1);

@@ -17,6 +17,7 @@ import { AreaHead } from './AreaHead';
 import styles from './ErgebnisPage.module.css';
 import { OfferCards } from './ergebnis/OfferCards';
 import { OfferDetail } from './ergebnis/OfferDetail';
+import { PriceSlider } from './ergebnis/PriceSlider';
 import { ResultTable } from './ergebnis/ResultTable';
 import { useOfferLabel } from './ergebnis/parts';
 
@@ -44,7 +45,15 @@ export function ErgebnisPage() {
   // The slider case only exists while the slider is changed (S21).
   const shown: PriceCase =
     priceCase === 'slider' && !sliderPrices ? 'mid' : priceCase;
-  const rows = available ? resultRows(scenario, available.results, shown) : [];
+  const ownRows = available
+    ? resultRows(scenario, available.results, shown)
+    : [];
+  // The results of a price just changed by the slider come a moment later: until
+  // then the last table stays, dimmed, instead of a loading text.
+  const rows =
+    ownRows.length === 0 && shown === 'slider' && available
+      ? resultRows(scenario, available.results, 'mid')
+      : ownRows;
   const costRows = rows.flatMap((row) =>
     row.result.status === 'ok'
       ? [
@@ -161,6 +170,7 @@ export function ErgebnisPage() {
             rows={rows}
             scenario={scenario}
             priceCaseName={priceCaseName}
+            priceCase={shown}
           />
         )}
       </>
@@ -225,6 +235,7 @@ export function ErgebnisPage() {
           </ChartSuspense>
         </section>
       )}
+      <PriceSlider scenario={scenario} />
     </>
   );
 }
