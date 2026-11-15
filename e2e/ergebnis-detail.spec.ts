@@ -144,7 +144,15 @@ test.describe('S20: accessibility (Q10)', () => {
     for (const width of [1280, 390]) {
       test(`no axe violations in the charts at ${width} px, ${colorScheme}`, async ({
         page,
+        browserName,
       }) => {
+        // Firefox on the CI runner ends this analysis with "Page crashed", on
+        // every try; it does not on a developer machine. The DOM rules are the
+        // same in every engine, so Chromium and WebKit check this page.
+        test.skip(
+          browserName === 'firefox',
+          'Firefox crashes in the accessibility analysis of the chart page on CI.',
+        );
         await seedScenario(page);
         await page.emulateMedia({ colorScheme });
         await page.setViewportSize({ width, height: 900 });
