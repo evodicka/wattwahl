@@ -13,6 +13,7 @@ import {
   activeScenarioSet,
   scenarioAdded,
   scenarioRemoved,
+  scenarioSaveCancelled,
   scenarioUpdated,
 } from './scenarioSlice';
 import { monthOf, selectActiveScenario, selectScenarios } from './selectors';
@@ -107,12 +108,21 @@ export function deleteScenario(
   return async (dispatch, getState, { repository, randomId, now }) => {
     const before = getState();
     if (!before.scenario.byId[id]) return 'unknown';
+    const original = before.scenario.byId[id];
+    // An autosave during the delete would write the scenario back.
+    dispatch(scenarioSaveCancelled(id));
     const result = await repository.delete(id);
-    if (!reportWrite(dispatch, result)) return result.status;
+    if (!reportWrite(dispatch, result)) {
+      // Still there: its unsaved edits are saved again.
+      if (original && before.scenario.dirty.includes(id)) {
+        dispatch(scenarioUpdated(getState().scenario.byId[id] ?? original));
+      }
+      return result.status;
+    }
 
-    const wasActive = before.scenario.activeId === id;
     dispatch(scenarioRemoved(id));
-    if (wasActive) {
+    // The user may have chosen another scenario while the delete ran.
+    if (getState().scenario.activeId === null) {
       const next = selectScenarios(getState())[0];
       if (next) {
         dispatch(activeScenarioSet(next.id));
@@ -153,6 +163,8 @@ export function compareScenarios(
     const requestId = getState().result.comparisonRequests;
     try {
       for (const scenario of scenarios) {
+        // A newer request has taken over: no need to compute for this one.
+        if (getState().result.comparisonRequests !== requestId) return;
         const { results } = await core.compare({ scenario });
         dispatch(
           comparisonScenarioDone({

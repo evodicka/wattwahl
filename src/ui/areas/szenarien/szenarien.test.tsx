@@ -140,6 +140,139 @@ describe('S22: scenario list', () => {
   });
 });
 
+describe('S22: review fixes', () => {
+  it('a refused delete keeps the scenario in the comparison', async () => {
+    const app = await renderApp('/szenarien', {
+      scenarios: [exampleScenario(), second()],
+    });
+    vi.mocked(app.repository.delete).mockResolvedValue({ status: 'readOnly' });
+    const box = screen.getByRole('checkbox', {
+      name: /Teurer Strom im Vergleich/,
+    }) as HTMLInputElement;
+    fireEvent.click(box);
+    expect(box.checked).toBe(true);
+    fireEvent.click(button('„Teurer Strom“ löschen'));
+    await act(async () => {
+      fireEvent.click(
+        within(
+          screen.getByRole('dialog', { name: /löschen\?/, hidden: true }),
+        ).getByRole('button', { name: 'Löschen', hidden: true }),
+      );
+    });
+    expect(await screen.findByText('Löschen nicht möglich')).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('checkbox', {
+          name: /Teurer Strom im Vergleich/,
+        }) as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+  });
+
+  it('a full storage on delete shows no "read only" text of its own', async () => {
+    const app = await renderApp('/szenarien', {
+      scenarios: [exampleScenario(), second()],
+    });
+    vi.mocked(app.repository.delete).mockResolvedValue({
+      status: 'quotaExceeded',
+    });
+    fireEvent.click(button('„Teurer Strom“ löschen'));
+    await act(async () => {
+      fireEvent.click(
+        within(
+          screen.getByRole('dialog', { name: /löschen\?/, hidden: true }),
+        ).getByRole('button', { name: 'Löschen', hidden: true }),
+      );
+    });
+    expect(screen.queryByText('Löschen nicht möglich')).toBeNull();
+    expect(screen.getByText('Speicher voll', { exact: false })).toBeTruthy();
+  });
+
+  it('the rename field takes the focus, and the rename button gets it back', async () => {
+    await renderApp('/szenarien', { scenarios: [exampleScenario(), second()] });
+    fireEvent.click(button('„Teurer Strom“ umbenennen'));
+    const field = screen.getByRole('textbox', { name: /Name/ });
+    expect(document.activeElement).toBe(field);
+    fireEvent.click(button('Abbrechen'));
+    expect(document.activeElement).toBe(button('„Teurer Strom“ umbenennen'));
+  });
+
+  it('an import that throws says so instead of staying silent', async () => {
+    const app = await renderApp('/szenarien', {
+      scenarios: [exampleScenario()],
+    });
+    vi.mocked(app.repository.writeImport).mockRejectedValue(new Error('idb'));
+    const file = {
+      format: 'eauto-export',
+      schemaVersion: 1,
+      exportedAt: NOW.toISOString(),
+      scenarios: [exampleScenario()],
+    };
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [new File([JSON.stringify(file)], 'x.json')] },
+      });
+    });
+    expect(
+      await screen.findByText('Das Einlesen ist fehlgeschlagen'),
+    ).toBeTruthy();
+  });
+
+  it('a replace import under the same ids computes the comparison again', async () => {
+    const app = await renderApp('/szenarien', {
+      scenarios: [exampleScenario(), second()],
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: new RegExp(`^${exampleScenario().name} im Vergleich$`),
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /Teurer Strom im Vergleich/ }),
+    );
+    await vi.waitFor(() => expect(app.worker.compares).toHaveLength(1));
+    await act(async () => app.worker.finishCompare({}));
+    await vi.waitFor(() => expect(app.worker.compares).toHaveLength(2));
+    await act(async () => app.worker.finishCompare({}));
+    const before = app.worker.compares.length;
+    // The stores are loaded again with the same ids but new contents (an import).
+    vi.mocked(app.repository.loadAll).mockResolvedValue({
+      scenarios: [exampleScenario(), { ...second(), name: 'Teurer Strom' }],
+      readOnly: [],
+      invalid: [],
+    });
+    const file = {
+      format: 'eauto-export',
+      schemaVersion: 1,
+      exportedAt: NOW.toISOString(),
+      scenarios: [exampleScenario(), second()],
+    };
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: 'Alle vorhandenen Szenarien ersetzen',
+      }),
+    );
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [new File([JSON.stringify(file)], 'x.json')] },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(
+          screen.getByRole('dialog', {
+            name: 'Alle Szenarien ersetzen?',
+            hidden: true,
+          }),
+        ).getByRole('button', { name: 'Ersetzen', hidden: true }),
+      );
+    });
+    await vi.waitFor(() =>
+      expect(app.worker.compares.length).toBeGreaterThan(before),
+    );
+  });
+});
+
 describe('S22: comparison', () => {
   it('asks for two scenarios, then computes and shows the table with the difference', async () => {
     const app = await renderApp('/szenarien', {
@@ -267,7 +400,7 @@ describe('S22: export and import', () => {
     const app = await renderApp('/szenarien', {
       scenarios: [exampleScenario()],
     });
-    const input = screen.getByLabelText('Datei auswählen oder hierher ziehen');
+    const input = screen.getByLabelText('Datei auswählen');
     await act(async () => {
       fireEvent.change(input, { target: { files: [jsonFile('{ not json')] } });
     });
@@ -293,12 +426,9 @@ describe('S22: export and import', () => {
       scenarios: [broken],
     };
     await act(async () => {
-      fireEvent.change(
-        screen.getByLabelText('Datei auswählen oder hierher ziehen'),
-        {
-          target: { files: [jsonFile(file)] },
-        },
-      );
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [jsonFile(file)] },
+      });
     });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Szenario 1 der Datei');
@@ -325,10 +455,9 @@ describe('S22: export and import', () => {
       scenarios: [exampleScenario()],
     };
     await act(async () => {
-      fireEvent.change(
-        screen.getByLabelText('Datei auswählen oder hierher ziehen'),
-        { target: { files: [jsonFile(file)] } },
-      );
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [jsonFile(file)] },
+      });
     });
     expect(app.repository.writeImport).not.toHaveBeenCalled();
     const dialog = screen.getByRole('dialog', {
@@ -358,10 +487,9 @@ describe('S22: export and import', () => {
       scenarios: [exampleScenario()],
     };
     await act(async () => {
-      fireEvent.change(
-        screen.getByLabelText('Datei auswählen oder hierher ziehen'),
-        { target: { files: [jsonFile(file)] } },
-      );
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [jsonFile(file)] },
+      });
     });
     expect(app.repository.writeImport).toHaveBeenCalledWith(
       expect.any(Array),
@@ -383,10 +511,9 @@ describe('S22: export and import', () => {
       scenarios: [exampleScenario()],
     };
     await act(async () => {
-      fireEvent.change(
-        screen.getByLabelText('Datei auswählen oder hierher ziehen'),
-        { target: { files: [jsonFile(file)] } },
-      );
+      fireEvent.change(screen.getByLabelText('Datei auswählen'), {
+        target: { files: [jsonFile(file)] },
+      });
     });
     expect(
       await screen.findByText(

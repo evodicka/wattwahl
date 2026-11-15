@@ -110,13 +110,11 @@ test.describe('S22: export and import', () => {
     await other
       .getByRole('radio', { name: 'Alle vorhandenen Szenarien ersetzen' })
       .check();
-    await other
-      .getByLabel('Datei auswählen oder hierher ziehen')
-      .setInputFiles({
-        name: 'backup.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(before),
-      });
+    await other.getByLabel('Datei auswählen').setInputFiles({
+      name: 'backup.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(before),
+    });
     await other.getByRole('button', { name: 'Ersetzen', exact: true }).click();
     await expect(other.getByText('Die Datei wurde eingelesen.')).toBeVisible();
     await expect(cards(other)).toHaveCount(2);
@@ -141,7 +139,7 @@ test.describe('S22: export and import', () => {
       mimeType: 'application/json',
       buffer: Buffer.from(content),
     });
-    const input = page.getByLabel('Datei auswählen oder hierher ziehen');
+    const input = page.getByLabel('Datei auswählen');
 
     await input.setInputFiles(file('{ not json'));
     await expect(page.getByRole('alert')).toContainText(

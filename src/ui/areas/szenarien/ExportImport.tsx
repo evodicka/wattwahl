@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { ImportError, ImportMode } from '../../../state';
 import {
@@ -30,13 +31,10 @@ function download(name: string, content: string) {
 }
 
 /** Where an import error points: the field label of its path, or the file itself. */
-function locationOf(
-  error: ImportError,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function locationOf(error: ImportError, t: TFunction<'szenarien'>): string {
   if (!error.path) return t('import.locationFile');
   const match = /^scenarios\[(\d+)\]\.?(.*)$/.exec(error.path);
-  if (!match) return error.path;
+  if (!match) return t('import.locationFile');
   const rest = match[2] ?? '';
   const nth = Number(match[1]) + 1;
   return rest
@@ -62,6 +60,7 @@ export function ExportImport() {
   const [exportFailed, setExportFailed] = useState(false);
   const [imported, setImported] = useState(false);
   const [writeBlocked, setWriteBlocked] = useState(false);
+  const [importBroke, setImportBroke] = useState(false);
   const [pending, setPending] = useState<File | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
@@ -79,11 +78,17 @@ export function ExportImport() {
   const runImport = async (file: File) => {
     setImported(false);
     setWriteBlocked(false);
-    const result = await dispatch(importFile(file, mode));
-    if (result.status === 'ok') {
-      setImported(true);
-    } else if (result.status !== 'error') {
-      setWriteBlocked(true);
+    setImportBroke(false);
+    try {
+      const result = await dispatch(importFile(file, mode));
+      if (result.status === 'ok') {
+        setImported(true);
+      } else if (result.status === 'readOnly' || result.status === 'closed') {
+        // A full storage has its own notice in the frame.
+        setWriteBlocked(true);
+      }
+    } catch {
+      setImportBroke(true);
     }
   };
 
@@ -177,9 +182,14 @@ export function ExportImport() {
             }
           >
             {t('import.errorBody', {
-              location: locationOf(importError, t as never),
+              location: locationOf(importError, t),
               problem: t(`import.problem.${importError.code}`),
             })}
+          </Notice>
+        )}
+        {importBroke && (
+          <Notice tone="error" title={t('import.brokeTitle')}>
+            {t('import.brokeBody')}
           </Notice>
         )}
         {writeBlocked && (

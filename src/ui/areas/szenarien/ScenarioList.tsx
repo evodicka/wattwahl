@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Scenario } from '../../../domain';
 import {
@@ -41,6 +41,18 @@ export function ScenarioList({ compared, onCompareChange }: Props) {
   const [renameError, setRenameError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Scenario | null>(null);
   const [blocked, setBlocked] = useState(false);
+  // The scenario whose rename form was open: focus goes back to its button.
+  const renamedId = useRef<string | null>(null);
+  const renamingId = renaming?.id ?? null;
+  useEffect(() => {
+    if (renamingId) {
+      renamedId.current = renamingId;
+      document.getElementById(`rename-field-${renamingId}`)?.focus();
+    } else if (renamedId.current) {
+      document.getElementById(`rename-button-${renamedId.current}`)?.focus();
+      renamedId.current = null;
+    }
+  }, [renamingId]);
 
   const toggle = (id: string) =>
     onCompareChange(
@@ -108,6 +120,7 @@ export function ScenarioList({ compared, onCompareChange }: Props) {
                       }}
                     >
                       <TextField
+                        id={`rename-field-${scenario.id}`}
                         label={t('list.nameLabel')}
                         value={renaming.text}
                         error={renameError}
@@ -168,6 +181,7 @@ export function ScenarioList({ compared, onCompareChange }: Props) {
                       </Button>
                     )}
                     <Button
+                      id={`rename-button-${scenario.id}`}
                       aria-label={t('list.renameLabel', {
                         name: scenario.name,
                       })}
@@ -220,10 +234,9 @@ export function ScenarioList({ compared, onCompareChange }: Props) {
           setDeleting(null);
           if (!target) return;
           void dispatch(deleteScenario(target.id, t('templateName'))).then(
-            (result) => {
-              setBlocked(result !== 'ok' && result !== 'unknown');
-              onCompareChange(compared.filter((id) => id !== target.id));
-            },
+            // A full storage has its own notice in the frame.
+            (result) =>
+              setBlocked(result === 'readOnly' || result === 'closed'),
           );
         }}
       >

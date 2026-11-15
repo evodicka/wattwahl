@@ -765,7 +765,6 @@
       "nameEmpty": "Der Name darf nicht leer sein.",
       "nameTaken": "Ein Szenario mit diesem Namen gibt es schon.",
       "copyName": "{{name}} (Kopie)",
-      "compareHint": "Wähle mindestens zwei Szenarien für den Vergleich.",
       "storageBlockedTitle": "Löschen nicht möglich",
       "storageBlockedBody": "Der Speicher ist nur lesbar oder gerade geschlossen. Es wurde nichts gelöscht."
     },
@@ -808,7 +807,7 @@
     "import": {
       "title": "Import",
       "intro": "Die Datei wird geprüft und nur als Daten gelesen.",
-      "drop": "Datei auswählen oder hierher ziehen",
+      "drop": "Datei auswählen",
       "modeLegend": "Nach dem Einlesen",
       "modeAdd": "Als neue Szenarien hinzufügen",
       "modeReplace": "Alle vorhandenen Szenarien ersetzen",
@@ -832,7 +831,9 @@
       },
       "replaceConfirm": "Ersetzen",
       "done": "Die Datei wurde eingelesen.",
-      "locationScenario": "Szenario {{nth}} der Datei"
+      "locationScenario": "Szenario {{nth}} der Datei",
+      "brokeTitle": "Das Einlesen ist fehlgeschlagen",
+      "brokeBody": "Lade die Seite neu und prüfe, welche Szenarien vorhanden sind."
     },
     "empty": {
       "title": "Noch kein Szenario",

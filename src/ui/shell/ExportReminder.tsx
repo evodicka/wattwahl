@@ -3,8 +3,8 @@ import {
   exportReminderDismissed,
   useAppDispatch,
   useAppSelector,
-} from '../../../state';
-import { Button, Notice } from '../../components';
+} from '../../state';
+import { Button, Notice } from '../components';
 
 /**
  * The export reminder (Z10, spec "Export-Erinnerung"): it names the age of the

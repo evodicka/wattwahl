@@ -196,6 +196,8 @@ export const resultSlice = createSlice({
       state.comparison.error = action.payload.message;
     },
     comparisonCleared(state) {
+      // Also ends a run that is still going.
+      state.comparisonRequests += 1;
       state.comparison = null;
     },
   },
