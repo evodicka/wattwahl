@@ -5,7 +5,20 @@ import {
   type PriceCase,
   type Scenario,
 } from '../../domain';
-import { reserveLightOf, type Results } from './candidateStatus';
+
+export type Results = Record<string, Partial<Record<PriceCase, OfferResult>>>;
+
+/** The light of the cell with the smallest reserve; `null` if the EV never drives. */
+export function reserveLightOf(
+  result: OkOfferResult,
+): 'green' | 'yellow' | 'red' | null {
+  const min = result.minReserve;
+  if (!min) return null;
+  return (
+    result.reserves.find((r) => r.way === min.way && r.month === min.month)
+      ?.light ?? null
+  );
+}
 
 /** One offer in the result table (spec "Ergebnistabelle"). */
 export type ResultRow = {

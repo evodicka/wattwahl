@@ -42,6 +42,10 @@ export const uiSlice = createSlice({
   reducers: {
     sliderPricesSet(state, action: PayloadAction<SliderPrices | null>) {
       state.sliderPrices = action.payload;
+      // The "Regler" case exists only while the slider does.
+      if (action.payload === null && state.priceCase === 'slider') {
+        state.priceCase = 'mid';
+      }
     },
     priceCaseSet(state, action: PayloadAction<PriceCase>) {
       state.priceCase = action.payload;

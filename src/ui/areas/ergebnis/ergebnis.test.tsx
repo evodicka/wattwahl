@@ -4,7 +4,12 @@ import { exampleScenario } from '../../../../tests/fixtures/exampleScenario';
 import { scenarioWithFour } from '../../../../tests/fixtures/fourCandidates';
 import { computeResults } from '../../../../tests/fixtures/offerResults';
 import type { Scenario } from '../../../domain';
-import { scenarioUpdated } from '../../../state';
+import {
+  priceCaseSet,
+  requestCompute,
+  scenarioUpdated,
+  sliderPricesSet,
+} from '../../../state';
 import { renderApp } from '../../__tests__/renderApp';
 
 // S19: result table, price case, offer cards (boards D5, M8, T2, T4; states Z01 to Z04).
@@ -252,5 +257,101 @@ describe('S19: result cards on a phone', () => {
     expect(
       within(incomplete).queryByRole('link', { name: /Details/ }),
     ).toBeNull();
+  });
+});
+
+describe('S19: review findings', () => {
+  it('shows an error with a retry when the first computation fails', async () => {
+    const app = await renderApp('/ergebnis', {
+      scenarios: [scenarioWithFour()],
+    });
+    await act(async () => app.worker.fail('boom'));
+    expect(screen.getByText('Die Berechnung ist fehlgeschlagen')).toBeTruthy();
+    expect(screen.queryByText('Wird berechnet …')).toBeNull();
+    const before = app.worker.computes.length;
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    });
+    expect(app.worker.computes.length).toBe(before + 1);
+  });
+
+  it('keeps the last table and says it is outdated when a later computation fails', async () => {
+    const app = await open('/ergebnis');
+    await act(async () => {
+      void app.store.dispatch(requestCompute());
+    });
+    await act(async () => app.worker.fail('boom'));
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByText('Die Zahlen sind nicht aktuell')).toBeTruthy();
+  });
+
+  it('a link in an incomplete row does not open an offer', async () => {
+    const scenario = exampleScenario();
+    scenario.iceVehicle = { ...scenario.iceVehicle, maintenancePerKm: null };
+    const app = await open('/ergebnis', scenario);
+    const [link] = within(screen.getByRole('table')).getAllByRole('link', {
+      name: 'Fahrprofil',
+    });
+    if (!link) throw new Error('no link');
+    fireEvent.click(link);
+    expect(app.router.state.location.pathname).toBe('/fahrprofil');
+  });
+
+  it('only a computed offer opens: incomplete and unsuitable rows have no link', async () => {
+    await open('/ergebnis');
+    const rows = bodyRows();
+    for (const row of rows.slice(-2)) {
+      expect(within(row).queryByRole('link', { name: /Model/ })).toBeNull();
+    }
+    expect(within(rows[0] as HTMLElement).getByRole('link')).toBeTruthy();
+  });
+
+  it('opens an offer by an encoded deep link and keeps it while results are replaced', async () => {
+    const scenario = scenarioWithFour();
+    const id = `${scenario.candidates[1]?.id}:purchase`;
+    const app = await open(`/ergebnis/${encodeURIComponent(id)}`, scenario);
+    expect(app.router.state.location.pathname).toBe(
+      `/ergebnis/${encodeURIComponent(id)}`,
+    );
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Model B · Kauf' }),
+    ).toBeTruthy();
+    // A change under way: the stale results do not decide that the id is unknown.
+    await act(async () => {
+      app.store.dispatch(scenarioUpdated({ ...scenario, name: 'Standard 2' }));
+    });
+    expect(app.router.state.location.pathname).toBe(
+      `/ergebnis/${encodeURIComponent(id)}`,
+    );
+  });
+
+  it('an incomplete offer has no detail view: its id leads back to the comparison', async () => {
+    const scenario = scenarioWithFour();
+    const id = `${scenario.candidates[2]?.id}:purchase`;
+    const app = await open(`/ergebnis/${encodeURIComponent(id)}`, scenario);
+    expect(app.router.state.location.pathname).toBe('/ergebnis');
+  });
+
+  it('the slider case goes back to "Mittel" when the slider goes', async () => {
+    const app = await open('/ergebnis');
+    await act(async () => {
+      app.store.dispatch(
+        sliderPricesSet({
+          petrol: 1.9,
+          electricity: 0.3,
+          petrolEscalationPct: 0,
+          electricityEscalationPct: 0,
+        }),
+      );
+      app.store.dispatch(priceCaseSet('slider'));
+    });
+    expect(app.store.getState().ui.priceCase).toBe('slider');
+    await act(async () => {
+      app.store.dispatch(sliderPricesSet(null));
+    });
+    expect(app.store.getState().ui.priceCase).toBe('mid');
+    expect(screen.getByTestId('status-line').textContent).toContain(
+      'Preisfall Mittel',
+    );
   });
 });

@@ -486,11 +486,12 @@
       "noTotal": "–",
       "evPerYear": "E-Auto pro Jahr",
       "rangeCard": "Spanne {{range}}",
-      "openOffer": "Details zu {{offer}}",
+      "openOffer": "Details ansehen: {{offer}}",
       "offerTitle": "{{candidate}} · {{offer}}",
       "profileMissing": "Das Fahrprofil ist nicht vollständig, deshalb wird noch nicht gerechnet.",
       "reserveWhere": "Weg {{way}}, {{month}}",
-      "reserveCard": "{{value}} ({{where}})"
+      "reserveCard": "{{value}} ({{where}})",
+      "noValue": "–"
     },
     "offersHeading": "Angebote nach Kosten",
     "unsuitable": {
@@ -591,8 +592,10 @@
       }
     },
     "computing": "Wird berechnet …",
-    "priceCaseLabel": "Preisfall",
-    "cards": "Angebote nach Kosten"
+    "failedTitle": "Die Berechnung ist fehlgeschlagen",
+    "failedBody": "Deine Eingaben sind gespeichert. Versuche es noch einmal.",
+    "outdatedTitle": "Die Zahlen sind nicht aktuell",
+    "outdatedBody": "Die letzte Berechnung ist fehlgeschlagen. Angezeigt wird der letzte fertige Stand."
   },
   "szenarien": {
     "title": "Szenarien und Daten",

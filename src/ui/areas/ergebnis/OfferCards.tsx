@@ -19,11 +19,10 @@ import {
 type Props = {
   rows: ResultRow[];
   scenario: Scenario;
-  selectedOfferId?: string;
 };
 
 /** The offers as cards below 900 px (boards M8, T2), in the order of the table. */
-export function OfferCards({ rows, scenario, selectedOfferId }: Props) {
+export function OfferCards({ rows, scenario }: Props) {
   const { t } = useTranslation('ergebnis');
   const { t: c } = useTranslation();
   const offerLabel = useOfferLabel();
@@ -41,12 +40,7 @@ export function OfferCards({ rows, scenario, selectedOfferId }: Props) {
           <Card
             key={row.offerId}
             muted={ok === null}
-            className={[
-              styles.offer,
-              row.offerId === selectedOfferId ? styles.selected : undefined,
-            ]
-              .filter(Boolean)
-              .join(' ')}
+            className={styles.offer}
             aria-label={title}
           >
             <div className="spread">
@@ -85,9 +79,12 @@ export function OfferCards({ rows, scenario, selectedOfferId }: Props) {
                     <WarrantyBadge result={ok} />
                   </dd>
                 </dl>
-                <Link className="link" to={offerPath(row.offerId)}>
+                <Link
+                  className="link"
+                  to={offerPath(row.offerId)}
+                  aria-label={t('table.openOffer', { offer: title })}
+                >
                   {c('actions.showDetails')}
-                  <span className="visually-hidden">: {title}</span>
                 </Link>
               </>
             ) : (
