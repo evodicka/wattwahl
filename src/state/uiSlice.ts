@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SliderPrices } from '../domain';
+import type { PriceCase, SliderPrices } from '../domain';
 import type { ImportError } from '../storage';
 
 // Transient UI state: the price slider (never saved, 8.5) and the notices the
@@ -19,11 +19,14 @@ export type Notices = {
 
 export type UiState = {
   sliderPrices: SliderPrices | null;
+  /** The price case the result views show; the status line names it. */
+  priceCase: PriceCase;
   notices: Notices;
 };
 
 const initialState: UiState = {
   sliderPrices: null,
+  priceCase: 'mid',
   notices: {
     quotaExceeded: false,
     reloadRequired: false,
@@ -39,6 +42,9 @@ export const uiSlice = createSlice({
   reducers: {
     sliderPricesSet(state, action: PayloadAction<SliderPrices | null>) {
       state.sliderPrices = action.payload;
+    },
+    priceCaseSet(state, action: PayloadAction<PriceCase>) {
+      state.priceCase = action.payload;
     },
     noticeShown(
       state,
@@ -63,6 +69,7 @@ export const uiSlice = createSlice({
 
 export const {
   sliderPricesSet,
+  priceCaseSet,
   noticeShown,
   noticeDismissed,
   importFailed,

@@ -1,0 +1,9 @@
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  color: var(--ink-muted);
+  font: var(--type-caption-weight) var(--type-caption-size) /
+    var(--type-caption-line-height) var(--type-caption-family);
+}

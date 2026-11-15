@@ -225,3 +225,29 @@ describe('S14: review follow-ups', () => {
     expect(at(workers, index).computes.length).toBeGreaterThan(0);
   });
 });
+
+describe('S16: time of the calculation for the status line', () => {
+  it('a taken-over result carries the time from the injected clock', async () => {
+    const worker = controlledWorker();
+    const now = new Date('2026-11-14T11:04:00Z');
+    const store = createAppStore({
+      repository: fakeRepository(),
+      spawnWorker: spawnSequence(worker),
+      now: () => now,
+    });
+    const scenario = exampleScenario();
+    store.dispatch(
+      loaded({
+        scenarios: [scenario],
+        readOnly: [],
+        invalid: [],
+        settings: { ...DEFAULT_DEVICE_SETTINGS, activeScenarioId: scenario.id },
+      }),
+    );
+    expect(store.getState().result.computedAt).toBeNull();
+    void store.dispatch(requestCompute());
+    worker.finish(0);
+    await settle();
+    expect(store.getState().result.computedAt).toBe(now.toISOString());
+  });
+});

@@ -30,6 +30,7 @@ export default defineConfig({
           name: 'ui',
           environment: 'jsdom',
           include: ['src/ui/**/*.test.{ts,tsx}'],
+          setupFiles: ['src/ui/__tests__/setup.ts'],
           benchmark: { include: [] },
         },
       },

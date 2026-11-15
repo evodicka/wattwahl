@@ -121,3 +121,284 @@
   --type-formula-line-height: 20px;
   --type-formula-weight: 400;
 }
+
+/*
+ * Base rules and layout steps (architecture 8.8). Below this line no custom
+ * property is declared: the tokens above are the design system's, checked by
+ * tests/ui/theme.test.ts. Breakpoints are 600, 900 and 1200 px, the same as
+ * src/ui/layout/breakpoints.ts; references are the boards D1, M1 and T1 to T4.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--type-body-weight) var(--type-body-size) /
+    var(--type-body-line-height) var(--type-body-family);
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Type and stacking helpers, as in the mockups */
+.h-display {
+  font: var(--type-display-weight) var(--type-display-size) /
+    var(--type-display-line-height) var(--type-display-family);
+}
+.h-title {
+  font: var(--type-title-weight) var(--type-title-size) /
+    var(--type-title-line-height) var(--type-title-family);
+}
+.h-heading {
+  font: var(--type-heading-weight) var(--type-heading-size) /
+    var(--type-heading-line-height) var(--type-heading-family);
+}
+.t-sm {
+  font: var(--type-body-sm-weight) var(--type-body-sm-size) /
+    var(--type-body-sm-line-height) var(--type-body-sm-family);
+}
+.t-label {
+  font: var(--type-label-weight) var(--type-label-size) /
+    var(--type-label-line-height) var(--type-label-family);
+}
+.t-cap {
+  font: var(--type-caption-weight) var(--type-caption-size) /
+    var(--type-caption-line-height) var(--type-caption-family);
+}
+.t-num {
+  font-variant-numeric: tabular-nums;
+}
+.muted {
+  color: var(--ink-muted);
+}
+.link {
+  color: var(--accent);
+  font: var(--type-label-weight) var(--type-label-size) /
+    var(--type-label-line-height) var(--type-label-family);
+  text-decoration: underline;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.group-title {
+  font: var(--type-heading-weight) var(--type-heading-size) /
+    var(--type-heading-line-height) var(--type-heading-family);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+/*
+ * Grid primitives for the areas. .cols2: area columns. .fields: the fields of
+ * a form card, two per row on a wide phone; a child with .full spans the row.
+ * .f2 and .f3: groups of two and three fields; three stack on a narrow
+ * desktop so that number and unit fit.
+ */
+.cols2,
+.fields,
+.f2,
+.f3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.f2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.f3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.fields > .full {
+  grid-column: 1 / -1;
+}
+
+/*
+ * App frame. Below 900 px: header, content, bottom navigation. From 900 px:
+ * sidebar and content. The hidden navigation is display: none, so it is not
+ * in the accessibility tree either.
+ */
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.app-side {
+  display: none;
+}
+.app-top {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--line);
+}
+.app-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-4);
+}
+.app-main:focus {
+  outline: none;
+}
+.app-bottom {
+  position: sticky;
+  bottom: 0;
+}
+/* Below 900 px the header shows the title; the heading stays for screen readers. */
+.page-head {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Wide phone and tablet portrait: content at most 720 px and centred */
+@media (min-width: 600px) {
+  .app-top {
+    padding-inline: max(
+      var(--space-4),
+      calc((100% - 720px) / 2 + var(--space-4))
+    );
+  }
+  .app-main {
+    max-width: 720px;
+    margin-inline: auto;
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop, narrow (tablet landscape): sidebar 200 px, margins 24 px */
+@media (min-width: 900px) {
+  .app-frame {
+    flex-direction: row;
+  }
+  .app-top,
+  .app-bottom {
+    display: none;
+  }
+  .app-side {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: var(--space-5);
+    width: 200px;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    padding: var(--space-5) var(--space-2);
+    background: var(--surface-sunken);
+    border-right: 1px solid var(--line);
+  }
+  .app-main {
+    max-width: none;
+    margin: 0;
+    padding: var(--space-5) var(--space-5) var(--space-6);
+    gap: var(--space-6);
+  }
+  .page-head {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+  .cols2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .f3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1200px) {
+  .app-side {
+    width: var(--sidebar-width);
+    padding: var(--space-5) var(--space-3);
+  }
+  .app-main {
+    padding: var(--space-6) var(--space-7) var(--space-7);
+  }
+}

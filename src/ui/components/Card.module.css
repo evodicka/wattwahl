@@ -1,0 +1,15 @@
+.card {
+  padding: var(--space-4);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.muted {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+@media (min-width: 900px) {
+  .card {
+    padding: var(--space-5);
+  }
+}

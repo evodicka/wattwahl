@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatConsumption,
+  formatDate,
   formatDecimal,
   formatEuro,
   formatKm,
   formatPercent,
+  formatTime,
 } from './format';
 
 // Intl puts a no-break space between number and unit.
@@ -105,5 +107,32 @@ describe('formatDecimal (decimal comma for other values)', () => {
 
   it('uses the thousands point', () => {
     expect(formatDecimal(200000, 0)).toBe('200.000');
+  });
+});
+
+describe('formatDate and formatTime (S16: "Stand" and "Gespeichert")', () => {
+  // The CI runner is in UTC, so every test names its time zone.
+  const at = '2026-11-14T11:04:31Z';
+
+  it('writes the date with two-digit day and month', () => {
+    expect(formatDate(at, 'Europe/Berlin')).toBe('14.11.2026');
+    expect(formatDate('2026-01-05T10:00:00Z', 'Europe/Berlin')).toBe(
+      '05.01.2026',
+    );
+  });
+
+  it('writes the time in hours and minutes of the given zone', () => {
+    expect(formatTime(at, 'Europe/Berlin')).toBe('12:04');
+    expect(formatTime(at, 'UTC')).toBe('11:04');
+  });
+
+  it('takes the day of the given zone, not of UTC', () => {
+    expect(formatDate('2026-11-14T23:30:00Z', 'Europe/Berlin')).toBe(
+      '15.11.2026',
+    );
+  });
+
+  it('accepts a Date as well as an ISO string', () => {
+    expect(formatTime(new Date(at), 'UTC')).toBe('11:04');
   });
 });

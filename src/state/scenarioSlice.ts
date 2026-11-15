@@ -22,6 +22,8 @@ export type ScenarioState = {
   settings: DeviceSettings;
   /** Ids changed since their last save; the autosave writes them. */
   dirty: string[];
+  /** When the autosave last wrote a scenario (ISO 8601), for the frame. */
+  lastSavedAt: string | null;
 };
 
 const initialState: ScenarioState = {
@@ -32,6 +34,7 @@ const initialState: ScenarioState = {
   invalid: [],
   settings: DEFAULT_DEVICE_SETTINGS,
   dirty: [],
+  lastSavedAt: null,
 };
 
 const markDirty = (state: ScenarioState, id: string) => {
@@ -101,8 +104,12 @@ export const scenarioSlice = createSlice({
      * The autosave wrote this version. Changed again meanwhile, the scenario
      * stays dirty and is written by the next autosave.
      */
-    scenarioSaved(state, action: PayloadAction<Scenario>) {
-      const scenario = action.payload;
+    scenarioSaved(
+      state,
+      action: PayloadAction<{ scenario: Scenario; savedAt: string }>,
+    ) {
+      const { scenario, savedAt } = action.payload;
+      state.lastSavedAt = savedAt;
       // Compared on the base state: reading the draft would give a proxy.
       if (original(state)?.byId[scenario.id] !== scenario) return;
       state.dirty = state.dirty.filter((id) => id !== scenario.id);

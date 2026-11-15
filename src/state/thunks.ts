@@ -48,7 +48,7 @@ function reportWrite(dispatch: AppDispatch, result: WriteResult): boolean {
 
 /** Writes every changed scenario now: the autosave after 300 ms and on leaving the page (8.2). */
 export function flushSaves(): AppThunk<Promise<void>> {
-  return async (dispatch, getState, { repository }) => {
+  return async (dispatch, getState, { repository, now }) => {
     const { dirty, byId } = getState().scenario;
     // All writes start at once: on pagehide the page may not live to issue a
     // second one after awaiting the first.
@@ -57,7 +57,7 @@ export function flushSaves(): AppThunk<Promise<void>> {
         .flatMap((id) => byId[id] ?? [])
         .map(async (scenario) => {
           if (reportWrite(dispatch, await repository.save(scenario))) {
-            dispatch(scenarioSaved(scenario));
+            dispatch(scenarioSaved({ scenario, savedAt: now().toISOString() }));
           }
         }),
     );
@@ -79,7 +79,7 @@ export function persistSettings(): AppThunk<Promise<void>> {
  * run and a run cut short by a crash leave it as it is.
  */
 export function requestCompute(): AppThunk<Promise<void>> {
-  return async (dispatch, getState, { core }) => {
+  return async (dispatch, getState, { core, now }) => {
     const state = getState();
     const scenario = selectActiveScenario(state);
     if (!scenario) return;
@@ -96,7 +96,9 @@ export function requestCompute(): AppThunk<Promise<void>> {
       dispatch(computeFailed({ generation, message: messageOf(error) }));
       return;
     }
-    if (response.status === 'done') dispatch(computeSucceeded(response));
+    if (response.status === 'done') {
+      dispatch(computeSucceeded({ response, computedAt: now().toISOString() }));
+    }
   };
 }
 
@@ -115,9 +117,11 @@ export function startApp(options: {
 
     let settings = await repository.loadSettings();
     if (!settings.firstRunCompleted) {
-      if ((await services.requestPersistence()) === 'denied') {
-        dispatch(noticeShown('persistenceDenied'));
-      }
+      // Not awaited: Firefox asks the user and answers only then, and the
+      // start must not wait for that. A refusal shows its hint when it comes.
+      void services.requestPersistence().then((result) => {
+        if (result === 'denied') dispatch(noticeShown('persistenceDenied'));
+      });
       settings = { ...settings, firstRunCompleted: true };
     }
 

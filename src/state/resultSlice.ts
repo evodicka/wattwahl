@@ -30,6 +30,8 @@ export type ResultState = {
   generation: number;
   status: ResultStatus;
   latest: Extract<ComputeResponse, { status: 'done' }> | null;
+  /** When `latest` arrived (ISO 8601): "Stand der Berechnung". */
+  computedAt: string | null;
   trace: TraceState | null;
   error: string | null;
 };
@@ -38,6 +40,7 @@ const initialState: ResultState = {
   generation: 0,
   status: 'idle',
   latest: null,
+  computedAt: null,
   trace: null,
   error: null,
 };
@@ -56,10 +59,16 @@ export const resultSlice = createSlice({
     },
     computeSucceeded(
       state,
-      action: PayloadAction<Extract<ComputeResponse, { status: 'done' }>>,
+      action: PayloadAction<{
+        response: Extract<ComputeResponse, { status: 'done' }>;
+        /** Stamped by the thunk: reducers read no clock. */
+        computedAt: string;
+      }>,
     ) {
-      if (action.payload.generation !== state.generation) return;
-      state.latest = action.payload;
+      const { response, computedAt } = action.payload;
+      if (response.generation !== state.generation) return;
+      state.latest = response;
+      state.computedAt = computedAt;
       state.status = 'idle';
       state.error = null;
     },
