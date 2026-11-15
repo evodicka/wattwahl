@@ -129,6 +129,19 @@ function Workplace({
   const base = `workplaces.${which}`;
   const oneWay = sum(workplace.commute);
   const title = which === 'a' ? t('workplace.titleA') : t('workplace.titleB');
+  const { commute } = workplace;
+  // Rules across fields of the compute schema: shown once the fields they
+  // concern are filled in, so an empty template does not start with errors.
+  const wayZero =
+    ROADS.every((road) => commute[road] !== null) && oneWay === 0
+      ? c('validation.wayZero')
+      : null;
+  const workdays =
+    scenario.parameters.workWeeksPerYear * workplace.weekdays.length;
+  const freeDaysError =
+    workplace.weekdays.length > 0 && workplace.freeDaysPerYear > workdays
+      ? c('validation.freeDays')
+      : null;
   return (
     <Card className="stack" aria-labelledby={`w${which}`}>
       <div className="row">
@@ -161,6 +174,7 @@ function Workplace({
             unit={c('units.km')}
             marked={false}
             rules={{ required: true, nullable: true, min: 0 }}
+            error={road === 'highway' ? wayZero : null}
           />
         ))}
       </div>
@@ -187,6 +201,7 @@ function Workplace({
         })}
         unit={c('units.days')}
         hint={t('workplace.freeDaysHint')}
+        error={freeDaysError}
         withDefault
         rules={{ min: 0 }}
       />

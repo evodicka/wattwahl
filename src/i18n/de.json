@@ -409,8 +409,6 @@
     "evMaintenance": "Wartung und Reifen E-Auto",
     "depreciation": "Wertverlust",
     "perCandidateHint": "Je Kandidat überschreibbar",
-    "freeDays": "Freie Tage je Arbeitsstätte",
-    "freeDaysHint": "Standard für neue Arbeitsstätten, je Stätte im Fahrprofil änderbar",
     "extraMode": "Zuordnung der Zusatzstrecke",
     "extraModeFree": "Frei optimiert",
     "extraModeFixed": "Fester E-Auto-Anteil in %",

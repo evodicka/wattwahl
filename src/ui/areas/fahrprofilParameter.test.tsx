@@ -121,6 +121,49 @@ describe('S17: Fahrprofil', () => {
   });
 });
 
+describe('S17: Fahrprofil, rules across fields', () => {
+  it('marks the free days of each workplace as "Annahme"', async () => {
+    await renderApp('/fahrprofil');
+    for (const which of ['a', 'b']) {
+      const input = document.getElementById(
+        `f-workplaces.${which}.freeDaysPerYear`,
+      ) as HTMLInputElement | null;
+      expect(input?.labels?.[0]?.textContent, which).toContain('Annahme');
+    }
+  });
+
+  it('rejects more free days than working days', async () => {
+    const app = await renderApp('/fahrprofil');
+    const [group] = screen.getAllByRole('group', {
+      name: 'Besuchte Wochentage',
+    });
+    if (!group) throw new Error('no weekday group');
+    fireEvent.click(within(group).getByRole('button', { name: 'Montag' }));
+    // One weekday a week and 52 weeks: 52 working days.
+    enter(/^Freie Tage pro Jahr/, '60');
+    expect(
+      screen.getByText('Höchstens so viele freie Tage wie Arbeitstage.'),
+    ).toBeTruthy();
+    expect(active(app).workplaces.a.freeDaysPerYear).toBe(60);
+    enter(/^Freie Tage pro Jahr/, '30');
+    expect(
+      screen.queryByText('Höchstens so viele freie Tage wie Arbeitstage.'),
+    ).toBeNull();
+  });
+
+  it('asks for a route longer than 0 km once all three parts are filled', async () => {
+    await renderApp('/fahrprofil');
+    const message = 'Die Strecke muss insgesamt größer als 0 sein.';
+    enter(/^Weg Stadt/, '0');
+    enter(/^Weg Land/, '0');
+    expect(screen.queryByText(message)).toBeNull();
+    enter(/^Weg Autobahn/, '0');
+    expect(screen.getByText(message)).toBeTruthy();
+    enter(/^Weg Autobahn/, '12');
+    expect(screen.queryByText(message)).toBeNull();
+  });
+});
+
 describe('S17: Parameter', () => {
   const labelOf = (path: string): string => {
     const input = document.getElementById(`f-${path}`);
@@ -143,9 +186,8 @@ describe('S17: Parameter', () => {
           document.getElementById('s2g')?.parentElement?.textContent,
         ).toContain('Annahme');
       } else if (entry.path.startsWith('workplaces.')) {
-        expect(
-          document.getElementById('s5')?.parentElement?.textContent,
-        ).toContain('Annahme');
+        // The free days are edited per workplace in the Fahrprofil.
+        continue;
       } else {
         expect(labelOf(entry.path), entry.path).toContain('Annahme');
       }
