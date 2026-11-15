@@ -72,7 +72,7 @@ export type WarrantyBudget = {
 };
 
 /** A warranty with 0 years or 0 km is expired and does not enter the budget. */
-export const isExpired = (warranty: Warranty): boolean =>
+export const isExpired = (warranty: RemainingWarranty): boolean =>
   warranty.years <= 0 || warranty.km <= 0;
 
 /**
@@ -80,8 +80,9 @@ export const isExpired = (warranty: Warranty): boolean =>
  * warranties that still run.
  */
 export function warrantyBudget(
-  vehicle: Warranty,
-  battery: Warranty,
+  /** Remaining warranties from `remainingWarranty`, not the normal ones. */
+  vehicle: RemainingWarranty,
+  battery: RemainingWarranty,
   options: { isLease: boolean; asTarget: boolean },
   trace?: Trace,
 ): WarrantyBudget {
