@@ -24,6 +24,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+        env:
+          # Names the build in <meta name="build-id"> (architecture 8.12).
+          BUILD_ID: ${{ github.sha }}
       - run: npx playwright install --with-deps
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7

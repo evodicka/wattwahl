@@ -428,7 +428,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Manifest mit `name: "Wattwahl"`, `short_name: "Wattwahl"`, `display: "standalone"` und `start_url: "./#/"`. Auf iOS zeigt der erste Start eine Anleitung zur Installation auf dem Home-Bildschirm (`isIosBrowserTab()`: iPhone oder iPad im Browser, nicht als installierte App). Der erste Start zeigt einmal einen Willkommenshinweis (Z18, Z09); danach steht `firstRunCompleted` in den Geräteeinstellungen. In einer Datenbank einer neueren App (nur lesbar) wird die Einstellung nicht geschrieben, dort erscheint der Hinweis bei jedem Start.
 - „Aktualisieren“ ruft `saveBeforeUpdate()` auf. Konnten Änderungen nicht gespeichert werden (Speicher voll), lädt die App nicht neu und sagt es. In einer Datenbank einer neueren App wird nichts geschrieben, dort ist das Update erlaubt, weil es der Ausweg ist. Der Dienst-Worker prüft zusätzlich jede Stunde, ob es eine neue Version gibt.
 - Der Build schreibt `<meta name="build-id">` (`BUILD_ID` aus der Umgebung, sonst `local`). Zwei Builds unterscheiden sich so in `index.html`; der End-to-End-Test für das Update baut Build B mit `BUILD_ID=b` nach `dist-b-<Projekt>` (ein Ordner je Browser, weil die Projekte parallel laufen) und tauscht ihn hinter demselben Server aus.
-- Bekannte Grenze: Nur der Tab, in dem „Aktualisieren“ gedrückt wird, lädt neu. Ein zweiter offener Tab läuft mit altem Code weiter. Nach dem Update fehlen ihm die alten Chunk-Dateien, ein nachgeladenes Diagramm kann dort ausfallen und die Fehlerseite des Bereichs zeigt sich; die Daten sind gespeichert. Ein Neuladen des Tabs behebt es.
+- Bekannte Grenze: Ein zweiter offener Tab läuft nach einem Update mit altem Code weiter, siehe 11.3.
 
 ### 8.13 Teststrategie
 
@@ -501,8 +501,9 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 | Änderung der Domain oder Entfernen der Custom Domain | Neuer Origin, Browser-Speicher leer | Domain festschreiben, vor jedem Umzug exportieren. Ein Umbenennen des Repositorys ändert den Origin nicht |
 | Lint-Regeln sind die einzige Schichtgrenze | Versehentliche UI-Importe im Kern | Regel im CI verpflichtend, Q11 als Test |
 | Firefox bricht die axe-Prüfung der Diagrammseite im CI mit „Page crashed“ ab (Ursache unbekannt) | Q10 ist für diese Seite in Firefox nicht geprüft, die Stufe läuft nur in Chromium und WebKit | Der Test ist in Firefox als `fixme` markiert, Analyse und Plan in 11.2 |
+| Zweiter offener Tab nach einem Update (S23) | Der Tab läuft mit altem Code, ihm fehlen die alten Chunk-Dateien, ein nachgeladenes Diagramm fällt aus | Offen, siehe 11.3. Daten sind sicher, Neuladen des Tabs behebt es |
 
-**Technische Schulden zum Start:** keine. Seit S20 gibt es eine bekannte, offene Schuld im Testaufbau (11.2). Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst nicht gebaut. Der Benchmark zeigt, dass Q1 auch ohne sie erfüllt ist, und 11.1 beschreibt, wann und wie sie nachgezogen wird.
+**Technische Schulden zum Start:** keine. Seit S20 gibt es eine bekannte, offene Schuld im Testaufbau (11.2), seit S23 eine im Update-Ablauf (11.3). Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst nicht gebaut. Der Benchmark zeigt, dass Q1 auch ohne sie erfüllt ist, und 11.1 beschreibt, wann und wie sie nachgezogen wird.
 
 **Bei G2 festgelegte Werte** (aus dem Benchmark, siehe 11.1):
 
@@ -598,6 +599,14 @@ Als Entscheidung gilt (ADR-16): keiner dieser Pfade wird jetzt gebaut. Reicht di
 4. Playwright und Firefox auf die neueste Version heben und erneut messen. Bleibt der Fehler, mit einem minimalen Beispiel bei Playwright oder Mozilla melden.
 
 Bis dahin gilt die Prüfung nach Q10 für die Diagrammseite als in zwei von drei Engines nachgewiesen. Das ist für S26 und die Abnahme (G4) zu nennen.
+
+### 11.3 Offene Schuld: zweiter Tab nach einem Update (S23)
+
+**Befund.** Der Update-Hinweis (6.4, 8.12) erscheint in jedem offenen Tab. „Aktualisieren“ speichert und lädt aber nur den Tab neu, in dem der Knopf gedrückt wurde. Der neue Service Worker übernimmt danach alle Tabs des Origins und räumt mit `cleanupOutdatedCaches` den alten Precache ab. Ein zweiter Tab läuft weiter mit dem alten Code, dessen nachgeladene Dateien (Diagramme, Heatmap, Zuordnungsplan) mit alten Hashes weder im Cache noch auf dem Server liegen.
+
+**Auswirkung.** Öffnet der Nutzer im zweiten Tab eine Ansicht mit nachgeladenem Diagramm, schlägt der Import fehl und die Fehlerseite des Bereichs erscheint („Die Ansicht … ist ausgefallen“). Die Daten sind gespeichert, die anderen Bereiche laufen weiter, und ein Neuladen des Tabs behebt es. Der Hinweis „Neuere Version in einem anderen Tab“ (`reloadRequired`) deckt das nicht ab, denn er kommt von der Datenbank-Version, nicht vom Service Worker. Die Schuld ist nicht gebaut, weil die App meist in einem Tab läuft, und nicht getestet.
+
+**Möglicher Ausbau.** Ein `controllerchange`-Listener im Hauptthread, der in den anderen Tabs den Hinweis „Neu laden“ zeigt (Text und Knopf von `reloadRequired` wiederverwenden), sobald der neue Service Worker die Kontrolle übernimmt. Dazu ein End-to-End-Test mit zwei Seiten im selben Kontext: Update in Seite 1, Hinweis in Seite 2.
 
 ## 12. Glossar
 
