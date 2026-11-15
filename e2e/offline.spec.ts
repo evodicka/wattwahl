@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
-import { extname, join, normalize } from 'node:path';
+import { extname, normalize, resolve } from 'node:path';
 import { open, seedScenario, waitSaved } from './helpers';
 
 // S23: offline start (Q9, automatic part), update with two builds, no foreign
@@ -57,6 +57,10 @@ test.describe('S23: offline (Q9)', () => {
     await price.fill('0,33');
     await price.blur();
     await page.getByRole('link', { name: 'Ergebnis' }).first().click();
+    // The new price reaches the result: computed offline, by the cached worker.
+    await expect(
+      page.getByRole('row', { name: /Modell A Kauf/ }),
+    ).not.toHaveText(before ?? '');
     await expect(page.getByTestId('status-line')).not.toContainText(
       'wird aktualisiert',
     );
@@ -207,6 +211,14 @@ const MIME: Record<string, string> = {
   '.json': 'application/json',
 };
 
+const isFile = (path: string) => {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+};
+
 /** Serves one build directory; `switchTo` changes the build under the same address. */
 function buildServer(initial: string) {
   let root = initial;
@@ -214,8 +226,8 @@ function buildServer(initial: string) {
     const path = normalize(
       new URL(request.url ?? '/', 'http://x').pathname,
     ).replace(/^(\.\.[/\\])+/, '');
-    const file = join(root, path === '/' ? 'index.html' : path);
-    if (!existsSync(file)) {
+    const file = resolve(root, `.${path === '/' ? '/index.html' : path}`);
+    if (!file.startsWith(resolve(root)) || !isFile(file)) {
       response.writeHead(404).end();
       return;
     }
@@ -243,12 +255,14 @@ function buildServer(initial: string) {
 }
 
 test.describe('S23: update (6.4)', () => {
+  // One directory per project: the projects run in parallel workers.
+  const buildB = () => `dist-b-${test.info().project.name}`;
   test.beforeAll(() => {
     test.setTimeout(180_000);
     // Build B differs from the build in dist/ in its build id only.
-    execSync('npx vite build --outDir dist-b --emptyOutDir', {
+    execSync(`npx vite build --outDir ${buildB()} --emptyOutDir`, {
       env: { ...process.env, BUILD_ID: 'b' },
-      stdio: 'ignore',
+      stdio: 'inherit',
     });
   });
 
@@ -256,6 +270,28 @@ test.describe('S23: update (6.4)', () => {
     page,
     browserName,
   }) => {
+    // The save before the update must come from the update itself: without the
+    // lifecycle listeners and the 300 ms autosave timer, nothing else writes the edit.
+    await page.addInitScript(() => {
+      const timer = window.setTimeout;
+      window.setTimeout = ((
+        handler: TimerHandler,
+        delay?: number,
+        ...args: unknown[]
+      ) =>
+        delay === 300
+          ? 0
+          : timer(handler, delay, ...args)) as typeof window.setTimeout;
+      const add = EventTarget.prototype.addEventListener;
+      EventTarget.prototype.addEventListener = function (
+        this: EventTarget,
+        type: string,
+        ...rest: unknown[]
+      ) {
+        if (type === 'pagehide' || type === 'visibilitychange') return;
+        return (add as (...args: unknown[]) => void).call(this, type, ...rest);
+      } as typeof EventTarget.prototype.addEventListener;
+    });
     const server = buildServer('dist');
     const url = await server.start();
     try {
@@ -268,7 +304,7 @@ test.describe('S23: update (6.4)', () => {
       await expect(page.getByText('Neue Version verfügbar')).toHaveCount(0);
 
       // Build B goes online; the running app looks for it.
-      server.switchTo('dist-b');
+      server.switchTo(buildB());
       // A browser may refuse a check once while it is busy: ask again.
       await expect
         .poll(() =>

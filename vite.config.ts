@@ -25,6 +25,7 @@ export default defineConfig({
           'Vergleich von E-Auto-Angeboten, offline auf diesem Gerät.',
         lang: 'de',
         display: 'standalone',
+        id: './',
         start_url: './#/',
         scope: './',
         background_color: '#f5f4f0',
@@ -41,7 +42,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
         // The app has one page; its routes live in the hash.
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

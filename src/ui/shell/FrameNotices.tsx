@@ -78,14 +78,26 @@ export function FrameNotices({
       )}
       {updateAvailable && (
         <Notice
-          tone="info"
+          tone={updateBlocked ? 'warn' : 'info'}
           title={t('notice.updateTitle')}
           actions={
             <>
               <Button variant="primary" onClick={() => void runUpdate()}>
                 {t('actions.update')}
               </Button>
-              <Button onClick={dismiss}>{t('actions.later')}</Button>
+              {updateBlocked && (
+                <Button onClick={() => void navigate('/szenarien')}>
+                  {t('actions.exportNow')}
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  setUpdateBlocked(false);
+                  dismiss();
+                }}
+              >
+                {t('actions.later')}
+              </Button>
             </>
           }
         >

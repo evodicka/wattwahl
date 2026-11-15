@@ -1,4 +1,4 @@
-type Navigator = {
+type NavigatorInfo = {
   userAgent: string;
   platform?: string;
   maxTouchPoints?: number;
@@ -12,7 +12,7 @@ type Navigator = {
  * iPadOS 13 and later reports itself as a Mac, with touch.
  */
 export function isIosBrowserTab(
-  navigator: Navigator = window.navigator,
+  navigator: NavigatorInfo = window.navigator,
   displayModeStandalone: boolean = window.matchMedia?.(
     '(display-mode: standalone)',
   ).matches ?? false,
