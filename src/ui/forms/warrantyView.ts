@@ -19,6 +19,11 @@ export type WarrantyView =
         km: number;
       } | null;
       plannedKm: number;
+      /** The plan drives more km per year than the budget, whether or not the budget is a target. */
+      overBudget: boolean;
+      /** The budget is switched off as a target and only a hint. */
+      targetOff: boolean;
+      /** Over the budget in a run where the budget steers the plan (Z17). */
       exceeded: boolean;
       /** The nearest km limit in years, over the running warranties. */
       yearsToLimit: number | null;
@@ -29,9 +34,16 @@ export type WarrantyView =
 
 const PARTS = ['vehicle', 'battery'] as const;
 
-export function warrantyView(result: OkOfferResult): WarrantyView {
+export function warrantyView(
+  result: OkOfferResult,
+  options: { budgetAsTarget: boolean },
+): WarrantyView {
   const { warranty } = result;
-  if (warranty.noWarranty) return { kind: 'noWarranty' };
+  // A lease is held to its tier, not to the budget (spec "Garantie-Budget"), so
+  // with both warranties expired it still shows the remaining warranty.
+  if (warranty.noWarranty && result.kind === 'purchase') {
+    return { kind: 'noWarranty' };
+  }
 
   const running = PARTS.filter(
     (part) =>
@@ -50,21 +62,22 @@ export function warrantyView(result: OkOfferResult): WarrantyView {
     const years = warranty.yearsToKmLimit[part];
     return years === null ? [] : [years];
   });
+  const budget =
+    // The budget is not active for a lease: its tier is the limit.
+    result.kind === 'purchase' && warranty.budgetKmPerYear !== null && tightest
+      ? {
+          kmPerYear: warranty.budgetKmPerYear,
+          source: tightest.part,
+          years: tightest.years,
+          km: tightest.km,
+        }
+      : null;
   return {
     kind: 'running',
-    budget:
-      // The budget is not active for a lease: its tier is the limit.
-      result.kind === 'purchase' &&
-      warranty.budgetKmPerYear !== null &&
-      tightest
-        ? {
-            kmPerYear: warranty.budgetKmPerYear,
-            source: tightest.part,
-            years: tightest.years,
-            km: tightest.km,
-          }
-        : null,
+    budget,
     plannedKm: result.evKmPerYear,
+    overBudget: budget !== null && result.evKmPerYear > budget.kmPerYear + 0.5,
+    targetOff: budget !== null && !options.budgetAsTarget,
     exceeded: result.kind === 'purchase' && warranty.budgetExceeded,
     yearsToLimit: limits.length > 0 ? Math.min(...limits) : null,
     extraCost: result.costs.budgetExtraCost,

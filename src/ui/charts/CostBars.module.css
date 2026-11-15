@@ -84,3 +84,13 @@
     var(--type-label-line-height) var(--type-label-family);
   cursor: pointer;
 }
+
+.track svg,
+.axisTrack svg {
+  display: block;
+  /* The end cap of a span and the last axis label reach over the edge. */
+  overflow: visible;
+}
+.axisTrack {
+  min-width: 0;
+}

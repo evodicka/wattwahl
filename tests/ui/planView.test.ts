@@ -22,6 +22,8 @@ const purchaseResult = (scenario: Scenario): OkOfferResult => {
   return result;
 };
 
+const ON = { budgetAsTarget: true };
+
 describe('S20: plan view', () => {
   it('TC16: with both staffed planned as E→B, "only A" is E→A in every month', () => {
     const days = planView(purchaseResult(planPerState()).plan);
@@ -71,15 +73,33 @@ describe('S20: plan view', () => {
     ]);
   });
 
-  it('on a tie between two plans the warmest month decides, not the earlier month', () => {
+  it('the reference month decides which plan is the usual one', () => {
     const plan = purchaseResult(winterRest()).plan;
-    // Make the plan differ in the first six months: reference May (index 4) vs January (index 0).
+    // January rests, the other months drive: against January eleven months differ, against May only January.
     const fromJanuary = planView(plan, 0).find((d) => d.weekday === 'mon');
     const fromMay = planView(plan, 4).find((d) => d.weekday === 'mon');
     expect(fromJanuary?.months.filter((m) => m.change).length).toBe(11);
     expect(fromMay?.months.filter((m) => m.change).map((m) => m.month)).toEqual(
       [0],
     );
+  });
+
+  it('without a reference month the plan most months have is the usual one', () => {
+    const monday = planView(purchaseResult(winterRest()).plan).find(
+      (d) => d.weekday === 'mon',
+    );
+    expect(monday?.months.filter((m) => m.change).map((m) => m.month)).toEqual([
+      0,
+    ]);
+  });
+
+  it('shows "only B" lines and leaves out a weekday that has no plan', () => {
+    const days = planView(purchaseResult(winterRest()).plan);
+    expect(days.map((d) => d.weekday)).toEqual(['mon', 'tue']);
+    const tuesday = days.find((d) => d.weekday === 'tue');
+    expect(tuesday?.months[3]?.lines).toEqual([
+      { state: 'onlyB', present: ['b'], vehicle: 'ev', target: 'b' },
+    ]);
   });
 
   it('finds the warmest month, the first one on a tie', () => {
@@ -115,7 +135,7 @@ describe('S20: warranty view', () => {
   const result = purchaseResult(example);
 
   it('names the budget, where it comes from and the nearest km limit', () => {
-    const view = warrantyView(result);
+    const view = warrantyView(result, ON);
     if (view.kind !== 'running') throw new Error('expected a running warranty');
     // Example: vehicle 3 J / 100.000 km, battery 8 J / 160.000 km, new car.
     expect(view.budget).toMatchObject({
@@ -136,7 +156,7 @@ describe('S20: warranty view', () => {
     if (!candidate || !lease) throw new Error('no lease');
     const leaseResult = computeOffer(example, lease, 'mid');
     if (leaseResult.status !== 'ok') throw new Error('lease not ok');
-    const view = warrantyView(leaseResult);
+    const view = warrantyView(leaseResult, ON);
     expect(view).toMatchObject({ kind: 'running', budget: null });
   });
 
@@ -150,7 +170,7 @@ describe('S20: warranty view', () => {
         batteryWarranty: { years: 0, km: 0 },
       },
     ];
-    expect(warrantyView(purchaseResult(scenario))).toEqual({
+    expect(warrantyView(purchaseResult(scenario), ON)).toEqual({
       kind: 'noWarranty',
     });
   });
@@ -170,9 +190,83 @@ describe('S20: warranty view', () => {
         leaseTiers: [],
       },
     ];
-    const view = warrantyView(purchaseResult(scenario));
+    const view = warrantyView(purchaseResult(scenario), ON);
     if (view.kind !== 'running') throw new Error('expected running');
     expect(view.expired).toEqual(['vehicle']);
     expect(view.budget).toMatchObject({ kmPerYear: 20000, source: 'battery' });
+  });
+
+  it('a lease with both warranties expired still shows its tier as the limit, not "ohne Garantie"', () => {
+    const scenario = exampleScenario();
+    scenario.candidates = [
+      {
+        ...exampleCandidate(),
+        vehicleWarranty: { years: 0, km: 0 },
+        batteryWarranty: { years: 0, km: 0 },
+      },
+    ];
+    const [candidate] = scenario.candidates;
+    const lease = candidate && listOffers(candidate)[1];
+    if (!candidate || !lease) throw new Error('no lease');
+    const result = computeOffer(scenario, lease, 'mid');
+    if (result.status !== 'ok') throw new Error('lease not ok');
+    expect(warrantyView(result, ON)).toMatchObject({
+      kind: 'running',
+      budget: null,
+      expired: ['vehicle', 'battery'],
+      yearsToLimit: null,
+    });
+  });
+
+  it('Z17: a plan over the budget is flagged, with the nearest km limit', () => {
+    const base = purchaseResult(exampleScenario());
+    const view = warrantyView(
+      {
+        ...base,
+        evKmPerYear: 24000,
+        costs: { ...base.costs, budgetExtraCost: 1200 },
+        warranty: {
+          ...base.warranty,
+          budgetExceeded: true,
+          yearsToKmLimit: { vehicle: 4.1, battery: 6.7 },
+        },
+      },
+      ON,
+    );
+    expect(view).toMatchObject({
+      kind: 'running',
+      exceeded: true,
+      overBudget: true,
+      targetOff: false,
+      yearsToLimit: 4.1,
+      extraCost: 1200,
+    });
+  });
+
+  it('with the budget switched off as a target the budget is a hint and a plan above it is told', () => {
+    const base = purchaseResult(exampleScenario());
+    const view = warrantyView(
+      { ...base, evKmPerYear: 24000 },
+      { budgetAsTarget: false },
+    );
+    expect(view).toMatchObject({
+      kind: 'running',
+      targetOff: true,
+      overBudget: true,
+      exceeded: false,
+    });
+    const under = warrantyView(
+      { ...base, evKmPerYear: 15000 },
+      { budgetAsTarget: false },
+    );
+    expect(under).toMatchObject({ targetOff: true, overBudget: false });
+  });
+
+  it('the budget and its source agree: km over years of the tightest running warranty', () => {
+    const view = warrantyView(result, ON);
+    if (view.kind !== 'running' || !view.budget) throw new Error('no budget');
+    expect(view.budget.km / view.budget.years).toBeCloseTo(
+      view.budget.kmPerYear,
+    );
   });
 });

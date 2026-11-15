@@ -39,12 +39,13 @@ const BAR_HEIGHT = 28;
 export default function CostBars({ rows }: { rows: CostBarRow[] }) {
   const { t } = useTranslation('ergebnis');
   const [trackRef, width] = useElementWidth<HTMLDivElement>();
+  // A chart of nothing but zeros still needs a domain with a width.
   const largest = Math.max(
     0,
     ...rows.flatMap((row) => [row.costs.total, row.range?.max ?? 0]),
   );
   const scale = scaleLinear<number>({
-    domain: [0, largest],
+    domain: [0, largest || 1],
     range: [0, width],
     nice: true,
   });
@@ -76,15 +77,12 @@ export default function CostBars({ rows }: { rows: CostBarRow[] }) {
         aria-label={t('costs.chartLabel')}
         className={styles.bars}
       >
-        {rows.map((row, index) => {
+        {rows.map((row) => {
           let x = 0;
           return (
             <div className={styles.line} key={row.id}>
               <span className={styles.label}>{row.label}</span>
-              <div
-                className={styles.track}
-                ref={index === 0 ? trackRef : undefined}
-              >
+              <div className={styles.track}>
                 <svg width={width} height={BAR_HEIGHT} aria-hidden="true">
                   <Group>
                     {SEGMENTS.map(([key, color]) => {
@@ -113,9 +111,9 @@ export default function CostBars({ rows }: { rows: CostBarRow[] }) {
                           to={{ x: scale(row.range.max), y: BAR_HEIGHT / 2 }}
                           style={{ stroke: 'var(--ink)', strokeWidth: 2 }}
                         />
-                        {[row.range.min, row.range.max].map((end) => (
+                        {[row.range.min, row.range.max].map((end, endIndex) => (
                           <Line
-                            key={end}
+                            key={endIndex}
                             from={{ x: scale(end), y: BAR_HEIGHT / 2 - 7 }}
                             to={{ x: scale(end), y: BAR_HEIGHT / 2 + 7 }}
                             style={{ stroke: 'var(--ink)', strokeWidth: 2 }}
@@ -133,24 +131,27 @@ export default function CostBars({ rows }: { rows: CostBarRow[] }) {
           );
         })}
         <div className={`${styles.line} ${styles.axis}`} aria-hidden="true">
-          <svg width={width} height={24}>
-            <AxisBottom
-              scale={scale}
-              numTicks={width < 400 ? 3 : 5}
-              hideAxisLine
-              hideTicks
-              tickFormat={(value) =>
-                Number(value) === 0 ? '0' : formatEuro(Number(value))
-              }
-              tickLabelProps={(_value, index) => ({
-                fill: 'var(--ink-muted)',
-                fontSize: 12,
-                // The first label would be cut off at the left edge.
-                textAnchor: index === 0 ? 'start' : 'middle',
-                dy: '0.25em',
-              })}
-            />
-          </svg>
+          {/* The axis stays when offers come and go, so it is what is measured. */}
+          <div className={styles.axisTrack} ref={trackRef}>
+            <svg width={width} height={24}>
+              <AxisBottom
+                scale={scale}
+                numTicks={width < 400 ? 3 : 5}
+                hideAxisLine
+                hideTicks
+                tickFormat={(value) =>
+                  Number(value) === 0 ? '0' : formatEuro(Number(value))
+                }
+                tickLabelProps={(_value, index) => ({
+                  fill: 'var(--ink-muted)',
+                  fontSize: 12,
+                  // The first label would be cut off at the left edge.
+                  textAnchor: index === 0 ? 'start' : 'middle',
+                  dy: '0.25em',
+                })}
+              />
+            </svg>
+          </div>
         </div>
       </div>
 

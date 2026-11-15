@@ -93,6 +93,16 @@ export default function AssignmentGrid({ result, scenario }: Props) {
                     key={month.month}
                     className={`${styles.cell} ${month.change ? styles.change : ''}`}
                   >
+                    {month.change && (
+                      <>
+                        <span className={styles.changeMark} aria-hidden="true">
+                          ◆
+                        </span>
+                        <span className="visually-hidden">
+                          {t('detail.plan.changeHidden')}
+                        </span>
+                      </>
+                    )}
                     {month.lines.map((line) => (
                       <span key={line.state} className={styles.line}>
                         <PlanLineGlyph
