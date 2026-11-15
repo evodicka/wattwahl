@@ -135,3 +135,34 @@ describe('calculation core bans (8.4)', () => {
     expect(await ruleIds(code, 'src/ui/__lint_fixture__.ts')).toEqual([]);
   });
 });
+
+describe('database access only in the repository (8.2)', () => {
+  it.each([
+    [
+      'idb import in src/state',
+      "import { openDB } from 'idb';\nexport const x = openDB;\n",
+      'src/state/__lint_fixture__.ts',
+      'no-restricted-imports',
+    ],
+    [
+      'indexedDB global in src/state',
+      "export const x = indexedDB.open('eauto');\n",
+      'src/state/__lint_fixture__.ts',
+      'no-restricted-globals',
+    ],
+    [
+      'idb import elsewhere in src/storage',
+      "import { openDB } from 'idb';\nexport const x = openDB;\n",
+      'src/storage/__lint_fixture__.ts',
+      'no-restricted-imports',
+    ],
+  ])('rejects %s', async (_name, code, filePath, rule) => {
+    expect(await ruleIds(code, filePath)).toEqual([rule]);
+  });
+
+  it('allows src/storage/repository.ts to open the database', async () => {
+    const code =
+      "import { openDB } from 'idb';\nexport const x = [openDB, indexedDB];\n";
+    expect(await ruleIds(code, 'src/storage/repository.ts')).toEqual([]);
+  });
+});

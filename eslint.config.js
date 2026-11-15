@@ -53,6 +53,29 @@ export default tseslint.config(
     ...reactHooks.configs.flat.recommended,
   },
   {
+    // Only the repository opens the database (architecture 8.2). This block
+    // must stay before the core block: a later block replaces the options of
+    // the same rule, and the core block bans indexedDB and all packages itself.
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/storage/repository.ts', 'src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'indexedDB',
+          message: 'Only src/storage/repository.ts opens the database (8.2).',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          name: 'idb',
+          message: 'Only src/storage/repository.ts opens the database (8.2).',
+        },
+      ],
+    },
+  },
+  {
     // Determinism rules for the calculation core (architecture 8.4, ADR-10).
     // Test files may use Math.pow as a reference and import test libraries.
     files: ['src/core/**/*.ts'],
