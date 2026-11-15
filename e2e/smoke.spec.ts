@@ -19,7 +19,6 @@ test('app loads at the base path, starts and shows no console errors', async ({
 
   await page.goto('/');
 
-  await expect(page).toHaveTitle('Wattwahl');
   // App start (6.2) with IndexedDB and the core worker: the template scenario
   // is created and shown in the frame.
   await expect(
@@ -28,6 +27,8 @@ test('app loads at the base path, starts and shows no console errors', async ({
   await expect(
     page.getByRole('complementary').getByText('Standard'),
   ).toBeVisible();
+  // The title names the area (S16).
+  await expect(page).toHaveTitle('Fahrprofil · Wattwahl');
   expect(failedAssets).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });

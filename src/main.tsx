@@ -21,18 +21,35 @@ const render = (node: ReactNode) =>
 
 // App start of runtime view 6.2. The frame renders at once; the scenarios
 // arrive through the store. Storage that cannot be read at all (a private
-// window may block IndexedDB) leaves a notice instead of a blank page.
+// window may block IndexedDB) leaves a notice instead of a blank page; any
+// other failure gets the general text, since storage is not to blame.
+class StorageFailure extends Error {}
+
+const reading = <T,>(work: Promise<T>): Promise<T> =>
+  work.catch((error: unknown) => {
+    throw new StorageFailure('The stored data cannot be read.', {
+      cause: error,
+    });
+  });
+
 async function start() {
-  const repository = await openRepository();
+  const repository = await reading(openRepository());
   const store = createAppStore({ repository, spawnWorker: spawnCoreWorker });
   attachLifecycle(store.dispatch);
   render(<App store={store} router={createAppRouter()} />);
-  await store.dispatch(
-    startApp({ templateName: i18n.t('templateName', { ns: 'szenarien' }) }),
+  // startApp rejects only when the database cannot be read (6.2).
+  await reading(
+    store.dispatch(
+      startApp({ templateName: i18n.t('templateName', { ns: 'szenarien' }) }),
+    ),
   );
 }
 
 start().catch((error: unknown) => {
   console.error(error);
-  render(<StartFailed />);
+  render(
+    <StartFailed
+      cause={error instanceof StorageFailure ? 'storage' : 'other'}
+    />,
+  );
 });
