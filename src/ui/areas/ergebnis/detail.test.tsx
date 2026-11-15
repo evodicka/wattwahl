@@ -327,6 +327,95 @@ describe('S20: warranty', () => {
   });
 });
 
+describe('S20: warranty, more states', () => {
+  it('Z17: a plan over the budget says so with the extra cost and the km limit', async () => {
+    const scenario = exampleScenario();
+    const results = computeResults(scenario);
+    const id = `${scenario.candidates[0]?.id}:purchase`;
+    const result = results[id]?.mid;
+    if (result?.status !== 'ok') throw new Error('no ok result');
+    results[id] = {
+      ...results[id],
+      mid: {
+        ...result,
+        evKmPerYear: 24000,
+        costs: { ...result.costs, budgetExtraCost: 1200 },
+        warranty: {
+          ...result.warranty,
+          budgetExceeded: true,
+          yearsToKmLimit: { vehicle: 4.1, battery: 6.7 },
+        },
+      },
+    };
+    const app = await renderApp(purchasePath(scenario), {
+      scenarios: [scenario],
+    });
+    await act(async () => app.worker.finish(results));
+    const section = (
+      await screen.findByRole('heading', { name: 'Garantie' })
+    ).closest('section') as HTMLElement;
+    expect(within(section).getByText('Budget überschritten')).toBeTruthy();
+    expect(
+      within(section).getByText(
+        /^Geplant 24\.000\skm, Budget 20\.000\skm\. Die Kilometergrenze ist nach 4,1 Jahre erreicht\. Mehrkosten 1\.200\s€\.$/,
+      ),
+    ).toBeTruthy();
+    expect(within(section).getByText('pro Jahr, über dem Budget')).toBeTruthy();
+  });
+
+  it('a lease with both warranties expired shows the tier as the limit, not "ohne Garantie"', async () => {
+    const scenario = exampleScenario();
+    scenario.candidates = scenario.candidates.map((c) => ({
+      ...c,
+      vehicleWarranty: { years: 0, km: 0 },
+      batteryWarranty: { years: 0, km: 0 },
+    }));
+    const candidate = scenario.candidates[0];
+    const leaseId = `${candidate?.id}:lease:${candidate?.leaseTiers[0]?.id}`;
+    await open(`/ergebnis/${encodeURIComponent(leaseId)}`, scenario);
+    const section = (
+      await screen.findByRole('heading', { name: 'Garantie' })
+    ).closest('section') as HTMLElement;
+    expect(
+      within(section).getByText(/Bei Leasing ist die Stufe die Grenze/),
+    ).toBeTruthy();
+    expect(
+      within(section).queryByText(
+        'Beide Garantien sind abgelaufen. Kein Jahresbudget.',
+      ),
+    ).toBeNull();
+    expect(within(section).getByText('Fahrzeug ohne Garantie')).toBeTruthy();
+  });
+
+  it('with the budget switched off as a target the budget is told to be a hint', async () => {
+    const scenario = exampleScenario();
+    scenario.parameters.warrantyBudgetAsTarget = false;
+    await open(purchasePath(scenario), scenario);
+    const section = (
+      await screen.findByRole('heading', { name: 'Garantie' })
+    ).closest('section') as HTMLElement;
+    expect(
+      within(section).getByText(
+        /als Ziel ausgeschaltet, der Wert ist nur ein Hinweis/,
+      ),
+    ).toBeTruthy();
+    expect(within(section).getByText('Jahresbudget')).toBeTruthy();
+  });
+
+  it('marks a changed month of the plan with a symbol and a text, not by colour alone', async () => {
+    const scenario = winterRest();
+    await open(purchasePath(scenario), scenario);
+    const region = await screen.findByRole('region', {
+      name: /^Zuordnungsplan, seitlich/,
+    });
+    const monday = within(region).getByRole('row', { name: /Mo/ });
+    expect(
+      within(monday).getAllByText('Plan weicht vom Sommerplan ab'),
+    ).toHaveLength(1);
+    expect(monday.querySelectorAll('td')[0]?.textContent).toContain('◆');
+  });
+});
+
 describe('S20: the rest of the detail view', () => {
   it('names total, range and suitability and links the scenario comparison', async () => {
     const scenario = exampleScenario();

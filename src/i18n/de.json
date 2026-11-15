@@ -561,7 +561,8 @@
         "evDrives": "E-Auto fährt zu {{name}}",
         "iceDrives": "Verbrenner fährt zu {{name}}, E-Auto ruht",
         "line": "{{who}}: {{what}}",
-        "scrollLabel": "Zuordnungsplan, seitlich scrollbar"
+        "scrollLabel": "Zuordnungsplan, seitlich scrollbar",
+        "changeHidden": "Plan weicht vom Sommerplan ab"
       },
       "warranty": {
         "title": "Garantie",
@@ -588,8 +589,10 @@
         "yearsValue": "{{value}} Jahre",
         "plannedKmHintNoBudget": "pro Jahr",
         "leaseNote": "Bei Leasing ist die Stufe die Grenze, das Budget ist nicht aktiv.",
-        "budgetOff": "Das Garantie-Budget ist ausgeschaltet.",
-        "budgetValue": "{{km}} pro Jahr"
+        "budgetOff": "Das Garantie-Budget ist als Ziel ausgeschaltet, der Wert ist nur ein Hinweis.",
+        "budgetValue": "{{km}} pro Jahr",
+        "plannedKmHintOver": "pro Jahr, über dem Budget",
+        "partRemainingYears": "{{part}} Restgarantie {{years}}"
       },
       "trace": {
         "title": "Rechenweg",

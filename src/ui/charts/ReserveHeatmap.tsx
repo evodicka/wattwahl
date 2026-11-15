@@ -75,21 +75,23 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
                 <th scope="row">
                   {t('detail.reserve.way', { way: way.toUpperCase() })}
                 </th>
-                {cells[row]?.map((cell) => (
-                  <td
-                    key={cell.month}
-                    className={`${styles.cell} ${styles[cell.light]}`}
-                  >
-                    <span className={styles.symbol} aria-hidden="true">
-                      {SYMBOL[cell.light]}
-                    </span>
-                    {formatDecimal(cell.reserveKm, 0)}
-                    <small>{formatPercent(cell.reservePct)}</small>
-                    <span className="visually-hidden">
-                      {c(`light.${cell.light}`)}
-                    </span>
-                  </td>
-                ))}
+                {[...(cells[row] ?? [])]
+                  .sort((a, b) => a.month - b.month)
+                  .map((cell) => (
+                    <td
+                      key={cell.month}
+                      className={`${styles.cell} ${styles[cell.light]}`}
+                    >
+                      <span className={styles.symbol} aria-hidden="true">
+                        {SYMBOL[cell.light]}
+                      </span>
+                      {formatDecimal(cell.reserveKm, 0)}
+                      <small>{formatPercent(cell.reservePct)}</small>
+                      <span className="visually-hidden">
+                        {c(`light.${cell.light}`)}
+                      </span>
+                    </td>
+                  ))}
               </tr>
             ))}
           </tbody>

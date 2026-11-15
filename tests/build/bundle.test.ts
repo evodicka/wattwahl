@@ -1,5 +1,5 @@
 import { build } from 'vite';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 // S20 / architecture 8.9, ADR-11: the chart library is not in the start
 // bundle; every chart is a chunk of its own, loaded when a view shows it.
@@ -31,8 +31,11 @@ async function chunksOfBuild(): Promise<Chunk[]> {
   return chunks;
 }
 
+/** Module ids with forward slashes, whatever the platform. */
+const normalize = (id: string) => id.replaceAll('\\', '/');
+
 const usesVisx = (chunk: Chunk) =>
-  chunk.moduleIds.some((id) => id.includes('/@visx/'));
+  chunk.moduleIds.some((id) => normalize(id).includes('/@visx/'));
 
 /** The entry chunk and everything it imports statically. */
 function startChunks(chunks: Chunk[]): Chunk[] {
@@ -56,29 +59,31 @@ function startChunks(chunks: Chunk[]): Chunk[] {
 }
 
 describe('S20: chart library and start bundle', () => {
-  it('keeps the chart library out of the start chunks and in lazy chunks of the charts', async () => {
-    const chunks = await chunksOfBuild();
+  let chunks: Chunk[] = [];
+  beforeAll(async () => {
+    chunks = await chunksOfBuild();
+  }, 120_000);
+
+  it('keeps the chart library out of the start chunks and in lazy chunks', () => {
     const start = startChunks(chunks);
     expect(start.length).toBeGreaterThan(0);
     expect(start.filter(usesVisx).map((c) => c.fileName)).toEqual([]);
+    expect(chunks.filter(usesVisx).length).toBeGreaterThan(0);
+  });
 
-    const withVisx = chunks.filter(usesVisx);
-    expect(withVisx.length).toBeGreaterThan(0);
-    for (const chunk of withVisx) {
-      expect(start.map((c) => c.fileName)).not.toContain(chunk.fileName);
-    }
-  }, 120_000);
-
-  it('makes every chart a chunk of its own', async () => {
-    const chunks = await chunksOfBuild();
-    const sources = chunks.flatMap((c) => c.moduleIds);
+  it('makes every chart a chunk of its own that no start chunk contains', () => {
+    const start = startChunks(chunks).map((c) => c.fileName);
     for (const chart of ['CostBars', 'ReserveHeatmap', 'AssignmentGrid']) {
       const owner = chunks.find((c) =>
-        c.moduleIds.some((id) => id.endsWith(`/charts/${chart}.tsx`)),
+        c.moduleIds.some((id) =>
+          normalize(id).endsWith(`/charts/${chart}.tsx`),
+        ),
       );
       expect(owner, chart).toBeDefined();
-      expect(owner?.isEntry, `${chart} is not in the entry chunk`).toBe(false);
+      expect(owner?.isEntry, `${chart} is not an entry chunk`).toBe(false);
+      expect(start, `${chart} is not in a start chunk`).not.toContain(
+        owner?.fileName,
+      );
     }
-    expect(sources.length).toBeGreaterThan(0);
-  }, 120_000);
+  });
 });

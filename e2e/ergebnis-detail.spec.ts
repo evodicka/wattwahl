@@ -78,21 +78,45 @@ test.describe('S20: detail view', () => {
         client: el.clientWidth,
       }));
       expect(sizes.scroll).toBeGreaterThan(sizes.client);
+      await region.evaluate((el) => {
+        el.scrollLeft = 200;
+      });
+      expect(await region.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+      // The page stays put and the row header stays in view.
+      const scrolled = await page.evaluate(() => ({
+        x: window.scrollX,
+        overflow:
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      }));
+      expect(scrolled.x).toBe(0);
+      expect(scrolled.overflow).toBeLessThanOrEqual(0);
+      const [box, rowHeader] = [
+        await region.boundingBox(),
+        await region.locator('tbody th[scope="row"]').first().boundingBox(),
+      ];
+      expect(rowHeader?.x).toBeGreaterThanOrEqual((box?.x ?? 0) - 1);
     }
-    const overflow = await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth -
-        document.documentElement.clientWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test('the scroll regions are reachable by keyboard', async ({ page }) => {
+  test('the scroll regions scroll with the arrow keys', async ({
+    page,
+    browserName,
+  }) => {
+    test.skip(
+      browserName === 'webkit',
+      'Safari moves a focused region with the arrow keys only with full keyboard access.',
+    );
     await seedScenario(page);
     await page.setViewportSize({ width: 390, height: 900 });
     await openDetail(page);
-    await page.getByRole('region', { name: /^Heatmap/ }).focus();
-    await expect(page.getByRole('region', { name: /^Heatmap/ })).toBeFocused();
+    const region = page.getByRole('region', { name: /^Heatmap/ });
+    await region.focus();
+    await expect(region).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await expect
+      .poll(() => region.evaluate((el) => el.scrollLeft))
+      .toBeGreaterThan(0);
   });
 
   test('another offer can be chosen', async ({ page }) => {

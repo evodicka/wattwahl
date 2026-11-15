@@ -8,6 +8,7 @@ import {
 } from '../../../domain';
 import {
   formatDecimal,
+  formatInput,
   formatEuro,
   formatKm,
   formatMonthYear,
@@ -35,7 +36,9 @@ const PARTS = ['vehicle', 'battery'] as const;
 export function WarrantySection({ result, candidate, scenario }: Props) {
   const { t } = useTranslation('ergebnis');
   const { t: c } = useTranslation();
-  const view = warrantyView(result);
+  const view = warrantyView(result, {
+    budgetAsTarget: scenario.parameters.warrantyBudgetAsTarget,
+  });
   const years = (value: number) =>
     t('detail.warranty.yearsValue', { value: formatDecimal(value, 1) });
   const partName = (part: WarrantyPart) =>
@@ -70,12 +73,11 @@ export function WarrantySection({ result, candidate, scenario }: Props) {
   const exceededYears = view.yearsToLimit;
   return (
     <div className="stack">
-      {!view.budget && (
-        <p className="t-sm muted">
-          {result.kind === 'lease'
-            ? t('detail.warranty.leaseNote')
-            : t('detail.warranty.budgetOff')}
-        </p>
+      {!view.budget && result.kind === 'lease' && (
+        <p className="t-sm muted">{t('detail.warranty.leaseNote')}</p>
+      )}
+      {view.targetOff && (
+        <p className="t-sm muted">{t('detail.warranty.budgetOff')}</p>
       )}
 
       {view.exceeded && view.budget && (
@@ -83,7 +85,10 @@ export function WarrantySection({ result, candidate, scenario }: Props) {
           {t('detail.warranty.exceededBody', {
             planned: formatKm(view.plannedKm),
             budget: formatKm(view.budget.kmPerYear),
-            years: exceededYears === null ? '–' : years(exceededYears),
+            years:
+              exceededYears === null
+                ? t('table.noValue')
+                : years(exceededYears),
             cost: formatEuro(view.extraCost),
           })}
         </Notice>
@@ -103,8 +108,9 @@ export function WarrantySection({ result, candidate, scenario }: Props) {
                 km: formatKm(view.budget.km),
                 years: years(view.budget.years),
               })}
-              {view.expired.includes('vehicle') &&
-                ` ${t('detail.warranty.vehicleExpiredNote')}`}
+              {view.expired.includes('vehicle') && (
+                <> {t('detail.warranty.vehicleExpiredNote')}</>
+              )}
             </span>
           </Tile>
         )}
@@ -113,23 +119,30 @@ export function WarrantySection({ result, candidate, scenario }: Props) {
           value={formatKm(view.plannedKm)}
         >
           <span className="t-sm muted">
-            {view.budget && !view.exceeded
-              ? t('detail.warranty.plannedKmHint')
+            {view.budget
+              ? view.overBudget
+                ? t('detail.warranty.plannedKmHintOver')
+                : t('detail.warranty.plannedKmHint')
               : t('detail.warranty.plannedKmHintNoBudget')}
           </span>
         </Tile>
 
         <Tile
           label={t('detail.warranty.yearsToLimit')}
-          value={view.yearsToLimit === null ? '–' : years(view.yearsToLimit)}
+          value={
+            view.yearsToLimit === null
+              ? t('table.noValue')
+              : years(view.yearsToLimit)
+          }
         >
           <span className="row-wrap">
             {PARTS.filter((part) => !view.expired.includes(part)).map(
               (part) => (
                 <TrafficLight key={part} level="green">
-                  {`${partName(part)} ${t('detail.warranty.remainingYears', {
+                  {t('detail.warranty.partRemainingYears', {
+                    part: partName(part),
                     years: years(result.warranty.remaining[part].years),
-                  })}`}
+                  })}
                 </TrafficLight>
               ),
             )}
@@ -201,7 +214,7 @@ function RemainingBox({ result, candidate, scenario }: Props) {
                   : 'detail.warranty.partBattery',
               ),
               normal: t('detail.warranty.normal', {
-                years: formatDecimal(normal.years ?? 0, 0),
+                years: formatInput(normal.years ?? 0),
                 km: formatKm(normal.km ?? 0),
               }),
               remaining: expired
