@@ -527,12 +527,12 @@ Phase 5 baut die fünf Bereiche nach den freigegebenen Mockups. S17 bis S22 hän
 - Formulare für Bestandsfahrzeug, Arbeitsstätten A und B und Zusatzstrecke.
 - Parameterbereich mit Standardwert, Zurücksetzen je Feld, Markierung geänderter Werte und Kennzeichnung von Platzhaltern.
 - Prüfung beim Verlassen eines Feldes, Warnungen aus S04.
-- Auswahl der Ampelfarben mit Warnung bei zu wenig Kontrast: S16 setzt die gewählte Farbe als Text auf eine Tönung von 18 % über `--surface-raised`. Erreicht dieses Paar in Hell oder Dunkel nicht WCAG AA (4,5 : 1), zeigt der Parameterbereich eine nicht blockierende Warnung an der Farbe (Entscheidung nach dem Review von S16).
+- Auswahl der Ampelfarben je Gerät, mit Zurücksetzen auf die Farben des Themes. Eine Warnung bei zu wenig Kontrast gibt es nicht: Eine einzelne Farbe erreicht als Text auf ihrer Tönung von 18 % in Hell und Dunkel zugleich kaum 4,5 : 1, die Warnung würde fast immer erscheinen (Entscheidung nach dem Review von S17).
 
 **Validierung**
 
 - Testfall 15 (Oberfläche): Komma und Punkt werden angenommen, negative Zahl und leeres Pflichtfeld zeigen die Meldung am Feld.
-- Eine Ampelfarbe mit zu wenig Kontrast (zum Beispiel `#ccaa00`) zeigt die Warnung, eine Farbe mit genug Kontrast nicht. Die Warnung blockiert das Speichern nicht.
+- Eine gewählte Ampelfarbe wird auf dem Gerät gespeichert und wirkt ohne Neuladen, das Zurücksetzen stellt die Farben des Themes wieder her.
 - Jeder Platzhalter der Parameterliste ist in der Oberfläche als Annahme gekennzeichnet (tabellengetriebener Komponententest).
 - E2E: Eine Eingabe ist nach Neuladen noch da.
 - Zahlenfelder öffnen am Handy die Zahlentastatur und zeigen die Einheit am Feldende.

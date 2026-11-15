@@ -430,11 +430,7 @@
     "monthlyTempsHint": "Durchschnitt je Monat am Wohnort",
     "missingTitle": "Pflichteingaben fehlen",
     "missingBody": "Ohne diese Werte wird nicht gerechnet: {{fields}}.",
-    "lightColor": "Farbe {{light}}",
-    "contrastWarning": "{{light}} hat {{scheme}} zu wenig Kontrast ({{ratio}} : 1, nötig 4,5 : 1). Gespeichert wird trotzdem.",
-    "schemeLight": "im hellen Modus",
-    "schemeDark": "im dunklen Modus",
-    "schemeBoth": "im hellen und im dunklen Modus"
+    "lightColor": "Farbe {{light}}"
   },
   "ergebnis": {
     "title": "Ergebnis",
