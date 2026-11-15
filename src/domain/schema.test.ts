@@ -101,31 +101,38 @@ describe('S03: parameter list', () => {
     return Number(text.replace('−', '-').replaceAll('.', ''));
   }
 
+  // Rows added to the spec by C1a; C1b adds their defaults and removes them here.
+  const PENDING_C1B = new Set(['Stichtag der Garantieberechnung']);
+
   it('reads every row of the spec table', () => {
-    expect(specRows).toHaveLength(28);
+    expect(specRows).toHaveLength(29);
   });
 
-  it.each(specRows)('%s', (label, standard, unit, hint) => {
-    const entries = PARAMETER_DEFAULTS.filter(
-      (e) =>
-        // Rows may share a prefix; the label is the exact spec cell.
-        e.specRow === label,
-    );
-    expect(entries.length, `no defaults entry for "${label}"`).toBeGreaterThan(
-      0,
-    );
-    const flag =
-      standard === 'Pflichteingabe'
-        ? 'required'
-        : hint?.includes('Platzhalter')
-          ? 'placeholder'
-          : 'fixed';
-    for (const entry of entries) {
-      expect(entry.value).toEqual(decode(String(standard)));
-      expect(entry.unit).toBe(UNIT_CODES[String(unit)]);
-      expect(entry.flag).toBe(flag);
-    }
-  });
+  it.each(specRows.filter(([label]) => !PENDING_C1B.has(String(label))))(
+    '%s',
+    (label, standard, unit, hint) => {
+      const entries = PARAMETER_DEFAULTS.filter(
+        (e) =>
+          // Rows may share a prefix; the label is the exact spec cell.
+          e.specRow === label,
+      );
+      expect(
+        entries.length,
+        `no defaults entry for "${label}"`,
+      ).toBeGreaterThan(0);
+      const flag =
+        standard === 'Pflichteingabe'
+          ? 'required'
+          : hint?.includes('Platzhalter')
+            ? 'placeholder'
+            : 'fixed';
+      for (const entry of entries) {
+        expect(entry.value).toEqual(decode(String(standard)));
+        expect(entry.unit).toBe(UNIT_CODES[String(unit)]);
+        expect(entry.flag).toBe(flag);
+      }
+    },
+  );
 
   it('has no entry without a spec row', () => {
     const labels = new Set(specRows.map((cells) => cells[0]));

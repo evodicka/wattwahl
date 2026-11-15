@@ -18,7 +18,7 @@ Für jedes Angebot (Kauf oder Leasingstufe) eines E-Auto-Kandidaten berechnet di
 
 | Prio | Qualitätsziel | Bedeutung für die Architektur |
 | --- | --- | --- |
-| 1 | Korrektheit und Nachvollziehbarkeit | Formeln in genau einem Modul, jede Ergebniszahl mit Rechenweg, alle 18 Testfälle automatisiert |
+| 1 | Korrektheit und Nachvollziehbarkeit | Formeln in genau einem Modul, jede Ergebniszahl mit Rechenweg, alle 19 Testfälle automatisiert |
 | 2 | Performance | 10 Kandidaten × 5 Angebote × 3 Preisfälle in ≤ 5 s am Handy und ≤ 2 s am Desktop, Oberfläche bleibt bedienbar |
 | 3 | Datenhoheit und Robustheit | Daten verlassen das Gerät nur per Export. Fehlerhafte Eingaben oder Importe führen nie zu Absturz oder Datenverlust |
 | 4 | Offline-Fähigkeit | Nach der Installation ohne Netz voll nutzbar, der Stand übersteht einen Neustart |
@@ -179,7 +179,7 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 
 | Modul | Wichtige Dateien | Öffentliche Schnittstelle |
 | --- | --- | --- |
-| `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts`, `result.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `OfferResultSchema`, `TraceEntrySchema`, `SliderPricesSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data)`, `checkWarnings(scenario)` |
+| `src/domain` | `schema.ts`, `defaults.ts`, `offerId.ts`, `settings.ts`, `migrations.ts`, `validation.ts`, `result.ts` | `ScenarioSchema`, `ScenarioComputeSchema`, `CandidateComputeSchema`, `DeviceSettingsSchema`, `OfferResultSchema`, `TraceEntrySchema`, `SliderPricesSchema`, `CURRENT_SCHEMA_VERSION`, `migrate(data, context)` (Kontext mit dem Monat der Migration), `createScenarioTemplate(…)` (mit dem aktuellen Monat als Argument), `checkWarnings(scenario)` |
 | `src/core` | `compute.ts`, `calc/`, `optimizer/`, `math/`, `trace.ts`, `hash.ts` | `computeOffer(scenario, offer, priceCase, { sliderPrices?, trace?, cache? })`, `ComputeCache`, `hashResult(value)`, `Trace` |
 | `src/worker` | `core.worker.ts` | ` compute({  ``generation, scenario, sliderPrices?` `})`, `explain({ scenario, offerId, priceCase, sliderPrices? })` über Comlink |
 | `src/storage` | `repository.ts`, `exportImport.ts` | `loadAll()`, `save(scenario)`, `exportFile(ids)`, `parseImport(file)`, `writeImport(scenarios, mode)` |
@@ -192,7 +192,7 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 
 Die Dateien in `src/core/calc` bilden die Abschnitte 1 bis 8 der Berechnungslogik der Spezifikation eins zu eins ab: `range.ts`, `soh.ts`, `suitability.ts`, `energy.ts`, `workdays.ts`, `extraMileage.ts`, `prices.ts`, `costs.ts`.
 
-`src/core/optimizer` setzt den Algorithmus der Spezifikation in Schritten um: `problem.ts` (Szenario, Kandidat und Preisfall werden zu allgemeinen Entscheidungsgruppen, unabhängig vom Angebot), `thresholds.ts` (Schwellen-SoH je Option), `optionSets.ts` (Rasterwerte mit gleicher Optionsmenge), `knapsack.ts` (dynamische Programmierung auf den Entscheidungsgruppen), `warranty.ts` (Garantie-Budget), `select.ts` (Zielkosten und Gleichstandsregel). Brute Force und Q4 laufen auf der Ebene der Entscheidungsgruppen, nicht auf ganzen Szenarien. `bruteForce.ts` liegt unter `src/core/optimizer/__tests__` und wird nicht ausgeliefert.
+`src/core/optimizer` setzt den Algorithmus der Spezifikation in Schritten um: `problem.ts` (Szenario, Kandidat und Preisfall werden zu allgemeinen Entscheidungsgruppen, unabhängig vom Angebot), `thresholds.ts` (Schwellen-SoH je Option), `optionSets.ts` (Rasterwerte mit gleicher Optionsmenge), `knapsack.ts` (dynamische Programmierung auf den Entscheidungsgruppen), `warranty.ts` (Restgarantie und Garantie-Budget), `select.ts` (Zielkosten und Gleichstandsregel). Brute Force und Q4 laufen auf der Ebene der Entscheidungsgruppen, nicht auf ganzen Szenarien. `bruteForce.ts` liegt unter `src/core/optimizer/__tests__` und wird nicht ausgeliefert.
 
 ## 6. Laufzeitsicht
 
@@ -225,7 +225,7 @@ Speichern und Rechnen starten unabhängig voneinander nach 300 ms Ruhe. Kommt w�
 
 1. Der Service Worker liefert die App aus dem Cache, auch ohne Netz.
 2. Beim ersten Start wird `navigator.``storage.persist()` angefragt. Läuft die App dabei auf iOS nicht als installierte App, erscheint einmalig der Installationshinweis.
-3. Das Repository lädt alle Szenarien, migriert ältere Versionen und prüft sie mit Zod.
+3. Das Repository lädt alle Szenarien, migriert ältere Versionen mit dem aktuellen Monat als Monat der Migration und prüft sie mit Zod.
 4. Das aktive Szenario kommt aus `settings`. Gibt es keins, legt src/state ein leeres Szenario aus der Vorlage an.
 5. Die erste Berechnung startet, die Export-Erinnerung wird geprüft.
 
@@ -233,7 +233,7 @@ Speichern und Rechnen starten unabhängig voneinander nach 300 ms Ruhe. Kommt w�
 
 1. Der Nutzer wählt Datei und Modus (ersetzen oder hinzufügen).
 2. Größe prüfen, `JSON.parse`, Format-Kennung `eauto-export` prüfen.
-3. Jedes Szenario migrieren und mit `safeParse` prüfen. Beim ersten Fehler erscheint die Meldung mit Pfad, es wird nichts geschrieben.
+3. Jedes Szenario migrieren (aktueller Monat als Monat der Migration) und mit `safeParse` prüfen. Beim ersten Fehler erscheint die Meldung mit Pfad, es wird nichts geschrieben.
 4. Beim Hinzufügen vergibt src/state neue IDs, dann werden alle Szenarien in einer Transaktion geschrieben.
 5. Die Stores laden neu, die Berechnung für das aktive Szenario startet.
 
@@ -306,7 +306,9 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Das Szenario ist das Aggregat: Es wird als Ganzes geladen, gespeichert, exportiert und an den Worker übergeben.
 - IDs sind UUIDs aus `crypto.randomUUID()` und werden nur in `src/state` erzeugt, nie im Rechenkern. Auch beim Import vergibt src/state die neuen IDs, bevor src/storage schreibt.
 - Angebote haben keine eigene UUID. Die `offerId` wird abgeleitet: `<candidateId>:purchase` für den Kauf, `<candidateId>:lease:<leaseTierId>` für eine Leasingstufe. Die `leaseTierId` ist die UUID der Leasingstufe (von src/state vergeben), nicht ihre Kilometerstufe, damit die `offerId` stabil bleibt, wenn der Nutzer die Stufe ändert.
-- Prozentwerte werden wie eingegeben gespeichert (15 bedeutet 15 %), nur der Rechenkern rechnet sie in Anteile um. Zeitpunkte sind ISO-Strings und die Erstzulassung ist `{ month, year }` mit ganzen Zahlen, denn der Kern kennt kein `Date` und Szenarien reisen als JSON.
+- Prozentwerte werden wie eingegeben gespeichert (15 bedeutet 15 %), nur der Rechenkern rechnet sie in Anteile um. Zeitpunkte sind ISO-Strings, Erstzulassung und Stichtag der Garantieberechnung sind `{ month, year }` mit ganzen Zahlen, denn der Kern kennt kein `Date` und Szenarien reisen als JSON. Die Erstzulassung ist bei gebraucht Pflicht (Rechenschema, 8.6).
+- Den aktuellen Monat für den Stichtag liefert `src/state`, wie die UUIDs. `createScenarioTemplate` erhält ihn als Argument, `src/domain` und `src/core` lesen keine Uhr (ADR-17). Das Szenario merkt sich, ob der Nutzer den Stichtag selbst gesetzt hat, damit er nur dann als geändert gilt.
+- Die Garantiefelder `vehicleWarranty` und `batteryWarranty` des Kandidaten enthalten die normale Garantie, nicht die Restgarantie. Die Restgarantie berechnet nur der Kern (`OPT.remainingWarranty`).
 - Werte, die in der Parameterliste und in einer Entität der Spezifikation vorkommen, stehen an der Entität: Benzinpreise, Preissteigerung Benzin und Wartung des Verbrenners am Bestandsfahrzeug, freie Tage an der Arbeitsstätte. Wertverlust und Wartung des E-Autos sind Parameter, die der Kandidat überschreiben kann.
 - Standardwerte der Parameterliste stehen in `src/domain/defaults.ts`. Jeder Wert trägt das Kennzeichen `placeholder`, `required` oder `fixed`, damit die Oberfläche Annahmen markieren kann.
 
@@ -316,7 +318,8 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Zugriff nur über `src/storage/repository.ts` auf Basis von idb. Kein anderer Baustein öffnet die Datenbank.
 - Autosave: Eine Listener-Middleware von Redux Toolkit in src/state/listeners.ts ruft nach 300 ms Ruhe save() des Repositorys auf. Bei `visibilitychange` auf `hidden` und bei `pagehide` wird sofort geschrieben.
 - Beim ersten Start wird `navigator.storage.persist()` angefragt. Eine Ablehnung erzeugt einen Hinweis, keinen Fehler.
-- Migration: `src/domain/migrations.ts` enthält je Version eine reine Funktion `vN → vN+1`. Beim Laden und beim Import wird die Kette bis zur aktuellen Version angewandt, danach mit Zod geprüft und zurückgeschrieben. Ein Datensatz mit höherer Version als die App wird nur gelesen und mit Hinweis auf ein App-Update angezeigt. Das Repository schreibt nie über einen Datensatz mit höherer schemaVersion, Autosave ist dafür gesperrt.
+- Migration: `src/domain/migrations.ts` enthält je Version eine reine Funktion `vN → vN+1`. Beim Laden und beim Import wird die Kette bis zur aktuellen Version angewandt, danach mit Zod geprüft und zurückgeschrieben. Jeder Schritt erhält einen Kontext mit dem Monat der Migration, den `src/storage` beim Laden und beim Import übergibt. Dafür nehmen `MigrationStep`, `createMigrator`, `migrate` und `upgradeScenario` den Kontext entgegen, die Schritte bleiben reine Funktionen.
+- Aktuelle Schemaversion ist 2. Der Schritt v1 → v2 (Garantie ab Erstzulassung, Details in `docs/change-garantie.md`) setzt in jedem Szenario den Stichtag auf den Monat der Migration, als nicht vom Nutzer gesetzt. Neuwagen behalten ihre Garantiewerte. Bei Gebrauchten mit Erstzulassung wird die gespeicherte Restgarantie auf die normale Garantie zurückgerechnet (Dauer = Restjahre + a ÷ 12, Kilometer = Restkilometer + Laufleistung), sodass die Ableitung wieder die alte Restgarantie ergibt. Nicht umrechenbare Werte (ohne Erstzulassung, ohne Laufleistung, leere Garantiefelder) bleiben unverändert, der Kandidat erhält das Kennzeichen „Garantiewerte prüfen“. Der Migrationstest vergleicht die Restgarantie mit Toleranz (8.4), weil die Rückrechnung in Gleitkomma nicht immer bitgenau ist. Je Schemaversion liegt eine Beispieldatei im Repository. Ein Datensatz mit höherer Version als die App wird nur gelesen und mit Hinweis auf ein App-Update angezeigt. Das Repository schreibt nie über einen Datensatz mit höherer schemaVersion, Autosave ist dafür gesperrt.
 - Mehrere Tabs: Die IndexedDB-Version folgt `CURRENT_SCHEMA_VERSION`. Öffnet ein Tab mit neuerer App die Datenbank, erhalten ältere Tabs `versionchange`, schließen ihre Verbindung und bitten um Neuladen.
 
 ### 8.3 Export und Import
@@ -346,7 +349,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 | 6 Zusatzstrecke | F6.share |
 | 7 Preise | F7.qy, F7.Fb, F7.Fs, F7.Fm |
 | 8 Gesamtkosten | F8.purchase, F8.lease, F8.extraKm, F8.underKm, F8.energy, F8.maintenance, F8.kIce, F8.iceOdometer |
-| Optimierer | OPT.threshold, OPT.optionSet, OPT.budget, OPT.target, OPT.select, OPT.budgetExtraCost, OPT.yearsToKmLimit |
+| Optimierer | OPT.threshold, OPT.optionSet, OPT.remainingWarranty, OPT.budget, OPT.target, OPT.select, OPT.budgetExtraCost, OPT.yearsToKmLimit |
 
 - Dynamische Programmierung: Achse sind die jährlichen E-Auto-Kilometer in Zellen von 1 km (Konstante `DP_CELL_KM`). Der Kilometerwert jeder Option wird für die Achse auf eine ganze Zelle aufgerundet. Die DP merkt sich je Zelle zusätzlich die exakten Kilometer des günstigsten Plans (bei exakt gleichen Kosten gewinnt der Plan mit weniger Kilometern). Garantie-Budget, Leasingkosten und die Regel „kleinere E-Auto-Strecke“ rechnen mit diesen exakten Kilometern, damit ein Plan nicht wegen der Rundung abgewiesen oder falsch bewertet wird. Nur die Zuordnung zum SoH-Rasterwert nutzt den aufgerundeten Wert: Er liefert einen SoH, der höchstens dem exakten entspricht, jede dort zulässige Option ist also auch für den exakten Wert zulässig. Ausgewiesen werden K\_EV, Kosten und Reserve des gewählten Plans mit exakten Werten. Brute Force löst dieselbe diskretisierte Aufgabe und wendet die Auswahlregeln unabhängig an, Q4 vergleicht Strecke, Kosten und Budgetergebnis.
 - Gleichstand: Alle Zellen mit Zielkosten ≤ Minimum + 0,01 € bilden die Kandidaten. Dann gewinnt die größere kleinste Reserve über alle besuchten Wege und zwölf Monate, danach die kleinere E-Auto-Strecke.
@@ -358,7 +361,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 - Worker-Schnittstelle über Comlink: ` compute(request: {  ``generation, scenario, sliderPrices?` `}): Promise<ComputeResult | { status: "superseded" }>`.
 - `sliderPrices` enthält die Werte des Preis-Reglers aus `uiSlice.ts` (`petrol`, `electricity`, `petrolEscalationPct`, `electricityEscalationPct`, Schema `SliderPricesSchema`) und wird nicht gespeichert. Der Kern erhält sie als Option von `computeOffer`. Ist der Regler aktiv, rechnet der Worker zusätzlich den Preisfall `slider`. „Als Szenario speichern“ legt die Werte als neues Szenario ab.
 - Der Hauptlauf rechnet ohne Trace. Öffnet der Nutzer den Rechenweg, rechnet `explain({ scenario, offerId, priceCase, sliderPrices? })` genau dieses Angebot mit Trace nach. Der Store hält nur den Trace des geöffneten Angebots.
-- `computeOffer` liefert je Angebot und Preisfall ein Ergebnis mit Status `ok`, `incomplete` (Feldpfade der fehlenden Pflichtfelder, etwa `candidates[2].purchasePrice`; ein unvollständiges Leasingangebot macht alle Angebote des Kandidaten unvollständig, eine Lücke im Fahrprofil alle Kandidaten) oder `unsuitable` (Grund: Wochentag und Monat mit beiden Reserven, im Streng-Modus Weg und Monat, oder die SoH-Kopplung). Das Schema `OfferResultSchema` steht in `src/domain/result.ts`. Mit Trace verweist jede Zahl eines `ok`-Ergebnisses über `resultPath` auf ihren Rechenweg-Eintrag (Q6, Monate als Beschriftung ausgenommen). Das Ergebnis ist mit und ohne Trace gleich. Die kleinste Reserve (`minReserve`) gilt nur für Wege und Monate, in denen der Plan das E-Auto fahren lässt, und ist `null`, wenn es nie fährt; die 24 Zellen der Heatmap zeigen alle Wege. Es nennt `scenarioId` und `comparisonMonths`, damit eine Ansicht auch während einer Neuberechnung sagt, wofür sie gilt, und zeigt die Jahre bis zur Kilometergrenze beider laufenden Garantien immer, nicht erst bei überschrittenem Budget. `computeOffer` prüft die Reglerwerte mit `SliderPricesSchema` und weist ungültige Werte ab.
+- `computeOffer` liefert je Angebot und Preisfall ein Ergebnis mit Status `ok`, `incomplete` (Feldpfade der fehlenden Pflichtfelder, etwa `candidates[2].purchasePrice` oder bei einem Gebrauchten ohne Erstzulassung `candidates[2].firstRegistration`; ein unvollständiges Leasingangebot macht alle Angebote des Kandidaten unvollständig, eine Lücke im Fahrprofil alle Kandidaten) oder `unsuitable` (Grund: Wochentag und Monat mit beiden Reserven, im Streng-Modus Weg und Monat, oder die SoH-Kopplung). Das Schema `OfferResultSchema` steht in `src/domain/result.ts`. Mit Trace verweist jede Zahl eines `ok`-Ergebnisses über `resultPath` auf ihren Rechenweg-Eintrag (Q6, Monate als Beschriftung ausgenommen). Das Ergebnis ist mit und ohne Trace gleich. Die kleinste Reserve (`minReserve`) gilt nur für Wege und Monate, in denen der Plan das E-Auto fahren lässt, und ist `null`, wenn es nie fährt; die 24 Zellen der Heatmap zeigen alle Wege. Es nennt `scenarioId` und `comparisonMonths`, damit eine Ansicht auch während einer Neuberechnung sagt, wofür sie gilt, und zeigt die Jahre bis zur Kilometergrenze beider laufenden Garantien immer, nicht erst bei überschrittenem Budget. `OfferResult.warranty.remaining` nennt die berechnete Restgarantie beider Garantien (Restjahre und Restkilometer) mit Rechenweg-Eintrag `OPT.remainingWarranty` (Q6). Budget, Ablaufprüfung und Jahre bis zur Kilometergrenze rechnen mit diesen Restwerten, auch bei Leasingangeboten, bei denen das Budget nicht aktiv ist. `computeOffer` prüft die Reglerwerte mit `SliderPricesSchema` und weist ungültige Werte ab.
 - Ein `ComputeCache` teilt die Prüfung des Szenarios und je Kandidat und Preisfall das Problem samt dynamischer Programmierung zwischen allen Angeboten desselben Kandidaten. Der Cache merkt sich das Szenario-Objekt und beginnt neu, sobald er ein anderes erhält. Darum wird der Szenario-Zustand bei jeder Änderung ersetzt und nie an Ort und Stelle geändert. Für den Preis-Regler hält er je Kandidat nur das Problem der zuletzt verwendeten Reglerwerte. Aufrufe mit Trace nutzen ihn nicht, damit ihr Rechenweg vollständig ist.
 - Der Thunk requestCompute() in src/state wartet nach der letzten Eingabe 300 ms und sendet dann mit hochgezählter `generation`.
 - Der Worker merkt sich die höchste empfangene `generation`. Zwischen zwei Angeboten gibt er mit einem Macrotask (`MessageChannel`) die Kontrolle ab, damit neue Aufrufe ankommen, und bricht ab, wenn seine `generation` veraltet ist.
@@ -368,7 +371,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 ### 8.6 Eingabe und Validierung
 
 - Zahlenfelder speichern `number`. `parseDecimal` akzeptiert Komma und Punkt (Punkt mit genau drei Ziffern danach ist ein Tausenderpunkt, Regeln in der Spezifikation, Abschnitt Validierung) und liefert bei ungültiger Eingabe einen Fehlercode statt `NaN`. Die Oberfläche übersetzt den Code in einen Text der Sprachdatei.
-- Typ und Bereich prüft das Speicherschema ScenarioSchema, es lässt leere Pflichtfelder (`null`) zu. Pflichtfelder prüft der Kern mit den strengen Rechenschemas: je Kandidat mit CandidateComputeSchema, für Fahrprofil und Parameter mit ScenarioComputeSchema (das Szenario ohne Kandidaten). Feldübergreifende Regeln (Minimum ≤ Mittel ≤ Maximum, Wegsumme > 0, freie Tage ≤ Arbeitstage, T\_kalt < T\_mild) stehen nur in den Rechenschemas. Das Speicherschema prüft nur Typ, Bereich und Struktur (höchstens vier Leasingstufen, je Kilometerstufe eine), damit ein gespeicherter Zwischenstand immer ladbar bleibt. Plausibilitätswarnungen (kalt > mild, > 200 kWh, Weg > 300 km) sind eigene Funktionen in `src/domain/validation.ts` und blockieren nicht. Die Oberfläche ruft sie beim Verlassen eines Feldes direkt auf, ohne Worker.
+- Typ und Bereich prüft das Speicherschema ScenarioSchema, es lässt leere Pflichtfelder (`null`) zu. Pflichtfelder prüft der Kern mit den strengen Rechenschemas: je Kandidat mit CandidateComputeSchema, für Fahrprofil und Parameter mit ScenarioComputeSchema (das Szenario ohne Kandidaten). Feldübergreifende Regeln (Minimum ≤ Mittel ≤ Maximum, Wegsumme > 0, freie Tage ≤ Arbeitstage, T\_kalt < T\_mild, Erstzulassung Pflicht bei gebraucht) stehen nur in den Rechenschemas. Das Speicherschema prüft nur Typ, Bereich und Struktur (höchstens vier Leasingstufen, je Kilometerstufe eine), damit ein gespeicherter Zwischenstand immer ladbar bleibt. Plausibilitätswarnungen (kalt > mild, > 200 kWh, Weg > 300 km, Erstzulassung nach dem Stichtag) sind eigene Funktionen in `src/domain/validation.ts` und blockieren nicht. Die Oberfläche ruft sie beim Verlassen eines Feldes direkt auf, ohne Worker.
 - Der Kern prüft jeden Kandidaten einzeln gegen das Rechenschema. Ein fehlerhafter Kandidat erhält den Status `incomplete` mit Feldpfaden, die anderen werden normal berechnet.
 
 ### 8.7 Texte und Formatierung
@@ -427,7 +430,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 
 | Ebene | Werkzeug | Inhalt |
 | --- | --- | --- |
-| Unit | Vitest | Testfälle 1 bis 18 der Spezifikation gegen `src/core`, Migrationen gegen gespeicherte Beispieldateien jeder Version |
+| Unit | Vitest | Testfälle 1 bis 19 der Spezifikation gegen `src/core`, Migrationen gegen gespeicherte Beispieldateien jeder Version |
 | Property | fast-check mit Vitest | Dynamische Programmierung gegen Brute Force auf zufälligen kleinen Fällen, Invarianten wie Reserve > 0 bei Eignung |
 | Komponenten | Vitest, React Testing Library | Formulare, Validierungsmeldungen, Dezimalkomma |
 | End-to-End | Playwright | Export, Speicher leeren, Import (Testfall 14), Offline nach Installation, Viewports 1280, 1024, 820 und 390 px, Laufzeitmessung mit 10 Kandidaten, Eingabe während der Rechnung (Q2), Ergebnis-Hash in drei Engines (Q5), persistenter Kontext (Q8), axe-Prüfung (Q10) |
@@ -437,7 +440,7 @@ Die Pipeline in GitHub Actions bricht bei Lint-, Typ- oder Testfehler ab und ver
 
 ## 9. Architekturentscheidungen
 
-ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abgestimmt, ADR-16 bei der Freigabe G2 nach dem Benchmark. ADR-03 und ADR-10 wurden in einer zweiten Runde festgelegt.
+ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abgestimmt, ADR-16 bei der Freigabe G2 nach dem Benchmark, ADR-17 am 14.11.2026 mit der Garantie-Änderung nach dem Design-Review. ADR-03 und ADR-10 wurden in einer zweiten Runde festgelegt.
 
 | ADR | Entscheidung | Kontext | Verworfene Alternativen | Konsequenz |
 | --- | --- | --- | --- | --- |
@@ -455,8 +458,9 @@ ADR-01 stammt aus der Spezifikation, ADR-02 bis ADR-15 wurden am 13.11.2026 abge
 | 12 | react-i18next mit `Intl.NumberFormat` | Texte in einer Sprachdatei, später weitere Sprachen | Eigenes Modul, FormatJS | Pluralregeln und Interpolation fertig, zusätzliches Bundle |
 | 13 | vite-plugin-pwa (Workbox) | Offline-Betrieb und Update-Hinweis | Eigener Service Worker | Precache-Liste aus dem Build, Update-Prompt ohne eigenen Cache-Code |
 | 14 | Ein Paket mit Schichten und ESLint-Importgrenzen | Rechenkern muss frei von UI bleiben | pnpm-Workspace mit getrennten Paketen | Einfaches Setup, Grenzen nur so stark wie die Lint-Regel |
-| 15 | Vitest, fast-check und Playwright | 18 Testfälle, DP gegen Brute Force, Offline und Viewports | Nur Vitest, ohne Property-Tests | Drei Werkzeuge im CI, Playwright braucht Browser-Installation im Runner |
+| 15 | Vitest, fast-check und Playwright | 19 Testfälle, DP gegen Brute Force, Offline und Viewports | Nur Vitest, ohne Property-Tests | Drei Werkzeuge im CI, Playwright braucht Browser-Installation im Runner |
 | 16 | Q1 nach dem Benchmark (G2): DP-Zelle bleibt 1 km, Ergebnisse je Kandidat werden nicht wiederverwendet | Q1 ist gemessen und erfüllt (11.1). Gröbere Zellen und Teilneuberechnung sind als Hebel dokumentiert | Sofort 5 km Zellen, Ergebnisse unveränderter Kandidaten behalten | Genaueste Rechnung, größter Aufwand pro Lauf. Reserve gegenüber den Grenzen ist begrenzt (Firefox 83 % von 2 s, gedrosselt 68 % von 5 s), der Handy-Test in S26 entscheidet, ob ein Hebel nötig wird |
+| 17 | Stichtag der Garantieberechnung als Parameter des Szenarios statt Uhr im Kern | Die Restgarantie hängt vom Alter ab, der Kern darf keine Uhr lesen (Q5, 8.4) | Uhr im Kern, aktueller Monat aus `src/state` bei jeder Rechnung, Restgarantie weiter als Eingabe | Dasselbe Szenario liefert auch später dasselbe Ergebnis. Der Stichtag wird beim Anlegen mit dem aktuellen Monat vorbelegt und gilt nur als geändert, wenn der Nutzer ihn gesetzt hat, dafür ein Kennzeichen im Szenario. Der Nutzer muss den Stichtag selbst nachführen |
 
 ## 10. Qualitätsanforderungen
 
@@ -466,7 +470,7 @@ Jedes Szenario ist prüfbar und einem Test oder einer Messung zugeordnet. Die We
 | --- | --- | --- | --- | --- |
 | Q1 | Performance | 10 Kandidaten mit Kauf und 4 Leasingstufen, 3 Preisfälle, Preis-Regler aus: Ergebnis in ≤ 5 s am Mittelklasse-Handy, ≤ 2 s am Desktop | Playwright-Messung, Handy mit CPU-Drosselung, Abnahme am echten Gerät | **Erfüllt** in der Messung (S11, 11.1): Desktop 0,8 bis 1,7 s, gedrosselt 3,4 s. Offen: fertige App (S24), echtes Handy (S26) |
 | Q2 | Bedienbarkeit | Während Q1 läuft, reagiert ein Tastendruck im Formular ohne spürbare Verzögerung | Playwright: Eingabe während der Rechnung | Offen (S24), braucht Worker und Oberfläche (S14, S17) |
-| Q3 | Korrektheit | Testfälle 1 bis 18 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13 und 16 bis 18 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04). Offen: Testfall 14 (S13, S22) und Testfall 15 Oberfläche (S17) |
+| Q3 | Korrektheit | Testfälle 1 bis 19 liefern die erwarteten Werte innerhalb der Toleranz aus 8.4 | Vitest im CI | **Teilweise:** Testfälle 1 bis 13, 16 und 17 grün (S07 bis S09), Testfall 15 Teil Einlesen (S04). Offen: Testfall 14 (S13, S22), Testfall 15 Oberfläche (S17), Testfälle 18 und 19 zur Restgarantie (C1b) |
 | Q4 | Korrektheit Optimierer | DP und Brute Force liefern auf 100.000 zufälligen kleinen Fällen dieselben Kosten | fast-check im CI | **Erfüllt** (S09): 100.000 Fälle grün, Lauf etwa 2,3 s lokal und etwa 8 s im CI (G2) |
 | Q5 | Determinismus | Dieselbe Eingabe ergibt in Chromium, Firefox und WebKit bitgleiche Ergebnisse | Playwright: Hash des Ergebnisses in allen drei Engines gleich | **Teilweise:** zwei Läufe in Node gleich (S10), Hash in Node, Chromium, Firefox und WebKit gleich (S11). Offen: Prüfung im CI (S24) |
 | Q6 | Nachvollziehbarkeit | Jede Zahl der Ergebnistabelle hat einen Rechenweg-Eintrag mit Formel-ID | Unit-Test über alle Ergebnisfelder | **Erfüllt** im Kern (S10): jede Zahl eines Ergebnisses hat genau einen Eintrag mit demselben Wert. Oberfläche offen (S21) |
@@ -489,7 +493,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 | Safari löscht Daten nicht installierter Seiten nach etwa 7 Tagen | Verlust aller Szenarien auf dem iPhone | Installationshinweis beim ersten Start, Export-Erinnerung, `navigator.``storage.persist()` |
 | Eigene Potenzfunktion `detPow` weicht von `Math.pow` ab oder ist langsamer | Abweichung von den Handrechnungen, längere Rechenzeit | Property-Test gegen `Math.pow` mit relativer Toleranz 1e-12, Laufzeit in Q1 mitmessen |
 | Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (250 KB gzip für die Start-Chunks, 11.1) |
-| Fehlerhafte Schema-Migration | Gespeicherte Szenarien unlesbar | Beispieldatei je Schemaversion im Repository, Migrationstest im CI, alter Datensatz bleibt bis zur erfolgreichen Prüfung erhalten |
+| Fehlerhafte Schema-Migration | Gespeicherte Szenarien unlesbar oder Garantiewerte falsch umgerechnet | Beispieldatei je Schemaversion im Repository, Migrationstest im CI, alter Datensatz bleibt bis zur erfolgreichen Prüfung erhalten. Die erste echte Migration v1 → v2 (C1b) rechnet die Restgarantie zurück. Ihr Test prüft, dass die Ableitung danach die alte Restgarantie ergibt (mit Toleranz), und nicht umrechenbare Kandidaten tragen den Hinweis „Garantiewerte prüfen“ |
 | Änderung der Domain oder Entfernen der Custom Domain | Neuer Origin, Browser-Speicher leer | Domain festschreiben, vor jedem Umzug exportieren. Ein Umbenennen des Repositorys ändert den Origin nicht |
 | Lint-Regeln sind die einzige Schichtgrenze | Versehentliche UI-Importe im Kern | Regel im CI verpflichtend, Q11 als Test |
 
@@ -573,7 +577,9 @@ Fachbegriffe haben die Bedeutung aus der Spezifikation. Die Spalte Code-Bezeichn
 | Vergleichsdauer | `comparisonMonths` | Zeitraum D in Monaten |
 | Flotte | `Fleet` | E-Auto plus Verbrenner |
 | Reichweitenreserve | `RangeReserve` | Puffer je Weg und Monat in km und % |
-| Garantie-Budget | `WarrantyBudget` | Jährliche Kilometergrenze aus der Restgarantie |
+| Garantie-Budget | `WarrantyBudget` | Jährliche Kilometergrenze aus der berechneten Restgarantie |
+| Restgarantie | `RemainingWarranty` | Restjahre und Restkilometer einer Garantie zum Stichtag, vom Kern aus normaler Garantie, Erstzulassung und Laufleistung berechnet |
+| Stichtag der Garantieberechnung | `warrantyReferenceMonth` | Monat und Jahr, zu dem die Restgarantie berechnet wird, Parameter des Szenarios |
 | SoH | `soh` | State of Health, Anteil der Ursprungskapazität |
 | Rechenweg | `Trace` | Zwischenwerte mit Formel-ID je Ergebniszahl |
 | Generation | `generation` | Zähler, der veraltete Berechnungen erkennt |

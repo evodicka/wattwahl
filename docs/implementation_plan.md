@@ -193,7 +193,7 @@ Phase 1 legt das Datenmodell fest, auf dem Rechenkern, Speicher und Oberfläche 
 
 ## Phase 2 – Rechenkern
 
-Am Ende von Phase 2 bestehen alle 18 Testfälle der Spezifikation gegen den Kern (Stand vor Phase 3b, C1a und C1b ergänzen Testfall 19), und die Laufzeit am Handy ist gemessen. Die Phase braucht keine Oberfläche und läuft parallel zu Phase 3 und S15.
+Am Ende von Phase 2 bestehen alle Testfälle der Spezifikation im Stand vor Phase 3b gegen den Kern (C1a und C1b ersetzen Testfall 18 und ergänzen Testfall 19), und die Laufzeit am Handy ist gemessen. Die Phase braucht keine Oberfläche und läuft parallel zu Phase 3 und S15.
 
 ### S06 · Deterministische Potenzfunktion
 
@@ -400,7 +400,7 @@ Die Änderung ist in zwei Schritte geteilt: C1a ändert nur Spezifikation und Ar
 
 **Aufgaben**
 
-- Schema, Standardwerte und Ergebnisschema anpassen: Parameter Stichtag mit Kennzeichen „vom Nutzer gesetzt“, Kennzeichen „Garantiewerte prüfen“ am Kandidaten, Pflicht der Erstzulassung bei gebraucht im Rechenschema, Wert für Monat und Jahr in der Parameterliste, `createScenarioTemplate` mit dem aktuellen Monat als Argument.
+- Schema, Standardwerte und Ergebnisschema anpassen: Parameter Stichtag mit Kennzeichen „vom Nutzer gesetzt“, Kennzeichen „Garantiewerte prüfen“ am Kandidaten, Pflicht der Erstzulassung bei gebraucht im Rechenschema, Wert für Monat und Jahr in der Parameterliste, `createScenarioTemplate` mit dem aktuellen Monat als Argument. In `src/domain/schema.test.ts` die Liste `PENDING_C1B` entfernen, damit der Parameter Stichtag wie jede andere Zeile der Parameterliste geprüft wird.
 - Schemaversion 2 mit Migration v1 → v2 nach `docs/change-garantie.md`. Migrationsschritte erhalten einen Kontext mit dem Monat der Migration. Beispieldatei Version 2.
 - Plausibilitätswarnung „Erstzulassung nach dem Stichtag“.
 - `remainingWarranty` im Kern vor dem Garantie-Budget, Trace-Formel `OPT.remainingWarranty` und Ergebnisfeld mit den berechneten Restwerten. Budget, Ablaufprüfung und Jahre bis zur Kilometergrenze rechnen mit den Restwerten, auch bei Leasingangeboten.
