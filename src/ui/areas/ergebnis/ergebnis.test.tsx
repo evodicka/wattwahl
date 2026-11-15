@@ -33,13 +33,17 @@ afterEach(() => {
 });
 
 const bodyRows = () =>
-  within(screen.getByRole('table')).getAllByRole('row').slice(1);
+  within(screen.getByRole('table', { name: /aufsteigend nach Kosten/ }))
+    .getAllByRole('row')
+    .slice(1);
 const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell');
 
 describe('S19: result table on a desktop', () => {
   it('has the columns of the specification, with the price case in the cost header', async () => {
     await open('/ergebnis');
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', {
+      name: /aufsteigend nach Kosten/,
+    });
     expect(
       within(table)
         .getAllByRole('columnheader')
@@ -115,14 +119,18 @@ describe('S19: result table on a desktop', () => {
     }));
     await open('/ergebnis', scenario);
     expect(
-      within(screen.getByRole('table')).getByText('Ohne Garantie'),
+      within(
+        screen.getByRole('table', { name: /aufsteigend nach Kosten/ }),
+      ).getByText('Ohne Garantie'),
     ).toBeTruthy();
   });
 
   it('a lease offer shows that its tier is the limit', async () => {
     await open('/ergebnis');
     expect(
-      within(screen.getByRole('table')).getByText('Stufe ist die Grenze'),
+      within(
+        screen.getByRole('table', { name: /aufsteigend nach Kosten/ }),
+      ).getByText('Stufe ist die Grenze'),
     ).toBeTruthy();
   });
 });
@@ -175,12 +183,16 @@ describe('S19: states', () => {
   it('says that the numbers are being computed before the first result', async () => {
     await renderApp('/ergebnis', { scenarios: [scenarioWithFour()] });
     expect(screen.getByText('Wird berechnet …')).toBeTruthy();
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(
+      screen.queryByRole('table', { name: /aufsteigend nach Kosten/ }),
+    ).toBeNull();
   });
 
   it('marks the numbers as "wird aktualisiert" while a change is computed (Z04)', async () => {
     const app = await open('/ergebnis');
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('table', {
+      name: /aufsteigend nach Kosten/,
+    });
     expect(table.getAttribute('aria-busy')).toBeNull();
     const scenario = scenarioWithFour();
     await act(async () => {
@@ -190,7 +202,11 @@ describe('S19: states', () => {
       'wird aktualisiert',
     );
     // The last result stays on screen, marked as busy.
-    expect(screen.getByRole('table').getAttribute('aria-busy')).toBe('true');
+    expect(
+      screen
+        .getByRole('table', { name: /aufsteigend nach Kosten/ })
+        .getAttribute('aria-busy'),
+    ).toBe('true');
   });
 });
 
@@ -228,7 +244,9 @@ describe('S19: result cards on a phone', () => {
   it('shows one card per offer, in the order of the table, with short price case names', async () => {
     phone();
     await open('/ergebnis');
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(
+      screen.queryByRole('table', { name: /aufsteigend nach Kosten/ }),
+    ).toBeNull();
     expect(
       screen.getByRole('heading', { name: 'Angebote nach Kosten' }),
     ).toBeTruthy();
@@ -281,7 +299,9 @@ describe('S19: review findings', () => {
       void app.store.dispatch(requestCompute());
     });
     await act(async () => app.worker.fail('boom'));
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(
+      screen.getByRole('table', { name: /aufsteigend nach Kosten/ }),
+    ).toBeTruthy();
     expect(screen.getByText('Die Zahlen sind nicht aktuell')).toBeTruthy();
   });
 
@@ -289,7 +309,9 @@ describe('S19: review findings', () => {
     const scenario = exampleScenario();
     scenario.iceVehicle = { ...scenario.iceVehicle, maintenancePerKm: null };
     const app = await open('/ergebnis', scenario);
-    const [link] = within(screen.getByRole('table')).getAllByRole('link', {
+    const [link] = within(
+      screen.getByRole('table', { name: /aufsteigend nach Kosten/ }),
+    ).getAllByRole('link', {
       name: 'Fahrprofil',
     });
     if (!link) throw new Error('no link');

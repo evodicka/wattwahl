@@ -10,11 +10,13 @@ import {
 } from '../../state';
 import { Button, EmptyState, Notice, SegmentedControl } from '../components';
 import { resultRows } from '../forms/resultRows';
+import { ChartSuspense, CostBars } from '../charts/lazy';
 import { useIsDesktop } from '../layout/useIsDesktop';
 import { StatusLine } from '../shell/StatusLine';
 import { AreaHead } from './AreaHead';
 import styles from './ErgebnisPage.module.css';
 import { OfferCards } from './ergebnis/OfferCards';
+import { OfferDetail } from './ergebnis/OfferDetail';
 import { ResultTable } from './ergebnis/ResultTable';
 import { useOfferLabel } from './ergebnis/parts';
 
@@ -43,6 +45,21 @@ export function ErgebnisPage() {
   const shown: PriceCase =
     priceCase === 'slider' && !sliderPrices ? 'mid' : priceCase;
   const rows = available ? resultRows(scenario, available.results, shown) : [];
+  const costRows = rows.flatMap((row) =>
+    row.result.status === 'ok'
+      ? [
+          {
+            id: row.offerId,
+            label: t('table.offerTitle', {
+              candidate: row.candidateName.trim(),
+              offer: offerLabel(row),
+            }),
+            costs: row.result.costs,
+            range: row.range,
+          },
+        ]
+      : [],
+  );
   const failed = status === 'error';
   const busy =
     status === 'computing' || status === 'stale' || available === null;
@@ -65,6 +82,8 @@ export function ErgebnisPage() {
       ? [{ value: 'slider' as const, label: c('priceCase.slider') }]
       : []),
   ];
+
+  const priceCaseName = options.find((o) => o.value === shown)?.label ?? '';
 
   // Only a computed offer has a detail view. Wait for a finished run before
   // deciding that an id does not exist: a new offer may still be coming.
@@ -136,6 +155,14 @@ export function ErgebnisPage() {
             </h2>
           )}
         </div>
+        {selected && selected.result.status === 'ok' && (
+          <OfferDetail
+            row={{ ...selected, result: selected.result }}
+            rows={rows}
+            scenario={scenario}
+            priceCaseName={priceCaseName}
+          />
+        )}
       </>
     );
   }
@@ -175,14 +202,27 @@ export function ErgebnisPage() {
             <ResultTable
               rows={rows}
               scenario={scenario}
-              priceCaseName={
-                options.find((o) => o.value === shown)?.label ?? ''
-              }
+              priceCaseName={priceCaseName}
               busy={busy}
             />
           ) : (
             <OfferCards rows={rows} scenario={scenario} />
           )}
+        </section>
+      )}
+      {rows.some((row) => row.total !== null) && (
+        <section className="stack" aria-labelledby="costs">
+          <h2 className="h-title" id="costs">
+            {t('costs.title')}
+          </h2>
+          <p className="t-cap muted">
+            {t('costs.subtitle', {
+              months: scenario.parameters.comparisonMonths,
+            })}
+          </p>
+          <ChartSuspense>
+            <CostBars rows={costRows} />
+          </ChartSuspense>
         </section>
       )}
     </>

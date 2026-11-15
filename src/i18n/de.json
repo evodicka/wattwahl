@@ -517,7 +517,9 @@
       "maintenance": "Wartung und Reifen",
       "range": "Spanne E-Auto günstig bis ungünstig",
       "chartLabel": "Gestapelte Balken der Gesamtkosten je Angebot, die Werte stehen in der Tabelle.",
-      "excluded": "Unvollständige und ungeeignete Angebote erscheinen nicht. Der Balken zeigt den Mittelwert, der Strich die Spanne."
+      "excluded": "Unvollständige und ungeeignete Angebote erscheinen nicht. Der Balken zeigt den Mittelwert, der Strich die Spanne.",
+      "asTable": "Als Tabelle lesen",
+      "totalColumn": "Gesamt"
     },
     "slider": {
       "title": "Preis-Regler",
@@ -543,7 +545,8 @@
         "noChargingAtWork": "kein Laden vor Ort",
         "swipe": "Zum Ansehen seitlich wischen.",
         "asTable": "Als Tabelle lesen",
-        "cell": "Weg {{way}}, {{month}}: {{km}}, {{pct}}, {{light}}"
+        "cell": "Weg {{way}}, {{month}}: {{km}}, {{pct}}, {{light}}",
+        "scrollLabel": "Heatmap der Reichweitenreserve, seitlich scrollbar"
       },
       "plan": {
         "title": "Zuordnungsplan",
@@ -557,7 +560,8 @@
         "onlyPresent": "nur {{name}} besetzt",
         "evDrives": "E-Auto fährt zu {{name}}",
         "iceDrives": "Verbrenner fährt zu {{name}}, E-Auto ruht",
-        "line": "{{who}}: {{what}}"
+        "line": "{{who}}: {{what}}",
+        "scrollLabel": "Zuordnungsplan, seitlich scrollbar"
       },
       "warranty": {
         "title": "Garantie",
@@ -576,7 +580,16 @@
         "extraCost": "Mehrkosten durch Garantie-Budget:",
         "budgetIsTarget": "Das Budget ist als Ziel aktiv.",
         "noWarrantyBody": "Beide Garantien sind abgelaufen. Kein Jahresbudget.",
-        "exceededBody": "Geplant {{planned}}, Budget {{budget}}. Die Kilometergrenze ist nach {{years}} erreicht. Mehrkosten {{cost}}."
+        "exceededBody": "Geplant {{planned}}, Budget {{budget}}. Die Kilometergrenze ist nach {{years}} erreicht. Mehrkosten {{cost}}.",
+        "partVehicle": "Fahrzeug",
+        "partBattery": "Akku",
+        "normal": "{{years}} J / {{km}}",
+        "remaining": "{{years}} / {{km}}",
+        "yearsValue": "{{value}} Jahre",
+        "plannedKmHintNoBudget": "pro Jahr",
+        "leaseNote": "Bei Leasing ist die Stufe die Grenze, das Budget ist nicht aktiv.",
+        "budgetOff": "Das Garantie-Budget ist ausgeschaltet.",
+        "budgetValue": "{{km}} pro Jahr"
       },
       "trace": {
         "title": "Rechenweg",
@@ -595,7 +608,8 @@
     "failedTitle": "Die Berechnung ist fehlgeschlagen",
     "failedBody": "Deine Eingaben sind gespeichert. Versuche es noch einmal.",
     "outdatedTitle": "Die Zahlen sind nicht aktuell",
-    "outdatedBody": "Die letzte Berechnung ist fehlgeschlagen. Angezeigt wird der letzte fertige Stand."
+    "outdatedBody": "Die letzte Berechnung ist fehlgeschlagen. Angezeigt wird der letzte fertige Stand.",
+    "chartLoading": "Diagramm wird geladen …"
   },
   "szenarien": {
     "title": "Szenarien und Daten",

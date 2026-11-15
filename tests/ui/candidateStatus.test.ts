@@ -212,8 +212,8 @@ describe('S18: aggregation over the offers of a candidate', () => {
   });
 
   it('writes the reason of an unsuitable offer as an exact sentence', () => {
-    expect(unsuitableText({ kind: 'coupling', soh: 80 })).toBe(
-      'Die Wege sind fahrbar, aber mit den E-Auto-Kilometern sinkt der Akku auf 80\u00a0% SoH und reicht dann nicht mehr.',
+    expect(unsuitableText({ kind: 'coupling', soh: 0.8 })).toBe(
+      'Die Wege sind fahrbar, aber mit den E-Auto-Kilometern sinkt der Akku auf 80,0\u00a0% SoH und reicht dann nicht mehr.',
     );
     expect(
       unsuitableText({

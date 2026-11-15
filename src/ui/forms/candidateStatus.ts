@@ -117,6 +117,6 @@ export function unsuitableText(
         km: formatKm(reason.reserveKm),
       });
     case 'coupling':
-      return t(key.coupling, { soh: formatPercent(reason.soh) });
+      return t(key.coupling, { soh: formatPercent(reason.soh * 100, 1) });
   }
 }

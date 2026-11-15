@@ -86,7 +86,7 @@ test.describe('S19: result table', () => {
     await seedScenario(page);
     await page.setViewportSize({ width: 1024, height: 900 });
     await open(page, '/ergebnis');
-    const box = page.locator('table').locator('xpath=..');
+    const box = table(page).locator('xpath=..');
     const metrics = await box.evaluate((el) => ({
       scroll: el.scrollWidth,
       client: el.clientWidth,
