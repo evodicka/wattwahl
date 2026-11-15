@@ -81,7 +81,8 @@
       "month": "Monat",
       "year": "Jahr",
       "optional": "Optional",
-      "resetField": "{{label}} zurücksetzen"
+      "resetField": "{{label}} zurücksetzen",
+      "inGroup": "{{group}}: {{field}}"
     },
     "validation": {
       "required": "Bitte einen Wert eingeben.",

@@ -11,9 +11,9 @@ import {
 } from './FieldFrame';
 
 export type NumberRules = {
-  /** Empty is an error ("Pflicht"). */
+  /** The value is needed. Empty shows "Ohne diesen Wert wird nicht gerechnet" if `nullable`, else "Bitte einen Wert eingeben". */
   required: boolean;
-  /** Empty is stored as `null`; otherwise an empty field keeps the last value. */
+  /** An empty field is stored as `null`. Without it, an empty field is an error and the last value stays. */
   nullable: boolean;
   min?: number;
   /** `min` itself is not allowed. */
