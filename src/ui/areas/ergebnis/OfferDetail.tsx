@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import type { OkOfferResult, Scenario } from '../../../domain';
+import type { OkOfferResult, PriceCase, Scenario } from '../../../domain';
 import { formatEuro } from '../../../i18n';
 import { Button, Notice, SelectField, Tile } from '../../components';
 import {
@@ -15,6 +15,7 @@ import {
   useOfferLabel,
   useRangeText,
 } from './parts';
+import { TraceSection } from './TraceSection';
 import { WarrantySection } from './WarrantySection';
 
 type Props = {
@@ -24,6 +25,8 @@ type Props = {
   rows: ResultRow[];
   scenario: Scenario;
   priceCaseName: string;
+  /** The price case shown, for the Rechenweg. */
+  priceCase: PriceCase;
 };
 
 /**
@@ -31,7 +34,13 @@ type Props = {
  * assignment plan and warranty. The Rechenweg follows in S21; the scenario
  * comparison lives under "Szenarien und Daten" and is linked from here.
  */
-export function OfferDetail({ row, rows, scenario, priceCaseName }: Props) {
+export function OfferDetail({
+  row,
+  rows,
+  scenario,
+  priceCaseName,
+  priceCase,
+}: Props) {
   const { t } = useTranslation('ergebnis');
   const navigate = useNavigate();
   const offerLabel = useOfferLabel();
@@ -97,6 +106,12 @@ export function OfferDetail({ row, rows, scenario, priceCaseName }: Props) {
           />
         </section>
       )}
+
+      <section className="stack">
+        <h3 className="h-title">{t('detail.trace.title')}</h3>
+        <p className="t-sm muted">{t('detail.trace.intro')}</p>
+        <TraceSection offerId={row.offerId} priceCase={priceCase} />
+      </section>
 
       <section className="stack">
         <h3 className="h-title">{t('detail.compare.title')}</h3>

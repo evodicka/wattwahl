@@ -8,6 +8,7 @@ import {
   formatKm,
   formatMonthYear,
   formatPercent,
+  formatScientific,
   formatTime,
 } from './format';
 
@@ -159,5 +160,12 @@ describe('formatMonthYear (S18)', () => {
   it('writes month and year as MM/YYYY', () => {
     expect(formatMonthYear({ month: 3, year: 2022 })).toBe('03/2022');
     expect(formatMonthYear({ month: 11, year: 2026 })).toBe('11/2026');
+  });
+});
+
+describe('formatScientific (S21)', () => {
+  it('writes small values with a decimal comma and an exponent', () => {
+    expect(formatScientific(7.5e-7)).toBe(`7,5E${minus}7`);
+    expect(formatScientific(0.00012)).toBe(`1,2E${minus}4`);
   });
 });

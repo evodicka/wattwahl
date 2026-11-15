@@ -94,6 +94,16 @@ export const formatInput = (value: number, minDecimals = 0): string => {
   return withMinus(format.format(value));
 };
 
+const scientific = new Intl.NumberFormat(LOCALE, {
+  notation: 'scientific',
+  maximumFractionDigits: 2,
+  signDisplay: 'negative',
+});
+
+/** Very small or large values: 7.5e-7 → "7,5E-7". */
+export const formatScientific = (value: number): string =>
+  withMinus(scientific.format(value));
+
 /** A month and a year as "03/2022", for the Stichtag and the first registration. */
 export const formatMonthYear = (value: {
   month: number;

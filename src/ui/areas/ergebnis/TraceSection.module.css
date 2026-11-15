@@ -1,0 +1,75 @@
+.trace {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+.trace > summary,
+.group > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  font: var(--type-label-weight) var(--type-label-size) /
+    var(--type-label-line-height) var(--type-label-family);
+  cursor: pointer;
+}
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 0 var(--space-4) var(--space-4);
+}
+.group {
+  border-top: 1px solid var(--line);
+}
+.group > summary {
+  padding: 0;
+}
+.count {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line);
+  font: var(--type-body-sm-weight) var(--type-body-sm-size) /
+    var(--type-body-sm-line-height) var(--type-body-sm-family);
+}
+.step:first-child {
+  border-top: 0;
+}
+.value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--type-label-weight);
+  text-align: right;
+}
+.formula {
+  grid-column: 1 / 3;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.inputs {
+  grid-column: 1 / 3;
+  color: var(--ink-muted);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+  overflow-wrap: anywhere;
+}
+.id {
+  color: var(--accent);
+  font-weight: var(--type-label-weight);
+}
+.more {
+  align-self: flex-start;
+}

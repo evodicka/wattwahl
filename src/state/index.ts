@@ -11,6 +11,13 @@ export {
   removeLeaseTier,
   setCandidateCondition,
 } from './candidates';
+export {
+  resetSlider,
+  saveSliderAsScenario,
+  setSliderPrice,
+  sliderStart,
+} from './priceSlider';
+export { uniqueName } from './names';
 export { DEBOUNCE_MS, MAX_RESTARTS, attachLifecycle } from './listeners';
 export {
   closeTrace,
