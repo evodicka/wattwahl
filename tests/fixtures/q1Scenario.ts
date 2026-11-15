@@ -21,6 +21,7 @@ const id = (kind: number, index: number): string =>
 export function q1Candidate(index: number): Candidate {
   const capacity = 58 + 5 * index;
   const used = index >= 7;
+  const mileageKm = used ? 15000 * (index - 6) : 0;
   const range = (kmPerKwh: number, coldShare: number) => ({
     mild: Math.round(capacity * kmPerKwh),
     cold: Math.round(capacity * kmPerKwh * coldShare),
@@ -31,7 +32,7 @@ export function q1Candidate(index: number): Candidate {
     condition: used ? 'used' : 'new',
     purchasePrice: 32000 + 3500 * index,
     firstRegistration: used ? { month: 3, year: 2023 } : null,
-    mileageKm: used ? 15000 * (index - 6) : 0,
+    mileageKm,
     netCapacityKwh: capacity,
     rangeKm: {
       city: range(7.2, 0.72),
@@ -39,10 +40,15 @@ export function q1Candidate(index: number): Candidate {
       combined: range(5.8, 0.72),
     },
     sohKnownPct: index === 8 ? 93 : null,
+    // Normal warranty. The used cars are 3 years old at the reference month of
+    // the example scenario, so 1 or 2 years / 40,000 km of the vehicle warranty
+    // and 5 years / 100,000 km of the battery warranty remain.
     vehicleWarranty: used
-      ? { years: 1 + (index % 2), km: 40000 }
+      ? { years: 4 + (index % 2), km: 40000 + mileageKm }
       : { years: 3 + (index % 3), km: 100000 },
-    batteryWarranty: used ? { years: 5, km: 100000 } : { years: 8, km: 160000 },
+    batteryWarranty: used
+      ? { years: 8, km: 100000 + mileageKm }
+      : { years: 8, km: 160000 },
     leaseTiers: [10000, 15000, 20000, 25000].map((tierKm, tier) => ({
       ...createLeaseTierTemplate(id(2, index * 10 + tier), tierKm),
       monthlyRate: 280 + 12 * index + 25 * tier,

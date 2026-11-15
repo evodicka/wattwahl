@@ -44,6 +44,7 @@ export const FORMULA_IDS = [
   'F8.iceOdometer',
   'OPT.threshold',
   'OPT.optionSet',
+  'OPT.remainingWarranty',
   'OPT.budget',
   'OPT.target',
   'OPT.select',
@@ -137,6 +138,12 @@ export const ReserveCellSchema = z.object({
 });
 export type ReserveCell = z.infer<typeof ReserveCellSchema>;
 
+/** Remaining years and km of one warranty at the reference month (spec "Restgarantie"). */
+const RemainingWarrantySchema = z.object({
+  years: z.number(),
+  km: z.number(),
+});
+
 const offerFields = {
   offerId: z.string(),
   candidateId: z.string(),
@@ -195,6 +202,11 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
     warranty: z.object({
       /** Both warranties are expired: "ohne Garantie". */
       noWarranty: z.boolean(),
+      /** Remaining warranty the core derived; budget and years to the limit use it. */
+      remaining: z.object({
+        vehicle: RemainingWarrantySchema,
+        battery: RemainingWarrantySchema,
+      }),
       budgetKmPerYear: z.number().nullable(),
       budgetExceeded: z.boolean(),
       /** Years until each running warranty's km limit at the planned EV km; null if expired. */

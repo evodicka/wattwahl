@@ -178,8 +178,8 @@ describe('TC16: plan per presence state', () => {
   });
 });
 
-describe('TC18: no warranty is not an error', () => {
-  it('TC18: with both warranties expired the offer is still planned and marked "ohne Garantie"', () => {
+describe('TC19: no warranty is not an error', () => {
+  it('TC19: with both warranties expired the offer is still planned and marked "ohne Garantie"', () => {
     const candidate = exampleCandidateCompute();
     candidate.vehicleWarranty = { years: 0, km: 0 };
     candidate.batteryWarranty = { years: 0, km: 0 };

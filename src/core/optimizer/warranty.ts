@@ -1,10 +1,66 @@
-import type { CandidateCompute } from '../../domain';
+import {
+  ageInMonths,
+  type CandidateCompute,
+  type YearMonth,
+} from '../../domain';
 import type { Trace } from '../trace';
 import { finiteRatio } from '../calc/units';
 
-// Spec "Garantie-Budget": the yearly km budget from the remaining warranty.
+// Spec "Garantie-Budget": the yearly km budget from the remaining warranty,
+// which is derived first from the normal warranty (subsection "Restgarantie").
 
+/** Years and km of a warranty: the normal one as entered, or what remains of it. */
 type Warranty = CandidateCompute['vehicleWarranty'];
+
+/** Remaining years and km of one warranty at the reference month. */
+export type RemainingWarranty = Warranty;
+
+/**
+ * OPT.remainingWarranty: a = months from first registration to the reference
+ * month (at least 0), remaining years = max(0, years - a / 12), remaining km
+ * = max(0, km - mileage). A new car keeps its normal warranty. Writes one
+ * entry for the years and one for the km.
+ */
+export function remainingWarranty(
+  part: 'vehicle' | 'battery',
+  warranty: Warranty,
+  candidate: Pick<
+    CandidateCompute,
+    'condition' | 'firstRegistration' | 'mileageKm'
+  >,
+  referenceMonth: YearMonth,
+  trace?: Trace,
+): RemainingWarranty {
+  let ageMonths = 0;
+  let remaining: RemainingWarranty = { ...warranty };
+  if (candidate.condition === 'used') {
+    if (!candidate.firstRegistration) {
+      throw new RangeError('A used car needs its first registration.');
+    }
+    ageMonths = ageInMonths(candidate.firstRegistration, referenceMonth);
+    remaining = {
+      years: Math.max(0, warranty.years - ageMonths / 12),
+      km: Math.max(0, warranty.km - candidate.mileageKm),
+    };
+  }
+  const inputs = {
+    part,
+    condition: candidate.condition,
+    ageMonths,
+    mileageKm: candidate.mileageKm,
+  };
+  trace?.add({
+    formula: 'OPT.remainingWarranty',
+    inputs: { ...inputs, quantity: 'years', warrantyYears: warranty.years },
+    value: remaining.years,
+  });
+  trace?.add({
+    formula: 'OPT.remainingWarranty',
+    inputs: { ...inputs, quantity: 'km', warrantyKm: warranty.km },
+    value: remaining.km,
+  });
+  return remaining;
+}
 
 export type WarrantyBudget = {
   /** Both warranties are expired: no budget, the offer shows "ohne Garantie". */

@@ -13,8 +13,10 @@ import { WAYS, type GroupInfo, type Problem } from './problem';
 import type { Selection } from './types';
 import {
   isExpired,
+  remainingWarranty,
   warrantyBudget,
   yearsToKmLimit,
+  type RemainingWarranty,
   type WarrantyBudget,
 } from './warranty';
 
@@ -32,8 +34,19 @@ export type PlanEntry = {
   sharePct?: number;
 };
 
+/** Remaining warranties of the candidate at the reference month. */
+export type RemainingWarranties = {
+  vehicle: RemainingWarranty;
+  battery: RemainingWarranty;
+};
+
 export type OptimizerOutcome =
-  | { status: 'unsuitable'; reason: UnsuitableReason; budget: WarrantyBudget }
+  | {
+      status: 'unsuitable';
+      reason: UnsuitableReason;
+      remaining: RemainingWarranties;
+      budget: WarrantyBudget;
+    }
   | {
       status: 'ok';
       plan: PlanEntry[];
@@ -53,6 +66,7 @@ export type OptimizerOutcome =
         iceKm: number;
         evKm: number;
       };
+      remaining: RemainingWarranties;
       budget: WarrantyBudget;
       budgetExtraCost: number;
       budgetExceeded: boolean;
@@ -145,9 +159,26 @@ export function optimizeOffer(
 ): OptimizerOutcome {
   const { parameters } = scenario;
   const months = parameters.comparisonMonths;
+  // The remaining warranty for every offer, leases included (spec "Restgarantie").
+  const remaining: RemainingWarranties = {
+    vehicle: remainingWarranty(
+      'vehicle',
+      candidate.vehicleWarranty,
+      candidate,
+      parameters.warrantyReferenceMonth,
+      trace,
+    ),
+    battery: remainingWarranty(
+      'battery',
+      candidate.batteryWarranty,
+      candidate,
+      parameters.warrantyReferenceMonth,
+      trace,
+    ),
+  };
   const budget = warrantyBudget(
-    candidate.vehicleWarranty,
-    candidate.batteryWarranty,
+    remaining.vehicle,
+    remaining.battery,
     {
       isLease: offer.kind === 'lease',
       asTarget: parameters.warrantyBudgetAsTarget,
@@ -179,6 +210,7 @@ export function optimizeOffer(
     return {
       status: 'unsuitable',
       reason: explain(problem, selection),
+      remaining,
       budget,
     };
   }
@@ -197,24 +229,17 @@ export function optimizeOffer(
     quantities: sumQuantities(problem, selection.optionIndex),
     variableCost: selection.variableCost,
     targetCost: selection.targetCost,
+    remaining,
     budget,
     budgetExtraCost: selection.budgetExtraCost,
     budgetExceeded: selection.budgetExceeded,
     yearsToKmLimit: {
-      vehicle: isExpired(candidate.vehicleWarranty)
+      vehicle: isExpired(remaining.vehicle)
         ? null
-        : yearsToKmLimit(
-            candidate.vehicleWarranty.km,
-            selection.evKmPerYear,
-            trace,
-          ),
-      battery: isExpired(candidate.batteryWarranty)
+        : yearsToKmLimit(remaining.vehicle.km, selection.evKmPerYear, trace),
+      battery: isExpired(remaining.battery)
         ? null
-        : yearsToKmLimit(
-            candidate.batteryWarranty.km,
-            selection.evKmPerYear,
-            trace,
-          ),
+        : yearsToKmLimit(remaining.battery.km, selection.evKmPerYear, trace),
     },
     bucketSoh: selection.bucketSoh,
   };

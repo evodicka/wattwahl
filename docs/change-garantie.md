@@ -1,6 +1,6 @@
 # Änderung: Garantie ab Erstzulassung
 
-Nov 14, 2026 · @Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 3b in den Plan aufgenommen, Review eingearbeitet, C1a in Spezifikation und Architektur umgesetzt
+Nov 14, 2026 · @Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 3b in den Plan aufgenommen, Review eingearbeitet, C1a in Spezifikation und Architektur umgesetzt, C1b im Code umgesetzt
 
 Auslöser ist der Design-Review der Mockups (D3): Der Nutzer trägt die normale Garantie des Herstellers ein (Dauer in Jahren, Kilometer), die App rechnet die Restgarantie bei Gebrauchten selbst aus. Heute verlangen Spezifikation und Schema die Restgarantie als Eingabe. Dieses Dokument beschreibt die Änderung. Sie läuft als Schritte C1a und C1b in Phase 3b (vor S12, siehe Implementierungsplan). Das Dokument selbst ändert noch nichts an Spezifikation, Architektur oder Code.
 

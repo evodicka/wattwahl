@@ -19,6 +19,7 @@ import {
   createCandidateTemplate,
   createLeaseTierTemplate,
   createScenarioTemplate,
+  CURRENT_MONTH,
   LEASE_TIER_PRESETS,
   type ParameterDefault,
 } from './defaults';
@@ -36,6 +37,8 @@ function must<T>(value: T | undefined): T {
 }
 
 const ID_A = '00000000-0000-4000-8000-0000000000aa';
+/** The month src/state would pass in as the current one. */
+const NOV_2026 = { month: 11, year: 2026 };
 const ID_B = '00000000-0000-4000-8000-0000000000bb';
 
 /** Compute schema applies to the scenario without candidates. */
@@ -83,12 +86,14 @@ describe('S03: parameter list', () => {
     Schalter: 'switch',
     'km pro Jahr': 'kmPerYear',
     Tage: 'days',
+    'Monat und Jahr': 'monthYear',
   };
   const WORDS: Record<string, string | boolean> = {
     'Ende der Vergleichsdauer': 'end',
     'frei optimiert': 'optimized',
     aus: false,
     an: true,
+    'aktueller Monat': 'currentMonth',
   };
 
   function decode(text: string): ParameterDefault['value'] {
@@ -101,38 +106,31 @@ describe('S03: parameter list', () => {
     return Number(text.replace('−', '-').replaceAll('.', ''));
   }
 
-  // Rows added to the spec by C1a; C1b adds their defaults and removes them here.
-  const PENDING_C1B = new Set(['Stichtag der Garantieberechnung']);
-
   it('reads every row of the spec table', () => {
     expect(specRows).toHaveLength(29);
   });
 
-  it.each(specRows.filter(([label]) => !PENDING_C1B.has(String(label))))(
-    '%s',
-    (label, standard, unit, hint) => {
-      const entries = PARAMETER_DEFAULTS.filter(
-        (e) =>
-          // Rows may share a prefix; the label is the exact spec cell.
-          e.specRow === label,
-      );
-      expect(
-        entries.length,
-        `no defaults entry for "${label}"`,
-      ).toBeGreaterThan(0);
-      const flag =
-        standard === 'Pflichteingabe'
-          ? 'required'
-          : hint?.includes('Platzhalter')
-            ? 'placeholder'
-            : 'fixed';
-      for (const entry of entries) {
-        expect(entry.value).toEqual(decode(String(standard)));
-        expect(entry.unit).toBe(UNIT_CODES[String(unit)]);
-        expect(entry.flag).toBe(flag);
-      }
-    },
-  );
+  it.each(specRows)('%s', (label, standard, unit, hint) => {
+    const entries = PARAMETER_DEFAULTS.filter(
+      (e) =>
+        // Rows may share a prefix; the label is the exact spec cell.
+        e.specRow === label,
+    );
+    expect(entries.length, `no defaults entry for "${label}"`).toBeGreaterThan(
+      0,
+    );
+    const flag =
+      standard === 'Pflichteingabe'
+        ? 'required'
+        : hint?.includes('Platzhalter')
+          ? 'placeholder'
+          : 'fixed';
+    for (const entry of entries) {
+      expect(entry.value).toEqual(decode(String(standard)));
+      expect(entry.unit).toBe(UNIT_CODES[String(unit)]);
+      expect(entry.flag).toBe(flag);
+    }
+  });
 
   it('has no entry without a spec row', () => {
     const labels = new Set(specRows.map((cells) => cells[0]));
@@ -142,18 +140,29 @@ describe('S03: parameter list', () => {
   });
 
   it('applies every default at its path in the template', () => {
-    const template = createScenarioTemplate({ id: ID_A, name: 'Template' });
+    const template = createScenarioTemplate({
+      id: ID_A,
+      name: 'Template',
+      currentMonth: NOV_2026,
+    });
     for (const entry of PARAMETER_DEFAULTS) {
       if (entry.path.startsWith('settings.')) continue;
       const actual = entry.path
         .split('.')
         .reduce<unknown>((node, key) => (node as never)[key], template);
-      expect(actual, entry.path).toEqual(entry.value);
+      // "aktueller Monat" is the month the template was created with.
+      expect(actual, entry.path).toEqual(
+        entry.value === CURRENT_MONTH ? NOV_2026 : entry.value,
+      );
     }
   });
 
   it('only names paths that exist in the scenario template', () => {
-    const template = createScenarioTemplate({ id: ID_A, name: 'Template' });
+    const template = createScenarioTemplate({
+      id: ID_A,
+      name: 'Template',
+      currentMonth: NOV_2026,
+    });
     for (const entry of PARAMETER_DEFAULTS) {
       if (entry.path.startsWith('settings.')) continue;
       const exists = entry.path.split('.').reduce<unknown>((node, key) => {
@@ -174,10 +183,20 @@ describe('S03: parameter list', () => {
 });
 
 describe('S03: empty template', () => {
-  const template = createScenarioTemplate({ id: ID_A, name: 'Template' });
+  const template = createScenarioTemplate({
+    id: ID_A,
+    name: 'Template',
+    currentMonth: NOV_2026,
+  });
 
   it('passes the storage schema', () => {
     expect(ScenarioSchema.safeParse(template).success).toBe(true);
+  });
+
+  it('C1b: takes the current month as warranty reference month, not set by the user', () => {
+    expect(template.parameters.warrantyReferenceMonth).toEqual(NOV_2026);
+    expect(template.parameters.warrantyReferenceMonthSetByUser).toBe(false);
+    expect(createCandidateTemplate(ID_B).warrantyNeedsReview).toBe(false);
   });
 
   it('fails the compute schema', () => {
@@ -333,6 +352,19 @@ describe('S03: edge cases of the spec are rejected', () => {
     ).toEqual(['mileageKm']);
   });
 
+  it('C1b: a used car without first registration', () => {
+    const candidate = exampleCandidate();
+    candidate.condition = 'used';
+    candidate.mileageKm = 30000;
+    expect(
+      computeIssuePaths(CandidateComputeSchema.safeParse(candidate)),
+    ).toEqual(['firstRegistration']);
+    // The storage schema still keeps the half-edited state.
+    expect(CandidateSchema.safeParse(candidate).success).toBe(true);
+    candidate.firstRegistration = { month: 3, year: 2022 };
+    expect(CandidateComputeSchema.safeParse(candidate).success).toBe(true);
+  });
+
   it('values outside the range', () => {
     const candidate = exampleCandidate();
     candidate.condition = 'used';
@@ -438,7 +470,7 @@ describe('S03: no parallel type definitions (architecture 8.1)', () => {
     expect(objectTypes).toEqual([]);
   });
 
-  it('is the schema version the migrations start from', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(1);
+  it('is schema version 2 since the warranty change (C1b)', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(2);
   });
 });

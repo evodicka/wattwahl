@@ -20,6 +20,9 @@ export {
   ScenarioSchema,
   WeekdaySchema,
   WorkplaceSchema,
+  YearMonthSchema,
+  ageInMonths,
+  monthsBetween,
 } from './schema';
 export type {
   Candidate,
@@ -36,8 +39,10 @@ export type {
   ScenarioCompute,
   Weekday,
   Workplace,
+  YearMonth,
 } from './schema';
 export {
+  CURRENT_MONTH,
   LEASE_TIER_PRESETS,
   PARAMETER_DEFAULTS,
   createCandidateTemplate,
@@ -64,6 +69,7 @@ export {
 export type { DecimalResult, NumberFieldResult, Warning } from './validation';
 export {
   MIGRATIONS,
+  MigrationContextSchema,
   MigrationResultSchema,
   UpgradeResultSchema,
   createMigrator,
@@ -71,6 +77,7 @@ export {
   upgradeScenario,
 } from './migrations';
 export type {
+  MigrationContext,
   MigrationResult,
   MigrationStep,
   UpgradeResult,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Scenario } from './schema';
+import { monthsBetween, type Scenario } from './schema';
 
 // Input parsing and plausibility warnings (spec "Validierung", architecture 8.6).
 // Results carry codes, not texts: the UI maps a code to a German message.
@@ -82,7 +82,12 @@ export function parseNumberField(
 }
 
 export const WarningSchema = z.object({
-  code: z.enum(['coldAboveMild', 'capacityAbove200', 'commuteAbove300']),
+  code: z.enum([
+    'coldAboveMild',
+    'capacityAbove200',
+    'commuteAbove300',
+    'firstRegistrationAfterReferenceMonth',
+  ]),
   /** Dot path of the field in the scenario, for example `candidates.0.netCapacityKwh`. */
   path: z.string(),
 });
@@ -116,6 +121,19 @@ export function checkWarnings(scenario: Scenario): Warning[] {
       warnings.push({
         code: 'capacityAbove200',
         path: `${base}.netCapacityKwh`,
+      });
+    }
+    // The remaining warranty then counts with age 0 (spec "Validierung").
+    if (
+      candidate.firstRegistration !== null &&
+      monthsBetween(
+        candidate.firstRegistration,
+        scenario.parameters.warrantyReferenceMonth,
+      ) < 0
+    ) {
+      warnings.push({
+        code: 'firstRegistrationAfterReferenceMonth',
+        path: `${base}.firstRegistration`,
       });
     }
   });

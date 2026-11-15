@@ -8,6 +8,7 @@ import {
   type CandidateCompute,
   type ScenarioCompute,
   type Scenario,
+  type YearMonth,
 } from '../../src/domain';
 
 // Shared example data of the spec test cases ("Gemeinsame Beispieldaten" plus
@@ -18,6 +19,13 @@ export const EXAMPLE_IDS = {
   candidate: '00000000-0000-4000-8000-000000000002',
   leaseTier: '00000000-0000-4000-8000-000000000003',
 } as const;
+
+/**
+ * Fixed warranty reference month of the example scenario, as if it had been
+ * created in March 2026: exactly 36 months after the first registration of the
+ * used Q1 candidates (03/2023).
+ */
+export const EXAMPLE_REFERENCE_MONTH: YearMonth = { month: 3, year: 2026 };
 
 /** 60 kWh, new, 40,000 EUR (TC7), one lease tier 15,000 km (TC8). */
 export function exampleCandidate(): Candidate {
@@ -56,6 +64,7 @@ export function exampleScenario(): Scenario {
   const scenario = createScenarioTemplate({
     id: EXAMPLE_IDS.scenario,
     name: 'Example',
+    currentMonth: EXAMPLE_REFERENCE_MONTH,
   });
   scenario.iceVehicle = {
     ...scenario.iceVehicle,
