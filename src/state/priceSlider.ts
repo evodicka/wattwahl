@@ -86,7 +86,29 @@ export function scenarioFromSlider(
   };
 }
 
-/** Changes one slider value and shows the slider's price case. */
+const FIELDS = [
+  'petrol',
+  'electricity',
+  'petrolEscalationPct',
+  'electricityEscalationPct',
+] as const;
+
+/** The slider holds exactly the scenario's own values: nothing to try out or to save. */
+export function isSliderUnchanged(
+  scenario: Scenario,
+  slider: SliderPrices,
+): boolean {
+  const start = sliderStart(scenario);
+  return (
+    start !== null &&
+    FIELDS.every((field) => Math.abs(slider[field] - start[field]) < 1e-9)
+  );
+}
+
+/**
+ * Changes one slider value and shows the slider's price case. Moving every
+ * value back to the scenario's own puts the slider away: it is no change.
+ */
 export function setSliderPrice(patch: Partial<SliderPrices>): AppThunk {
   return (dispatch, getState) => {
     const state = getState();
@@ -94,7 +116,12 @@ export function setSliderPrice(patch: Partial<SliderPrices>): AppThunk {
     const current =
       state.ui.sliderPrices ?? (scenario ? sliderStart(scenario) : null);
     if (!current) return;
-    dispatch(sliderPricesSet({ ...current, ...patch }));
+    const next = { ...current, ...patch };
+    if (scenario && isSliderUnchanged(scenario, next)) {
+      dispatch(sliderPricesSet(null));
+      return;
+    }
+    dispatch(sliderPricesSet(next));
     dispatch(priceCaseSet('slider'));
   };
 }
@@ -118,7 +145,8 @@ export function saveSliderAsScenario(
     const state = getState();
     const scenario = selectActiveScenario(state);
     const slider = state.ui.sliderPrices;
-    if (!scenario || !slider) return null;
+    if (!scenario || !slider || isSliderUnchanged(scenario, slider))
+      return null;
     const saved = scenarioFromSlider(scenario, slider, {
       name: uniqueName(
         baseName,
