@@ -481,7 +481,16 @@
       "lease": "Leasing {{tier}}",
       "missing_one": "{{count}} Angabe fehlt: {{fields}}",
       "missing_other": "{{count}} Angaben fehlen: {{fields}}",
-      "noDrive": "fährt nie"
+      "noDrive": "fährt nie",
+      "totalCase": "Gesamtkosten ({{case}})",
+      "noTotal": "–",
+      "evPerYear": "E-Auto pro Jahr",
+      "rangeCard": "Spanne {{range}}",
+      "openOffer": "Details zu {{offer}}",
+      "offerTitle": "{{candidate}} · {{offer}}",
+      "profileMissing": "Das Fahrprofil ist nicht vollständig, deshalb wird noch nicht gerechnet.",
+      "reserveWhere": "Weg {{way}}, {{month}}",
+      "reserveCard": "{{value}} ({{where}})"
     },
     "offersHeading": "Angebote nach Kosten",
     "unsuitable": {
@@ -580,7 +589,10 @@
         "whereBody": "Zwei oder mehr Szenarien wählen und die Gesamtkosten je Kandidat nebeneinander ansehen.",
         "action": "Zum Szenariovergleich"
       }
-    }
+    },
+    "computing": "Wird berechnet …",
+    "priceCaseLabel": "Preisfall",
+    "cards": "Angebote nach Kosten"
   },
   "szenarien": {
     "title": "Szenarien und Daten",

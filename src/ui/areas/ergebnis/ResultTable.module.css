@@ -1,0 +1,10 @@
+/* The name in the first cell is the keyboard's way into the detail view; it reads as text (board D5). */
+.name {
+  color: var(--ink);
+  font: var(--type-label-weight) var(--type-label-size) /
+    var(--type-label-line-height) var(--type-label-family);
+  text-decoration: none;
+}
+.name:hover {
+  text-decoration: underline;
+}

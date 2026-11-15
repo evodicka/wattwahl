@@ -8,7 +8,19 @@ import {
 } from '../../domain';
 import { MONTH_KEYS, formatKm, formatPercent, i18n } from '../../i18n';
 
-type Results = Record<string, Partial<Record<PriceCase, OfferResult>>>;
+export type Results = Record<string, Partial<Record<PriceCase, OfferResult>>>;
+
+/** The light of the cell with the smallest reserve; `null` if the EV never drives. */
+export function reserveLightOf(
+  result: OkOfferResult,
+): 'green' | 'yellow' | 'red' | null {
+  const min = result.minReserve;
+  if (!min) return null;
+  return (
+    result.reserves.find((r) => r.way === min.way && r.month === min.month)
+      ?.light ?? null
+  );
+}
 
 /** What a candidate card says (boards D2, M2, Z02, Z03). */
 export type CandidateStatus =
@@ -87,25 +99,33 @@ const t = (key: string, options: Record<string, unknown> = {}): string =>
 const month = (index: number): string =>
   t(`months.${MONTH_KEYS[index] ?? 'jan'}`);
 
-/** The reason of an unsuitable offer, as a sentence (Z03). */
-export function unsuitableText(reason: UnsuitableReason): string {
+/**
+ * The reason of an unsuitable offer as a sentence (Z03): `card` for the
+ * candidate list, `table` for the result table (texts of the Ergebnis area).
+ */
+export function unsuitableText(
+  reason: UnsuitableReason,
+  variant: 'card' | 'table' = 'card',
+): string {
+  const key = (name: 'both' | 'strict' | 'coupling') =>
+    variant === 'card'
+      ? `kandidaten:card.unsuitable${name[0]?.toUpperCase()}${name.slice(1)}`
+      : `ergebnis:unsuitable.${name}`;
   switch (reason.kind) {
     case 'both':
-      return t('kandidaten:card.unsuitableBoth', {
+      return t(key('both'), {
         weekday: t(`weekdays.${reason.weekday}`),
         month: month(reason.month),
         a: formatKm(reason.reserveKm.a),
         b: formatKm(reason.reserveKm.b),
       });
     case 'strict':
-      return t('kandidaten:card.unsuitableStrict', {
+      return t(key('strict'), {
         way: reason.way.toUpperCase(),
         month: month(reason.month),
         km: formatKm(reason.reserveKm),
       });
     case 'coupling':
-      return t('kandidaten:card.unsuitableCoupling', {
-        soh: formatPercent(reason.soh),
-      });
+      return t(key('coupling'), { soh: formatPercent(reason.soh) });
   }
 }
