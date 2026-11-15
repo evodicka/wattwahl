@@ -53,10 +53,13 @@ export function testWorker() {
   const computes: {
     request: ComputeRequest;
     resolve: (response: unknown) => void;
+    reject: (error: unknown) => void;
   }[] = [];
   const api = {
     compute: (request: ComputeRequest) =>
-      new Promise((resolve) => computes.push({ request, resolve })),
+      new Promise((resolve, reject) =>
+        computes.push({ request, resolve, reject }),
+      ),
     explain: () => new Promise(() => {}),
   };
   const handle = {
@@ -77,6 +80,12 @@ export function testWorker() {
         scenarioId: call.request.scenario.id,
         results,
       });
+    },
+    /** Fails the latest compute call, e.g. a bad scenario in the core. */
+    fail(message = 'compute failed') {
+      const call = computes.at(-1);
+      if (!call) throw new Error('no compute call');
+      call.reject(new Error(message));
     },
   };
 }

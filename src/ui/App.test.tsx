@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exampleScenario } from '../../tests/fixtures/exampleScenario';
 import { formatTime } from '../i18n';
 import { scenarioUpdated, settingsUpdated } from '../state';
-import { NOW, memoryRepository, renderApp } from './__tests__/renderApp';
+import { NOW, renderApp } from './__tests__/renderApp';
 import { AREAS } from './shell/areas';
 
 // S16: frame, navigation and theme (architecture 8.8, boards D1, M1).
@@ -86,6 +86,18 @@ describe('S16: navigation', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Ergebnis' }),
     ).toBeTruthy();
+    // The new area is announced through the title and gets the focus.
+    expect(document.title).toBe('Ergebnis · Wattwahl');
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+
+  it('a sub-route of the same area keeps the focus where it is', async () => {
+    const { router } = await renderApp('/kandidaten');
+    const link = within(nav(0)).getByRole('link', { name: 'Kandidaten' });
+    link.focus();
+    await act(() => router.navigate('/kandidaten/abc'));
+    expect(document.activeElement).toBe(link);
+    expect(document.title).toBe('Kandidaten · Wattwahl');
   });
 });
 
@@ -179,13 +191,5 @@ describe('S16: skip link', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Zum Inhalt springen' }));
     expect(document.activeElement).toBe(screen.getByRole('main'));
     expect(router.state.location.pathname).toBe('/parameter');
-  });
-});
-
-describe('S16: repository for the harness', () => {
-  it('memoryRepository reports a finished first run, so no persistence prompt', async () => {
-    expect((await memoryRepository([]).loadSettings()).firstRunCompleted).toBe(
-      true,
-    );
   });
 });

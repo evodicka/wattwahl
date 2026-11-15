@@ -17,7 +17,8 @@ type Props = {
 
 /**
  * Confirmation dialog (Z19). The native modal dialog keeps the focus inside
- * and returns it to the opener when it closes.
+ * and returns it to the opener when it closes. A danger dialog opens with the
+ * focus on "Abbrechen".
  */
 export function ConfirmDialog({
   open,
@@ -30,14 +31,19 @@ export function ConfirmDialog({
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // showModal focuses the first button: a hasty Enter must not delete.
+      if (danger) cancel.current?.focus();
+    }
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [open, danger]);
 
   return (
     <dialog
@@ -53,12 +59,14 @@ export function ConfirmDialog({
         <h2 className="h-heading" id={titleId}>
           {title}
         </h2>
-        {children !== undefined && <p className="t-sm">{children}</p>}
+        {children !== undefined && <div className="t-sm">{children}</div>}
         <div className="row-wrap">
           <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>
             {confirmLabel}
           </Button>
-          <Button onClick={onCancel}>{t('actions.cancel')}</Button>
+          <Button ref={cancel} onClick={onCancel}>
+            {t('actions.cancel')}
+          </Button>
         </div>
       </div>
     </dialog>

@@ -30,7 +30,8 @@
       "asOf": "Stand {{date}}, {{time}} Uhr",
       "updating": "wird aktualisiert",
       "lastResult": "Letzter Stand {{date}}, {{time}} Uhr",
-      "updatingHint": "Die Zahlen sind der letzte fertige Stand und werden ersetzt, sobald die Berechnung fertig ist."
+      "updatingHint": "Die Zahlen sind der letzte fertige Stand und werden ersetzt, sobald die Berechnung fertig ist.",
+      "outdated": "veraltet"
     },
     "priceCase": {
       "label": "Preisfall",

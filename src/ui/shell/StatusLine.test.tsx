@@ -1,5 +1,5 @@
 import { act, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exampleScenario } from '../../../tests/fixtures/exampleScenario';
 import { formatDate, formatTime } from '../../i18n';
 import { activeScenarioSet, priceCaseSet, scenarioUpdated } from '../../state';
@@ -10,7 +10,7 @@ import { NOW, incompleteResult, renderApp } from '../__tests__/renderApp';
 
 const OTHER_ID = '20000000-0000-4000-8000-000000000001';
 const stamp = `${formatDate(NOW)}, ${formatTime(NOW)} Uhr`;
-const line = () => screen.getByText(/Preisfall/).closest('p');
+const line = () => screen.getByTestId('status-line');
 
 async function setup() {
   const scenario = { ...exampleScenario(), name: 'Familie' };
@@ -19,21 +19,25 @@ async function setup() {
   return { ...app, scenario, other };
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('S16: status line', () => {
   it('before the first result it names the active scenario and its period', async () => {
     const { scenario } = await setup();
-    expect(line()?.textContent).toContain(
+    expect(line().textContent).toContain(
       `Szenario Familie · Preisfall Mittel · Vergleichsdauer ${scenario.parameters.comparisonMonths} Monate`,
     );
-    expect(line()?.textContent).toContain('wird aktualisiert');
-    expect(line()?.textContent).not.toContain('Stand');
+    expect(line().textContent).toContain('wird aktualisiert');
+    expect(line().textContent).not.toContain('Stand');
   });
 
   it('with a result it names scenario, price case, period and time of the calculation', async () => {
     const { worker, scenario } = await setup();
     act(() => worker.finish(incompleteResult(scenario.id, 30)));
     await act(async () => {});
-    expect(line()?.textContent).toBe(
+    expect(line().textContent).toBe(
       `Szenario Familie · Preisfall Mittel · Vergleichsdauer 30 Monate · Stand ${stamp}`,
     );
   });
@@ -45,7 +49,7 @@ describe('S16: status line', () => {
     act(() => {
       store.dispatch(priceCaseSet('evFavorable'));
     });
-    expect(line()?.textContent).toContain('Preisfall E-Auto günstig');
+    expect(line().textContent).toContain('Preisfall E-Auto günstig');
   });
 
   it('while a new input is computed it keeps naming what the old numbers belong to', async () => {
@@ -60,8 +64,8 @@ describe('S16: status line', () => {
         }),
       );
     });
-    expect(line()?.textContent).toContain('wird aktualisiert');
-    expect(line()?.textContent).toContain(
+    expect(line().textContent).toContain('wird aktualisiert');
+    expect(line().textContent).toContain(
       `Vergleichsdauer 48 Monate · Letzter Stand ${stamp}`,
     );
   });
@@ -73,7 +77,23 @@ describe('S16: status line', () => {
     act(() => {
       store.dispatch(activeScenarioSet(OTHER_ID));
     });
-    expect(line()?.textContent).toContain('wird aktualisiert');
-    expect(line()?.textContent).toContain('Szenario Familie');
+    expect(line().textContent).toContain('wird aktualisiert');
+    expect(line().textContent).toContain('Szenario Familie');
+  });
+
+  it('after a failed run it marks the shown numbers as outdated (8.10)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const { worker, scenario, store } = await setup();
+    act(() => worker.finish(incompleteResult(scenario.id, 48)));
+    await act(async () => {});
+    act(() => {
+      store.dispatch(scenarioUpdated({ ...scenario, name: scenario.name }));
+    });
+    await act(() => vi.advanceTimersByTimeAsync(300));
+    act(() => worker.fail());
+    await act(async () => {});
+    expect(line().textContent).toContain('veraltet');
+    expect(line().textContent).toContain(`Letzter Stand ${stamp}`);
+    expect(line().textContent).not.toContain('wird aktualisiert');
   });
 });
