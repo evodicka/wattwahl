@@ -436,7 +436,7 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 | End-to-End | Playwright | Export, Speicher leeren, Import (Testfall 14), Offline nach Installation, Viewports 1280, 1024, 820 und 390 px, Laufzeitmessung mit 10 Kandidaten, Eingabe während der Rechnung (Q2), Ergebnis-Hash in drei Engines (Q5), persistenter Kontext (Q8), axe-Prüfung (Q10) |
 | Manuelle Abnahme | iPhone mit Safari, Android-Mittelklasse-Handy mit Chrome | Laufzeit Q1 am echten Gerät, Installation und Offline-Start (Q9), Daten nach Geräteneustart (Q8); vor der Abnahme und nach größeren Änderungen |
 
-Die Pipeline in GitHub Actions bricht bei Lint-, Typ- oder Testfehler ab und veröffentlicht nur einen grünen Build.
+Die Pipeline in GitHub Actions bricht bei Lint-, Typ- oder Testfehler ab und veröffentlicht nur einen grünen Build. Die axe-Prüfung der Diagrammseite läuft in Firefox nicht, siehe 11.2.
 
 ## 9. Architekturentscheidungen
 
@@ -496,8 +496,9 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 | Fehlerhafte Schema-Migration | Gespeicherte Szenarien unlesbar oder Garantiewerte falsch umgerechnet | Beispieldatei je Schemaversion im Repository, Migrationstest im CI, alter Datensatz bleibt bis zur erfolgreichen Prüfung erhalten. Die erste echte Migration v1 → v2 (C1b) rechnet die Restgarantie zurück. Ihr Test prüft, dass die Ableitung danach die alte Restgarantie ergibt (mit Toleranz), und nicht umrechenbare Kandidaten tragen den Hinweis „Garantiewerte prüfen“ |
 | Änderung der Domain oder Entfernen der Custom Domain | Neuer Origin, Browser-Speicher leer | Domain festschreiben, vor jedem Umzug exportieren. Ein Umbenennen des Repositorys ändert den Origin nicht |
 | Lint-Regeln sind die einzige Schichtgrenze | Versehentliche UI-Importe im Kern | Regel im CI verpflichtend, Q11 als Test |
+| Firefox bricht die axe-Prüfung der Diagrammseite im CI mit „Page crashed“ ab (Ursache unbekannt) | Q10 ist für diese Seite in Firefox nicht geprüft, die Stufe läuft nur in Chromium und WebKit | Der Test ist in Firefox als `fixme` markiert, Analyse und Plan in 11.2 |
 
-**Technische Schulden zum Start:** keine. Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst nicht gebaut. Der Benchmark zeigt, dass Q1 auch ohne sie erfüllt ist, und 11.1 beschreibt, wann und wie sie nachgezogen wird.
+**Technische Schulden zum Start:** keine. Seit S20 gibt es eine bekannte, offene Schuld im Testaufbau (11.2). Die Ausbaustufe „nur geänderte Angebote neu rechnen“ ist bewusst nicht gebaut. Der Benchmark zeigt, dass Q1 auch ohne sie erfüllt ist, und 11.1 beschreibt, wann und wie sie nachgezogen wird.
 
 **Bei G2 festgelegte Werte** (aus dem Benchmark, siehe 11.1):
 
@@ -554,6 +555,43 @@ Die DP bestimmt also fast die gesamte Zeit, und das Teilen der DP zwischen den A
 5. **Zod im Start-Bundle verkleinern.** Falls das Bundle-Budget knapp wird: Zod nur dort laden, wo gerechnet oder importiert wird, oder ein kleineres Schema-Paket (ADR-09 hat Valibot verworfen). Hat mit Q1 nichts zu tun.
 
 Als Entscheidung gilt (ADR-16): keiner dieser Pfade wird jetzt gebaut. Reicht die Reserve am echten Handy nicht, ist Pfad 1 der erste Schritt, weil er eine Konstante ist.
+
+### 11.2 Offener Fehler: Firefox bricht die axe-Prüfung ab (S19, S20)
+
+**Befund.** Im CI (GitHub Actions, Linux-Runner, zwei Worker, ein Wiederholungslauf) endet die axe-Prüfung der Seite `#/ergebnis` mit dem Kostendiagramm in Firefox mit `Page crashed` aus `frame.evaluate`, in allen vier Varianten (1280 und 390 px, hell und dunkel), beim ersten Lauf und beim Wiederholungslauf. Chromium und WebKit laufen durch. Auf dem Entwicklungsrechner (macOS) lief dieselbe Seite in Firefox sauber, auch die ganze Datei mit einem Worker zweimal ohne Fehler. **Die Ursache ist nicht gefunden.** Dieser Abschnitt hält fest, was gemessen wurde, damit die Suche nicht von vorn beginnt.
+
+**Was bekannt ist.** Alle Angaben stammen aus lokalen Läufen mit Firefox (Playwright 1.65, `@axe-core/playwright` 4.14), die CI-Beobachtung steht oben.
+
+| Beobachtung | Schluss |
+| --- | --- |
+| Die Detailansicht eines Angebots (S20) stürzte lokal in Firefox bei jeder axe-Prüfung ab, solange ihre Abschnitte ein `<section aria-labelledby>` mit einer Überschrift (`h3`) trugen. Schon ein einziger solcher Abschnitt reichte, auch ohne Diagramme, nur mit Überschrift und Hinweis. Ohne `aria-labelledby` lief dieselbe Seite durch. | Auslöser war die Kombination aus benanntem Bereich und axe in Firefox, nicht das Diagramm. Die Beschriftung wurde entfernt (kein Landmark mehr, das spart auch Rauschen für Screenreader). Warum dieselbe Konstruktion auf der Ergebnisliste (`section aria-labelledby="costs"`, auch `"offers"`) nicht ebenso abstürzt, ist offen. |
+| Die Kategorien-Aufteilung von axe auf der Detailseite stürzte in `cat.aria`, `cat.keyboard`, `cat.semantics`, `cat.sensory-and-visual-cues`, `wcag2a` und `best-practice` ab, nicht in `cat.name-role-value`, `cat.text-alternatives`, `cat.tables`, `cat.forms`, `cat.structure`, `cat.language`, `cat.parsing`, `wcag2aa`. Einzelne Regelgruppen auszuschalten (`scrollable-region-focusable`, `aria-allowed-*`, Landmark-Regeln, `tabindex`-Regeln, Link-Regeln) half nicht. | Die Prüfung stürzt nicht an einer der naheliegenden Einzelregeln ab. Die Regel selbst ist nicht benannt. |
+| `cat.color` meldete in Firefox auf derselben Seite **einen Verstoß**. Er wurde nicht angesehen. Die vollständigen Prüfungen in Chromium und WebKit melden auf dieser Seite keinen Verstoß. | Möglicherweise ein echter Kontrastbefund in Firefox. Das ist die einzige offene Spur, die auch ohne den Absturz Wert hat. |
+| Auf der Ergebnisliste mit Diagramm stürzte die Prüfung lokal nicht ab (je sechs Läufe unter Last: Ausgangszustand, ohne Beschriftung, ohne `details`, ohne `role="img"`, ohne Kostenabschnitt). Eine Variante, die die SVG-Elemente aus dem Diagramm entfernte, stürzte in drei von sechs Läufen ab. | Kein Hinweis auf einen einzelnen Auslöser im Diagramm. Die entfernten SVG-Knoten waren von React verwaltet, die Variante ist deshalb nicht belastbar. |
+| Eine zweite axe-Prüfung auf derselben Seite, nachdem die nachgeladenen Chunks der Detailansicht geladen waren (Test in `e2e/ergebnis.spec.ts`), stürzte lokal in drei von drei Läufen ab. Sie trat auch früher „ab und zu“ auf, wenn eine Datei Liste und Detail in einem Test prüfte. | Der Absturz hängt am Zustand der Seite nach einer ersten Prüfung und dem Laden schwerer Chunks, nicht an einer Seitenart. |
+| Mit sechs parallelen Workern stürzte Firefox lokal gelegentlich ab, mit zwei oder drei Workern nicht. Im CI mit zwei Workern stürzt er bei der Diagrammseite jedes Mal ab. | Last erklärt es nicht allein. |
+| Die Seite ist klein genug (rund 700 SVG-Knoten im Zuordnungsplan, danach ein Knoten je Zeile statt vier); das Verkleinern auf einen SVG-Knoten je Zeile änderte nichts. | Die Knotenzahl ist nicht der Auslöser. |
+
+**Hypothesen, nicht geprüft.**
+
+1. Ein Fehler in Firefox oder in dessen Zugänglichkeits-Engine unter Linux im Zusammenspiel mit benannten Bereichen, das lokal nur gelegentlich auftritt.
+2. Ein Fehler in einer axe-Regel, die in Firefox auf SVG-Text oder auf `details` rechnet. Gegen `cat.color` als alleinige Ursache spricht, dass `cat.color` allein nicht abstürzte.
+3. Speicher oder Zeit im Content-Prozess des Linux-Runners nach vielen Seitenwechseln in einem Worker.
+
+**Auswirkung heute.**
+
+- `e2e/ergebnis-detail.spec.ts`: die vier Prüfungen der Diagrammseite sind in Firefox `test.fixme`. Die Seite wird in Chromium und WebKit geprüft, die vom Rendering abhängigen Regeln (Kontrast, Zielgröße, scrollbare Bereiche) damit nicht in Firefox.
+- `e2e/ergebnis.spec.ts` (S19): in Firefox läuft nur die erste Prüfung der Listenseite, und zwar ohne auf das Diagramm zu warten (sie kann das Ladeplatzhalter-Element statt des Diagramms prüfen). Die zweite Prüfung der Angebotsansicht läuft nur in Chromium und WebKit. Die Detailansicht hat eine eigene Prüfung in `e2e/ergebnis-detail.spec.ts`, die in allen drei Engines läuft.
+- Der Pfeiltasten-Test für die Scroll-Bereiche läuft nicht in WebKit (Safari bewegt einen fokussierten Bereich nur mit voller Tastaturbedienung). Das hat mit dem Absturz nichts zu tun.
+
+**Wie weiter.** In dieser Reihenfolge, jeweils mit `--repeat-each` im CI:
+
+1. Den lokal verworfenen `cat.color`-Verstoß in Firefox ansehen (Regel und Element ausgeben). Ein echter Befund wäre ein Fehler der App.
+2. Die Prüfung der Diagrammseite in Firefox mit `include('#costs')` eingrenzen und gegen den Absturz laufen lassen. Hilft das, bleibt die eingegrenzte Prüfung in Firefox und die volle in den anderen Engines.
+3. Im CI einen Lauf mit `--workers=1` für Firefox und einen mit je einer axe-Regel (`disableRules`) machen, um die abstürzende Regel zu benennen.
+4. Playwright und Firefox auf die neueste Version heben und erneut messen. Bleibt der Fehler, mit einem minimalen Beispiel bei Playwright oder Mozilla melden.
+
+Bis dahin gilt die Prüfung nach Q10 für die Diagrammseite als in zwei von drei Engines nachgewiesen. Das ist für S26 und die Abnahme (G4) zu nennen.
 
 ## 12. Glossar
 
