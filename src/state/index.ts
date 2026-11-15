@@ -29,5 +29,6 @@ export type { Notices, UiState } from './uiSlice';
 export {
   selectActiveScenario,
   selectExportReminderDue,
+  selectResultIsCurrent,
   selectScenarios,
 } from './selectors';

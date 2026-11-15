@@ -12,6 +12,14 @@ export const selectScenarios = (state: RootState): Scenario[] =>
   state.scenario.order.flatMap((id) => state.scenario.byId[id] ?? []);
 
 /**
+ * The results belong to the active scenario and its latest input. Otherwise
+ * the view marks them as "wird aktualisiert" or outdated (8.5, 8.10).
+ */
+export const selectResultIsCurrent = (state: RootState): boolean =>
+  state.result.status === 'idle' &&
+  state.result.latest?.scenarioId === state.scenario.activeId;
+
+/**
  * The export reminder (8.3): due when the last export is at least the
  * interval of the settings ago, or when there never was one.
  */

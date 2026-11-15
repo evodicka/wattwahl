@@ -21,6 +21,8 @@ export type TraceState = {
   /** `null` while the worker recomputes the offer with its Rechenweg. */
   result: OfferResult | null;
   entries: TraceEntry[];
+  /** Why the Rechenweg could not be computed, e.g. the worker died. */
+  error: string | null;
 };
 
 export type ResultState = {
@@ -44,6 +46,10 @@ export const resultSlice = createSlice({
   name: 'result',
   initialState,
   reducers: {
+    /** An input changed; the run starts after the debounce: "wird aktualisiert" at once. */
+    computeScheduled(state) {
+      if (state.status !== 'stale') state.status = 'computing';
+    },
     computeRequested(state, action: PayloadAction<number>) {
       state.generation = action.payload;
       if (state.status !== 'stale') state.status = 'computing';
@@ -73,7 +79,12 @@ export const resultSlice = createSlice({
       state,
       action: PayloadAction<{ offerId: string; priceCase: PriceCase }>,
     ) {
-      state.trace = { ...action.payload, result: null, entries: [] };
+      state.trace = {
+        ...action.payload,
+        result: null,
+        entries: [],
+        error: null,
+      };
     },
     traceLoaded(state, action: PayloadAction<TraceState>) {
       const { offerId, priceCase } = action.payload;
@@ -86,6 +97,23 @@ export const resultSlice = createSlice({
       }
       state.trace = action.payload;
     },
+    traceFailed(
+      state,
+      action: PayloadAction<{
+        offerId: string;
+        priceCase: PriceCase;
+        message: string;
+      }>,
+    ) {
+      const { offerId, priceCase, message } = action.payload;
+      if (
+        state.trace?.offerId !== offerId ||
+        state.trace.priceCase !== priceCase
+      ) {
+        return;
+      }
+      state.trace.error = message;
+    },
     traceClosed(state) {
       state.trace = null;
     },
@@ -93,11 +121,13 @@ export const resultSlice = createSlice({
 });
 
 export const {
+  computeScheduled,
   computeRequested,
   computeSucceeded,
   computeFailed,
   workerCrashed,
   traceRequested,
   traceLoaded,
+  traceFailed,
   traceClosed,
 } = resultSlice.actions;

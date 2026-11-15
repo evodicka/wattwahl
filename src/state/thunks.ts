@@ -12,6 +12,7 @@ import {
   computeRequested,
   computeSucceeded,
   traceClosed,
+  traceFailed,
   traceLoaded,
   traceRequested,
 } from './resultSlice';
@@ -24,6 +25,9 @@ import {
 import { monthOf, selectActiveScenario, selectScenarios } from './selectors';
 import type { AppDispatch, AppThunk } from './types';
 import { importErrorCleared, importFailed, noticeShown } from './uiSlice';
+
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 /** Shows the notice for a write that did not happen; the state in memory stays. */
 function reportWrite(dispatch: AppDispatch, result: WriteResult): boolean {
@@ -46,13 +50,17 @@ function reportWrite(dispatch: AppDispatch, result: WriteResult): boolean {
 export function flushSaves(): AppThunk<Promise<void>> {
   return async (dispatch, getState, { repository }) => {
     const { dirty, byId } = getState().scenario;
-    for (const id of dirty) {
-      const scenario = byId[id];
-      if (!scenario) continue;
-      if (reportWrite(dispatch, await repository.save(scenario))) {
-        dispatch(scenarioSaved(scenario));
-      }
-    }
+    // All writes start at once: on pagehide the page may not live to issue a
+    // second one after awaiting the first.
+    await Promise.all(
+      dirty
+        .flatMap((id) => byId[id] ?? [])
+        .map(async (scenario) => {
+          if (reportWrite(dispatch, await repository.save(scenario))) {
+            dispatch(scenarioSaved(scenario));
+          }
+        }),
+    );
   };
 }
 
@@ -77,20 +85,25 @@ export function requestCompute(): AppThunk<Promise<void>> {
     if (!scenario) return;
     const generation = state.result.generation + 1;
     dispatch(computeRequested(generation));
+    let response: Awaited<ReturnType<typeof core.compute>>;
     try {
-      const response = await core.compute({
+      response = await core.compute({
         generation,
         scenario,
         sliderPrices: state.ui.sliderPrices ?? undefined,
       });
-      if (response.status === 'done') dispatch(computeSucceeded(response));
     } catch (error) {
-      dispatch(computeFailed({ generation, message: String(error) }));
+      dispatch(computeFailed({ generation, message: messageOf(error) }));
+      return;
     }
+    if (response.status === 'done') dispatch(computeSucceeded(response));
   };
 }
 
-/** App start of runtime view 6.2, steps 2 to 5, without UI. */
+/**
+ * App start of runtime view 6.2, steps 2 to 5, without UI. Rejects when the
+ * database cannot be read at all; the caller shows that as an error (S16).
+ */
 export function startApp(options: {
   /** Name of the empty scenario made when there is none; a text of the UI. */
   templateName: string;
@@ -153,8 +166,8 @@ export function importFile(
       dispatch(importFailed(parsed));
       return parsed;
     }
-    // Pending edits first, so "add" keeps them.
-    await dispatch(flushSaves());
+    // Pending edits first, so "add" keeps them. "replace" drops them anyway.
+    if (mode === 'add') await dispatch(flushSaves());
     const scenarios =
       mode === 'add'
         ? prepareAddImport(
@@ -177,8 +190,12 @@ export function importFile(
       loaded({
         ...stores,
         settings: { ...settings, activeScenarioId: activeId },
+        // Edits made while the import was writing stay ("add" keeps every
+        // stored scenario); they are saved right after.
+        keepDirty: mode === 'add',
       }),
     );
+    await dispatch(flushSaves());
     await dispatch(persistSettings());
     // Started, not awaited: the result arrives through the store.
     void dispatch(requestCompute());
@@ -207,13 +224,27 @@ export function openTrace(
     const scenario = selectActiveScenario(state);
     if (!scenario) return;
     dispatch(traceRequested({ offerId, priceCase }));
-    const { result, trace } = await core.explain({
-      scenario,
-      offerId,
-      priceCase,
-      sliderPrices: state.ui.sliderPrices ?? undefined,
-    });
-    dispatch(traceLoaded({ offerId, priceCase, result, entries: trace }));
+    try {
+      const { result, trace } = await core.explain({
+        scenario,
+        offerId,
+        priceCase,
+        sliderPrices: state.ui.sliderPrices ?? undefined,
+      });
+      dispatch(
+        traceLoaded({
+          offerId,
+          priceCase,
+          result,
+          entries: trace,
+          error: null,
+        }),
+      );
+    } catch (error) {
+      // A worker crash or a bad offer id: the area shows the error and can
+      // open the Rechenweg again.
+      dispatch(traceFailed({ offerId, priceCase, message: messageOf(error) }));
+    }
   };
 }
 

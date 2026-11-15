@@ -23,6 +23,7 @@ export type CoreClient = {
 
 export function createCoreClient(spawn: () => CoreWorkerHandle): CoreClient {
   const listeners = new Set<() => void>();
+  let disposed = false;
   let current: { handle: CoreWorkerHandle; crashed: Promise<'crashed'> };
 
   function start() {
@@ -31,7 +32,7 @@ export function createCoreClient(spawn: () => CoreWorkerHandle): CoreClient {
       handle.onCrash(() => {
         resolve('crashed');
         // Only the worker in use is replaced, and only once.
-        if (current.handle !== handle) return;
+        if (disposed || current.handle !== handle) return;
         handle.terminate();
         start();
         listeners.forEach((listener) => listener());
@@ -66,6 +67,7 @@ export function createCoreClient(spawn: () => CoreWorkerHandle): CoreClient {
       return () => listeners.delete(listener);
     },
     dispose() {
+      disposed = true;
       listeners.clear();
       current.handle.terminate();
     },

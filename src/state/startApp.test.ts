@@ -11,6 +11,7 @@ import {
 } from './__tests__/fakes';
 import { selectActiveScenario, selectExportReminderDue } from './selectors';
 import { createAppStore } from './store';
+import { loaded, scenarioUpdated } from './scenarioSlice';
 import { exportScenarios, importFile, startApp } from './thunks';
 
 // S14: app start (6.2) and import (6.3) against fake-indexeddb, without UI.
@@ -206,5 +207,55 @@ describe('S14: import (6.3)', () => {
     expect(store.getState().scenario).toBe(stateBefore);
     expect(await repository.loadAll()).toEqual(before);
     expect(ScenarioSchema.safeParse(before.scenarios[0]).success).toBe(true);
+  });
+});
+
+describe('S14: import while an edit is pending', () => {
+  it('"add" keeps an edit made while the import was writing, and saves it', async () => {
+    const repository = fakeRepository();
+    const active = exampleScenario();
+    const imported = {
+      ...exampleScenario(),
+      id: '30000000-0000-4000-8000-000000000001',
+      name: 'Imported',
+    };
+    let finishWrite!: () => void;
+    vi.mocked(repository.writeImport).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishWrite = () => resolve({ status: 'ok' });
+        }),
+    );
+    vi.mocked(repository.loadAll).mockResolvedValue({
+      scenarios: [active, imported],
+      readOnly: [],
+      invalid: [],
+    });
+    const { store } = storeOn(repository);
+    store.dispatch(
+      loaded({
+        scenarios: [active],
+        readOnly: [],
+        invalid: [],
+        settings: { ...DEFAULT_DEVICE_SETTINGS, activeScenarioId: active.id },
+      }),
+    );
+
+    const importing = store.dispatch(
+      importFile(
+        new Blob([buildExport([exampleScenario()], NOW).content]),
+        'add',
+      ),
+    );
+    await vi.waitFor(() => expect(repository.writeImport).toHaveBeenCalled());
+    const edited = { ...active, name: 'edited during import' };
+    store.dispatch(scenarioUpdated(edited));
+    finishWrite();
+    await importing;
+
+    expect(store.getState().scenario.byId[active.id]).toBe(edited);
+    expect(store.getState().scenario.order).toHaveLength(2);
+    expect(repository.save).toHaveBeenCalledWith(edited);
+    expect(store.getState().scenario.dirty).toEqual([]);
   });
 });

@@ -4,6 +4,7 @@ import { requestPersistence, type Repository } from '../storage';
 import type { CoreWorkerHandle } from '../worker';
 import { createCoreClient } from './coreClient';
 import { createListeners, listenForRestarts } from './listeners';
+import { computeSucceeded, traceLoaded } from './resultSlice';
 import { rootReducer, type AppDispatch, type RootState } from './types';
 
 export type AppDependencies = {
@@ -34,7 +35,10 @@ export function createAppStore(dependencies: AppDependencies) {
         // Results and traces are large plain data; walking them on every
         // action in development costs more than it finds.
         immutableCheck: { ignoredPaths: ['result'] },
-        serializableCheck: { ignoredPaths: ['result'] },
+        serializableCheck: {
+          ignoredPaths: ['result'],
+          ignoredActions: [computeSucceeded.type, traceLoaded.type],
+        },
       }).prepend(listeners.middleware),
   });
   listenForRestarts(listeners.startListening, store, core);

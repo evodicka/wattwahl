@@ -50,16 +50,27 @@ export const scenarioSlice = createSlice({
         readOnly: ReadOnlyRecord[];
         invalid: InvalidRecord[];
         settings: DeviceSettings;
+        /** Keep unsaved edits of scenarios that are still there (import "add"). */
+        keepDirty?: boolean;
       }>,
     ) {
-      const { scenarios, readOnly, invalid, settings } = action.payload;
+      const { scenarios, readOnly, invalid, settings, keepDirty } =
+        action.payload;
+      const base = original(state);
+      const kept = keepDirty
+        ? state.dirty.flatMap((id) => {
+            const edited = base?.byId[id];
+            return edited && scenarios.some((s) => s.id === id) ? [edited] : [];
+          })
+        : [];
       state.byId = Object.fromEntries(scenarios.map((s) => [s.id, s]));
+      for (const scenario of kept) state.byId[scenario.id] = scenario;
       state.order = scenarios.map((s) => s.id);
       state.readOnly = readOnly;
       state.invalid = invalid;
       state.settings = settings;
       state.activeId = settings.activeScenarioId;
-      state.dirty = [];
+      state.dirty = kept.map((scenario) => scenario.id);
     },
     scenarioAdded(state, action: PayloadAction<Scenario>) {
       const scenario = action.payload;
@@ -79,9 +90,12 @@ export const scenarioSlice = createSlice({
       state.activeId = action.payload;
       state.settings.activeScenarioId = action.payload;
     },
-    settingsUpdated(state, action: PayloadAction<Partial<DeviceSettings>>) {
+    /** The active scenario changes only through activeScenarioSet, which recomputes. */
+    settingsUpdated(
+      state,
+      action: PayloadAction<Partial<Omit<DeviceSettings, 'activeScenarioId'>>>,
+    ) {
       state.settings = { ...state.settings, ...action.payload };
-      state.activeId = state.settings.activeScenarioId;
     },
     /**
      * The autosave wrote this version. Changed again meanwhile, the scenario
