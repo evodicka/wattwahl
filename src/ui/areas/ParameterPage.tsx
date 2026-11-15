@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_DEVICE_SETTINGS } from '../../domain';
-import { formatInput } from '../../i18n';
 import { settingsUpdated, useAppDispatch, useAppSelector } from '../../state';
 import {
   Card,
@@ -33,7 +32,7 @@ export function ParameterPage() {
   const settings = useAppSelector((state) => state.scenario.settings);
   const cutoffWarning = useWarning('parameters.warrantyReferenceMonth');
   if (!scenario) return <AreaHead title={t('title')} intro={t('intro')} />;
-  const { parameters, workplaces } = scenario;
+  const { parameters } = scenario;
 
   const pct = c('units.percent');
   const bothOrderError = (lower: number, upper: number, text: string) =>
@@ -59,11 +58,6 @@ export function ParameterPage() {
           electricity.mid > electricity.max
         ? c('validation.minMidMax')
         : null;
-
-  // "Freie Tage je Arbeitsstätte" is the default of both workplaces (spec).
-  const freeDays = workplaces.a.freeDaysPerYear;
-  const freeDaysChanged =
-    freeDays !== 30 || workplaces.b.freeDaysPerYear !== 30;
 
   return (
     <>
@@ -348,31 +342,6 @@ export function ParameterPage() {
             <h2 className="group-title" id="s5">
               {t('groups.workdays')}
             </h2>
-            <NumberField
-              label={t('freeDays')}
-              name={t('freeDays')}
-              unit={c('units.daysPerYear')}
-              value={freeDays}
-              rules={{ required: true, nullable: false, min: 0 }}
-              marks={{ assumption: true, changed: freeDaysChanged }}
-              hint={
-                freeDaysChanged
-                  ? `${c('field.default', { value: formatInput(30) })}${c('separator')}${t('freeDaysHint')}`
-                  : t('freeDaysHint')
-              }
-              onCommit={(value) => {
-                set('workplaces.a.freeDaysPerYear', value);
-                set('workplaces.b.freeDaysPerYear', value);
-              }}
-              onReset={
-                freeDaysChanged
-                  ? () => {
-                      set('workplaces.a.freeDaysPerYear', 30);
-                      set('workplaces.b.freeDaysPerYear', 30);
-                    }
-                  : null
-              }
-            />
             <SelectField
               label={t('extraMode')}
               value={parameters.extraMileageMode}
