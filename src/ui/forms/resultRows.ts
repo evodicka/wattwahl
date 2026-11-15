@@ -111,9 +111,10 @@ export type WarrantyStatus =
 
 export function warrantyStatus(result: OkOfferResult): WarrantyStatus {
   const { warranty } = result;
-  if (warranty.noWarranty) return { kind: 'noWarranty' };
-  // A lease is not held to the budget: its tier is the limit (spec "Garantie-Budget").
+  // A lease is not held to the budget: its tier is the limit, also when the
+  // warranties have run out ("Stufe ist die Grenze" wins over "ohne Garantie").
   if (result.kind === 'lease') return { kind: 'leaseLimit' };
+  if (warranty.noWarranty) return { kind: 'noWarranty' };
   if (warranty.budgetExceeded) return { kind: 'exceeded' };
   if (warranty.budgetKmPerYear === null) return { kind: 'none' };
   return result.costs.budgetExtraCost > 0

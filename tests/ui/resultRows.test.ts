@@ -108,6 +108,17 @@ describe('S19: warranty column', () => {
     ).toEqual({ kind: 'noWarranty' });
   });
 
+  it('a lease with no warranty left still says that its tier is the limit', () => {
+    expect(
+      warrantyStatus(
+        ok(purchase, {
+          kind: 'lease',
+          warranty: { ...purchase.warranty, noWarranty: true },
+        }),
+      ),
+    ).toEqual({ kind: 'leaseLimit' });
+  });
+
   it('a lease is held to its tier, not to the budget', () => {
     expect(warrantyStatus(ok(purchase, { kind: 'lease' }))).toEqual({
       kind: 'leaseLimit',
