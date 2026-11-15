@@ -4,6 +4,8 @@ import type { CoreApi } from './endpoint';
 
 export { BASE_PRICE_CASES, createCoreEndpoint, macrotask } from './endpoint';
 export type {
+  CompareRequest,
+  CompareResponse,
   ComputeRequest,
   ComputeResponse,
   CoreApi,

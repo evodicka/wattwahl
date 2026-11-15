@@ -22,15 +22,28 @@ import {
   scenarioSaved,
   settingsUpdated,
 } from './scenarioSlice';
-import { monthOf, selectActiveScenario, selectScenarios } from './selectors';
+import {
+  monthOf,
+  selectActiveScenario,
+  selectExportReminderDue,
+  selectScenarios,
+} from './selectors';
 import type { AppDispatch, AppThunk } from './types';
-import { importErrorCleared, importFailed, noticeShown } from './uiSlice';
+import {
+  exportReminderChecked,
+  importErrorCleared,
+  importFailed,
+  noticeShown,
+} from './uiSlice';
 
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
 /** Shows the notice for a write that did not happen; the state in memory stays. */
-function reportWrite(dispatch: AppDispatch, result: WriteResult): boolean {
+export function reportWrite(
+  dispatch: AppDispatch,
+  result: WriteResult,
+): boolean {
   switch (result.status) {
     case 'ok':
       return true;
@@ -149,8 +162,39 @@ export function startApp(options: {
       await dispatch(flushSaves());
     }
     await dispatch(persistSettings());
+    dispatch(checkExportReminder());
     // Started, not awaited: the result arrives through the store.
     void dispatch(requestCompute());
+  };
+}
+
+/**
+ * The export reminder (spec "Export-Erinnerung", 6.2 step 5): due when the last
+ * export is as old as the interval of the device settings. A scenario without
+ * a candidate is nothing to save, so it never reminds. The clock is the
+ * store's, so tests set it.
+ */
+export function checkExportReminder(): AppThunk {
+  return (dispatch, getState, { now }) => {
+    const state = getState();
+    const hasData = selectScenarios(state).some(
+      (scenario) => scenario.candidates.length > 0,
+    );
+    const { lastExportAt } = state.scenario.settings;
+    dispatch(
+      exportReminderChecked({
+        due: hasData && selectExportReminderDue(state, now()),
+        ageDays:
+          lastExportAt === null
+            ? null
+            : Math.max(
+                0,
+                Math.floor(
+                  (now().getTime() - Date.parse(lastExportAt)) / 86_400_000,
+                ),
+              ),
+      }),
+    );
   };
 }
 
@@ -201,6 +245,7 @@ export function importFile(
     );
     await dispatch(flushSaves());
     await dispatch(persistSettings());
+    dispatch(checkExportReminder());
     // Started, not awaited: the result arrives through the store.
     void dispatch(requestCompute());
     return written;
@@ -210,10 +255,13 @@ export function importFile(
 /** Builds the export file (8.3) and remembers the date for the export reminder. */
 export function exportScenarios(
   ids?: readonly string[],
-): AppThunk<Promise<ExportFile>> {
+): AppThunk<Promise<ExportFile & { skipped: string[] }>> {
   return async (dispatch, _getState, { repository, now }) => {
+    // The file is made from the database: pending edits go in first.
+    await dispatch(flushSaves());
     const file = await repository.exportFile(ids);
     dispatch(settingsUpdated({ lastExportAt: now().toISOString() }));
+    dispatch(checkExportReminder());
     return file;
   };
 }

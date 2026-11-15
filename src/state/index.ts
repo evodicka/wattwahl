@@ -1,6 +1,7 @@
 /** Redux slices, autosave, worker client and debounce. */
 export { createAppStore, useAppDispatch, useAppSelector } from './store';
 export type { AppDependencies, AppStore } from './store';
+export type { ImportError, ImportMode } from '../storage';
 export type { AppDispatch, AppThunk, RootState } from './types';
 export {
   MAX_LEASE_TIERS,
@@ -17,7 +18,15 @@ export {
   setSliderPrice,
   sliderStart,
 } from './priceSlider';
-export { uniqueName } from './names';
+export { isNameTaken, uniqueName } from './names';
+export {
+  compareScenarios,
+  createScenario,
+  deleteScenario,
+  duplicateScenario,
+  renameScenario,
+} from './scenarios';
+export type { DeleteResult, RenameResult } from './scenarios';
 export { DEBOUNCE_MS, MAX_RESTARTS, attachLifecycle } from './listeners';
 export {
   closeTrace,
@@ -31,12 +40,20 @@ export {
 export {
   activeScenarioSet,
   scenarioAdded,
+  scenarioRemoved,
   scenarioUpdated,
   settingsUpdated,
 } from './scenarioSlice';
 export type { ScenarioState } from './scenarioSlice';
-export type { ResultState, ResultStatus, TraceState } from './resultSlice';
+export { comparisonCleared } from './resultSlice';
+export type {
+  ComparisonState,
+  ResultState,
+  ResultStatus,
+  TraceState,
+} from './resultSlice';
 export {
+  exportReminderDismissed,
   importErrorCleared,
   noticeDismissed,
   priceCaseSet,

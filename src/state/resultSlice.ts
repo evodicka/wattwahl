@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { OfferResult, PriceCase, TraceEntry } from '../domain';
-import type { ComputeResponse } from '../worker';
+import type { ComputeResponse, OfferResults } from '../worker';
+import { scenarioRemoved } from './scenarioSlice';
 
 // Results of the active scenario and the Rechenweg of the one open offer
 // (8.5). Only a response of the latest generation is taken over; until then
@@ -27,6 +28,19 @@ export type TraceState = {
   error: string | null;
 };
 
+/** The scenario comparison (S22): other scenarios computed in the price case "Mittel". */
+export type ComparisonState = {
+  /** Counts the requests: answers to an earlier request are dropped. */
+  requestId: number;
+  scenarioIds: string[];
+  status: 'loading' | 'done' | 'error';
+  /** Results by scenario id, as they arrive. */
+  results: Record<string, OfferResults>;
+  /** When the last scenario arrived (ISO 8601). */
+  computedAt: string | null;
+  error: string | null;
+};
+
 export type ResultState = {
   /** Generation of the latest request; responses of other generations are dropped. */
   generation: number;
@@ -35,6 +49,8 @@ export type ResultState = {
   /** When `latest` arrived (ISO 8601): "Stand der Berechnung". */
   computedAt: string | null;
   trace: TraceState | null;
+  comparison: ComparisonState | null;
+  comparisonRequests: number;
   /** Requests of a Rechenweg so far; the next one gets this number plus one. */
   traceRequests: number;
   error: string | null;
@@ -46,6 +62,8 @@ const initialState: ResultState = {
   latest: null,
   computedAt: null,
   trace: null,
+  comparison: null,
+  comparisonRequests: 0,
   traceRequests: 0,
   error: null,
 };
@@ -53,6 +71,21 @@ const initialState: ResultState = {
 export const resultSlice = createSlice({
   name: 'result',
   initialState,
+  extraReducers: (builder) => {
+    // A deleted scenario leaves the comparison.
+    builder.addCase(scenarioRemoved, (state, action) => {
+      const comparison = state.comparison;
+      if (!comparison) return;
+      comparison.scenarioIds = comparison.scenarioIds.filter(
+        (id) => id !== action.payload,
+      );
+      comparison.results = Object.fromEntries(
+        Object.entries(comparison.results).filter(
+          ([id]) => id !== action.payload,
+        ),
+      );
+    });
+  },
   reducers: {
     /** An input changed; the run starts after the debounce: "wird aktualisiert" at once. */
     computeScheduled(state) {
@@ -118,6 +151,53 @@ export const resultSlice = createSlice({
     traceClosed(state) {
       state.trace = null;
     },
+    comparisonRequested(
+      state,
+      action: PayloadAction<{ scenarioIds: string[] }>,
+    ) {
+      state.comparisonRequests += 1;
+      state.comparison = {
+        requestId: state.comparisonRequests,
+        scenarioIds: action.payload.scenarioIds,
+        status: 'loading',
+        results: {},
+        computedAt: null,
+        error: null,
+      };
+    },
+    comparisonScenarioDone(
+      state,
+      action: PayloadAction<{
+        requestId: number;
+        scenarioId: string;
+        results: OfferResults;
+      }>,
+    ) {
+      const { requestId, scenarioId, results } = action.payload;
+      if (state.comparison?.requestId !== requestId) return;
+      // A scenario deleted meanwhile has left the comparison.
+      if (!state.comparison.scenarioIds.includes(scenarioId)) return;
+      state.comparison.results[scenarioId] = results;
+    },
+    comparisonFinished(
+      state,
+      action: PayloadAction<{ requestId: number; computedAt: string }>,
+    ) {
+      if (state.comparison?.requestId !== action.payload.requestId) return;
+      state.comparison.status = 'done';
+      state.comparison.computedAt = action.payload.computedAt;
+    },
+    comparisonFailed(
+      state,
+      action: PayloadAction<{ requestId: number; message: string }>,
+    ) {
+      if (state.comparison?.requestId !== action.payload.requestId) return;
+      state.comparison.status = 'error';
+      state.comparison.error = action.payload.message;
+    },
+    comparisonCleared(state) {
+      state.comparison = null;
+    },
   },
 });
 
@@ -131,4 +211,9 @@ export const {
   traceLoaded,
   traceFailed,
   traceClosed,
+  comparisonRequested,
+  comparisonScenarioDone,
+  comparisonFinished,
+  comparisonFailed,
+  comparisonCleared,
 } = resultSlice.actions;

@@ -454,3 +454,77 @@ describe('S12: persistent storage (8.2)', () => {
     expect(await requestPersistence({})).toBe('unsupported');
   });
 });
+
+describe('S22: delete one scenario', () => {
+  it('removes only that scenario, and a second delete of it is harmless', async () => {
+    const dbName = freshName();
+    const repo = await repository(dbName);
+    const keep = scenarioWithName('keep');
+    const drop = {
+      ...scenarioWithName('drop'),
+      id: '10000000-0000-4000-8000-000000000009',
+    };
+    await repo.save(keep);
+    await repo.save(drop);
+    expect(await repo.delete(drop.id)).toEqual({ status: 'ok' });
+    expect((await repo.loadAll()).scenarios.map((s) => s.name)).toEqual([
+      'keep',
+    ]);
+    expect(await repo.delete(drop.id)).toEqual({ status: 'ok' });
+    expect((await repo.loadAll()).scenarios.map((s) => s.name)).toEqual([
+      'keep',
+    ]);
+  });
+
+  it('refuses to delete a record of a newer app and leaves it as it is', async () => {
+    const dbName = freshName();
+    const newer: StoredScenario = {
+      id: '10000000-0000-4000-8000-000000000008',
+      schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+      updatedAt: '2027-01-01T00:00:00.000Z',
+      data: { ...exampleScenario(), futureField: true },
+    };
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [newer]);
+    const repo = await repository(dbName);
+    expect(await repo.delete(newer.id)).toEqual({ status: 'readOnly' });
+    expect(await rawRecords(dbName)).toEqual([newer]);
+  });
+
+  it('refuses every delete in a database of a newer app', async () => {
+    const dbName = freshName();
+    const record: StoredScenario = {
+      id: exampleScenario().id,
+      schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+      updatedAt: '2027-01-01T00:00:00.000Z',
+      data: exampleScenario(),
+    };
+    await seed(dbName, CURRENT_SCHEMA_VERSION + 1, [record]);
+    const repo = await repository(dbName);
+    expect(await repo.delete(record.id)).toEqual({ status: 'readOnly' });
+    expect(await rawRecords(dbName)).toEqual([record]);
+  });
+
+  it('says "closed" after the connection went away for a newer tab', async () => {
+    const dbName = freshName();
+    const repo = await repository(dbName);
+    repo.close();
+    expect(await repo.delete(exampleScenario().id)).toEqual({
+      status: 'closed',
+    });
+  });
+
+  it('a record that does not load stays: only its own id is deleted', async () => {
+    const dbName = freshName();
+    const broken = {
+      id: '10000000-0000-4000-8000-000000000007',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      data: { nonsense: true },
+    };
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [broken]);
+    const repo = await repository(dbName);
+    await repo.save(scenarioWithName('ok'));
+    expect(await repo.delete(exampleScenario().id)).toEqual({ status: 'ok' });
+    expect(await rawRecords(dbName)).toEqual([broken]);
+  });
+});

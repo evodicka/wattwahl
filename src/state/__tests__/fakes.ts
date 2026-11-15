@@ -2,6 +2,8 @@ import { vi } from 'vitest';
 import { DEFAULT_DEVICE_SETTINGS, type Scenario } from '../../domain';
 import type { Repository, WriteResult } from '../../storage';
 import type {
+  CompareRequest,
+  CompareResponse,
   ComputeRequest,
   ComputeResponse,
   CoreApi,
@@ -28,6 +30,7 @@ export function fakeRepository(): Repository & {
       skipped: [],
     })),
     writeImport: vi.fn(async () => ({ status: 'ok' }) as const),
+    delete: vi.fn(async () => ({ status: 'ok' }) as const),
     close: vi.fn(),
   };
 }
@@ -54,6 +57,10 @@ export function controlledWorker() {
     request: ComputeRequest;
     answer: Deferred<ComputeResponse>;
   }[] = [];
+  const compares: {
+    request: CompareRequest;
+    answer: Deferred<CompareResponse>;
+  }[] = [];
   const explains: {
     request: ExplainRequest;
     answer: Deferred<ExplainResponse>;
@@ -63,6 +70,11 @@ export function controlledWorker() {
     compute: vi.fn((request: ComputeRequest) => {
       const answer = deferred<ComputeResponse>();
       computes.push({ request, answer });
+      return answer.promise;
+    }),
+    compare: vi.fn((request: CompareRequest) => {
+      const answer = deferred<CompareResponse>();
+      compares.push({ request, answer });
       return answer.promise;
     }),
     explain: vi.fn((request: ExplainRequest) => {
@@ -83,6 +95,7 @@ export function controlledWorker() {
     api,
     computes,
     explains,
+    compares,
     /** Answers a compute call with an empty result of its generation. */
     finish(index: number) {
       const call = computes[index];

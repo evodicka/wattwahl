@@ -44,6 +44,7 @@ export function memoryRepository(
       skipped: [],
     })),
     writeImport: vi.fn(async () => ({ status: 'ok' }) as const),
+    delete: vi.fn(async () => ({ status: 'ok' }) as const),
     close: vi.fn(),
   };
 }
@@ -55,6 +56,12 @@ export function testWorker() {
     resolve: (response: unknown) => void;
     reject: (error: unknown) => void;
   }[] = [];
+  const compares: {
+    request: { scenario: Scenario };
+    resolve: (response: unknown) => void;
+    reject: (error: unknown) => void;
+    answered?: boolean;
+  }[] = [];
   const computes: {
     request: ComputeRequest;
     resolve: (response: unknown) => void;
@@ -64,6 +71,10 @@ export function testWorker() {
     compute: (request: ComputeRequest) =>
       new Promise((resolve, reject) =>
         computes.push({ request, resolve, reject }),
+      ),
+    compare: (request: { scenario: Scenario }) =>
+      new Promise((resolve, reject) =>
+        compares.push({ request, resolve, reject }),
       ),
     explain: (request: { offerId: string; priceCase: string }) =>
       new Promise((resolve, reject) =>
@@ -79,6 +90,15 @@ export function testWorker() {
     handle,
     computes,
     explains,
+    compares,
+    /** Answers the oldest open compare call with the results of its scenario. */
+    finishCompare(results: Results = {}) {
+      const index = compares.findIndex((call) => !call.answered);
+      const call = compares[index];
+      if (!call) throw new Error('no compare call');
+      call.answered = true;
+      call.resolve({ scenarioId: call.request.scenario.id, results });
+    },
     /** Answers the latest explain call with the result and the steps of its Rechenweg. */
     finishExplain(response: unknown) {
       const call = explains.at(-1);
@@ -152,6 +172,8 @@ export async function renderApp(
   const repository = {
     ...memoryRepository(scenarios, {
       activeScenarioId: scenarios[0]?.id ?? null,
+      // A recent export: no reminder unless a test asks for one.
+      lastExportAt: NOW.toISOString(),
       ...options.settings,
     }),
     mode: options.mode ?? 'readWrite',

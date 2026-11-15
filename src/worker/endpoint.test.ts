@@ -117,6 +117,52 @@ describe('S14: worker endpoint', () => {
     expect(trace.some((entry) => entry.formula === 'OPT.select')).toBe(true);
   });
 
+  it('S22: compare computes another scenario in the price case "Mittel" over the channel', async () => {
+    const scenario = exampleScenario();
+    const answer = await overChannel().compare({ scenario });
+    expect(answer.scenarioId).toBe(scenario.id);
+    const offers = scenario.candidates.flatMap((c) => listOffers(c));
+    expect(Object.keys(answer.results).sort()).toEqual(
+      offers.map((o) => o.offerId).sort(),
+    );
+    for (const offer of offers) {
+      expect(Object.keys(answer.results[offer.offerId] ?? {})).toEqual(['mid']);
+      expect(answer.results[offer.offerId]?.mid).toEqual(
+        computeOffer(scenario, offer, 'mid', {}),
+      );
+    }
+  });
+
+  it('S22: compare does not stop the active run and is not stopped by it', async () => {
+    const api = createCoreEndpoint();
+    const scenario = exampleScenario();
+    await api.compute({ generation: 7, scenario });
+    // An older generation is superseded, a comparison has no generation at all.
+    expect(await api.compute({ generation: 6, scenario })).toEqual({
+      status: 'superseded',
+      generation: 6,
+    });
+    const answer = await api.compare({ scenario });
+    expect(Object.keys(answer.results).length).toBeGreaterThan(0);
+    expect(await api.compute({ generation: 8, scenario })).toMatchObject({
+      status: 'done',
+    });
+  });
+
+  it('S22: compare yields between offers so that a newer compute can arrive', async () => {
+    let yields = 0;
+    const api = createCoreEndpoint({
+      yieldToEventLoop: async () => {
+        yields += 1;
+      },
+    });
+    const scenario = exampleScenario();
+    await api.compare({ scenario });
+    expect(yields).toBe(
+      scenario.candidates.flatMap((c) => listOffers(c)).length,
+    );
+  });
+
   it('explain rejects something that is not an offer id', async () => {
     await expect(
       createCoreEndpoint().explain({

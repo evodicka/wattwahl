@@ -18,7 +18,13 @@ export type Notices = {
   importError: ImportError | null;
 };
 
+/** The export reminder (Z10): shown when due, hidden for the session once dismissed. */
+export type ExportReminder = 'hidden' | 'due' | 'dismissed';
+
 export type UiState = {
+  exportReminder: ExportReminder;
+  /** Age of the last export in days when the reminder was checked; `null`: never exported. */
+  exportAgeDays: number | null;
   sliderPrices: SliderPrices | null;
   /** The price case the result views show; the status line names it. */
   priceCase: PriceCase;
@@ -26,6 +32,8 @@ export type UiState = {
 };
 
 const initialState: UiState = {
+  exportReminder: 'hidden',
+  exportAgeDays: null,
   sliderPrices: null,
   priceCase: 'mid',
   notices: {
@@ -58,6 +66,18 @@ export const uiSlice = createSlice({
         state.priceCase = 'mid';
       }
     },
+    /** The check of the reminder: after a dismissal it stays dismissed until it is no longer due. */
+    exportReminderChecked(
+      state,
+      action: PayloadAction<{ due: boolean; ageDays: number | null }>,
+    ) {
+      state.exportAgeDays = action.payload.ageDays;
+      if (!action.payload.due) state.exportReminder = 'hidden';
+      else if (state.exportReminder === 'hidden') state.exportReminder = 'due';
+    },
+    exportReminderDismissed(state) {
+      if (state.exportReminder === 'due') state.exportReminder = 'dismissed';
+    },
     priceCaseSet(state, action: PayloadAction<PriceCase>) {
       state.priceCase = action.payload;
     },
@@ -84,6 +104,8 @@ export const uiSlice = createSlice({
 
 export const {
   sliderPricesSet,
+  exportReminderChecked,
+  exportReminderDismissed,
   priceCaseSet,
   noticeShown,
   noticeDismissed,

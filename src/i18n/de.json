@@ -754,7 +754,20 @@
       "copyOf": "Kopie von {{name}}",
       "hint": "Ein neues Szenario startet leer oder als Kopie des aktiven. Löschen fragt nach.",
       "newEmpty": "Leer",
-      "newCopy": "Kopie des aktiven Szenarios"
+      "newCopy": "Kopie des aktiven Szenarios",
+      "active": "aktiv",
+      "activate": "Aktivieren",
+      "activateLabel": "„{{name}}“ aktivieren",
+      "renameLabel": "„{{name}}“ umbenennen",
+      "duplicateLabel": "„{{name}}“ duplizieren",
+      "deleteLabel": "„{{name}}“ löschen",
+      "nameLabel": "Name",
+      "nameEmpty": "Der Name darf nicht leer sein.",
+      "nameTaken": "Ein Szenario mit diesem Namen gibt es schon.",
+      "copyName": "{{name}} (Kopie)",
+      "compareHint": "Wähle mindestens zwei Szenarien für den Vergleich.",
+      "storageBlockedTitle": "Löschen nicht möglich",
+      "storageBlockedBody": "Der Speicher ist nur lesbar oder gerade geschlossen. Es wurde nichts gelöscht."
     },
     "compare": {
       "title": "Szenariovergleich",
@@ -762,7 +775,16 @@
       "asTable": "Dieselben Werte als Tabelle",
       "offer": "Angebot",
       "difference": "Unterschied",
-      "chartLabel": "Gesamtkosten je Kandidat in mehreren Szenarien, die Werte stehen in der Tabelle."
+      "chartLabel": "Gesamtkosten je Kandidat in mehreren Szenarien, die Werte stehen in der Tabelle.",
+      "needTwo": "Wähle mindestens zwei Szenarien, um sie zu vergleichen.",
+      "loading": "Der Vergleich wird berechnet …",
+      "errorTitle": "Der Vergleich ist nicht möglich",
+      "errorBody": "Die Rechnung wurde unterbrochen. Versuche es noch einmal.",
+      "missing": "nicht berechnet",
+      "purchase": "Kauf",
+      "lease": "Leasing {{km}}",
+      "scenarioCost": "Gesamtkosten, {{name}}",
+      "basis": "Preisfall Mittel, Kosten der ganzen Flotte"
     },
     "export": {
       "title": "Export",
@@ -777,7 +799,11 @@
       "one": "Nur „{{name}}“ exportieren",
       "reminderTitle_one": "Letzter Export vor {{count}} Tag",
       "reminderTitle_other": "Letzter Export vor {{count}} Tagen",
-      "reminderBody": "Der Export ist die einzige Sicherung."
+      "reminderBody": "Der Export ist die einzige Sicherung.",
+      "file": "Datei: {{name}}",
+      "skipped_one": "{{count}} Szenario konnte nicht gelesen werden und fehlt in der Datei.",
+      "skipped_other": "{{count}} Szenarien konnten nicht gelesen werden und fehlen in der Datei.",
+      "failed": "Der Export ist fehlgeschlagen."
     },
     "import": {
       "title": "Import",
@@ -790,7 +816,23 @@
       "errorBody": "{{location}}: {{problem}}. Es wurde nichts überschrieben.",
       "replaceTitle": "Alle Szenarien ersetzen?",
       "replaceBody_one": "Das vorhandene Szenario wird gelöscht. Exportiere es vorher.",
-      "replaceBody_other": "Die {{count}} vorhandenen Szenarien werden gelöscht. Exportiere sie vorher."
+      "replaceBody_other": "Die {{count}} vorhandenen Szenarien werden gelöscht. Exportiere sie vorher.",
+      "readOnlyTitle": "Import nicht möglich",
+      "readOnlyBody": "Der Speicher ist nur lesbar oder gerade geschlossen. Es wurde nichts verändert.",
+      "locationFile": "Die Datei",
+      "problem": {
+        "tooLarge": "Die Datei ist größer als 1 MB",
+        "invalidJson": "Die Datei ist kein gültiges JSON",
+        "wrongFormat": "Die Datei ist kein Export dieser App",
+        "newerVersion": "Die Datei stammt aus einer neueren Version der App",
+        "invalidFile": "Der Aufbau der Datei stimmt nicht",
+        "noScenarios": "Die Datei enthält kein Szenario",
+        "invalidScenario": "Der Wert ist nicht gültig",
+        "duplicateId": "Zwei Szenarien haben dieselbe Kennung"
+      },
+      "replaceConfirm": "Ersetzen",
+      "done": "Die Datei wurde eingelesen.",
+      "locationScenario": "Szenario {{nth}} der Datei"
     },
     "empty": {
       "title": "Noch kein Szenario",
