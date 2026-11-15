@@ -47,18 +47,19 @@ export function MonthYearField({
   const { t } = useTranslation();
   const generatedId = useId();
   const id = givenId ?? generatedId;
-  const [month, setMonth] = useState<number | null>(null);
+  /** `undefined`: no draft, the stored month shows. `null`: the user chose the empty month. */
+  const [month, setMonth] = useState<number | null | undefined>(undefined);
   const [yearDraft, setYearDraft] = useState<string | null>(null);
   const [yearError, setYearError] = useState(false);
 
-  const shownMonth = month ?? value?.month ?? null;
+  const shownMonth = month !== undefined ? month : (value?.month ?? null);
   const yearText = yearDraft ?? (value ? String(value.year) : '');
 
   const commit = (nextMonth: number | null, nextYear: string) => {
     const text = nextYear.trim();
     if (nextMonth === null && text === '' && nullable) {
       setYearError(false);
-      setMonth(null);
+      setMonth(undefined);
       setYearDraft(null);
       if (value !== null) onCommit(null);
       return;
@@ -67,7 +68,7 @@ export function MonthYearField({
     const yearOk = /^\d{4}$/.test(text) && year >= MIN_YEAR && year <= MAX_YEAR;
     setYearError(text !== '' && !yearOk);
     if (!yearOk || nextMonth === null) return;
-    setMonth(null);
+    setMonth(undefined);
     setYearDraft(null);
     if (value?.month !== nextMonth || value.year !== year) {
       onCommit({ month: nextMonth, year });
@@ -86,7 +87,7 @@ export function MonthYearField({
     ? {
         label: name,
         onReset: () => {
-          setMonth(null);
+          setMonth(undefined);
           setYearDraft(null);
           setYearError(false);
           onReset();

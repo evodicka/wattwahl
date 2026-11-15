@@ -118,7 +118,11 @@ export function FieldFrame({
         </span>
       )}
       {message && (
-        <span className={styles.message} id={`${id}-msg`}>
+        <span
+          className={styles.message}
+          id={`${id}-msg`}
+          role={message.tone === 'error' ? 'alert' : 'status'}
+        >
           <span aria-hidden="true">{message.tone === 'error' ? '✕' : '▲'}</span>
           {message.text}
         </span>

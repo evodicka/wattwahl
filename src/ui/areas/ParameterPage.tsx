@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { DEFAULT_DEVICE_SETTINGS } from '../../domain';
 import { formatInput } from '../../i18n';
 import { settingsUpdated, useAppDispatch, useAppSelector } from '../../state';
 import {
@@ -74,7 +75,7 @@ export function ParameterPage() {
           })}
         </Notice>
       )}
-      <div className="cols2">
+      <div className="cols2" key={scenario.id}>
         <div className="stack-lg">
           <Card className="stack" aria-labelledby="s1">
             <h2 className="group-title" id="s1">
@@ -282,7 +283,10 @@ export function ParameterPage() {
               <PathNumber
                 path="parameters.electricityPrice.mid"
                 label={t('electricityMid')}
-                name={`${t('electricityMin')}: ${t('electricityMid')}`}
+                name={c('field.inGroup', {
+                  group: t('electricityMin'),
+                  field: t('electricityMid'),
+                })}
                 unit={c('units.euroPerKwh')}
                 decimals={2}
                 rules={{ min: 0 }}
@@ -291,7 +295,10 @@ export function ParameterPage() {
               <PathNumber
                 path="parameters.electricityPrice.max"
                 label={t('electricityMax')}
-                name={`${t('electricityMin')}: ${t('electricityMax')}`}
+                name={c('field.inGroup', {
+                  group: t('electricityMin'),
+                  field: t('electricityMax'),
+                })}
                 unit={c('units.euroPerKwh')}
                 decimals={2}
                 rules={{ min: 0 }}
@@ -445,15 +452,26 @@ export function ParameterPage() {
               unit={c('units.days')}
               value={settings.exportReminderDays}
               rules={{ required: true, nullable: false, min: 1, integer: true }}
-              marks={{ changed: settings.exportReminderDays !== 14 }}
+              marks={{
+                changed:
+                  settings.exportReminderDays !==
+                  DEFAULT_DEVICE_SETTINGS.exportReminderDays,
+              }}
               hint={t('exportReminderHint')}
               onCommit={(value) =>
                 value !== null &&
                 dispatch(settingsUpdated({ exportReminderDays: value }))
               }
               onReset={
-                settings.exportReminderDays !== 14
-                  ? () => dispatch(settingsUpdated({ exportReminderDays: 14 }))
+                settings.exportReminderDays !==
+                DEFAULT_DEVICE_SETTINGS.exportReminderDays
+                  ? () =>
+                      dispatch(
+                        settingsUpdated({
+                          exportReminderDays:
+                            DEFAULT_DEVICE_SETTINGS.exportReminderDays,
+                        }),
+                      )
                   : null
               }
             />

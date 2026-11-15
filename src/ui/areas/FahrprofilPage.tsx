@@ -67,7 +67,7 @@ function Vehicle({ scenario }: { scenario: Scenario }) {
         unit={c('units.km')}
         hint={t('vehicle.odometerHint')}
         marked={false}
-        rules={{ required: true, nullable: true, min: 0, integer: true }}
+        rules={{ required: true, nullable: true, min: 0 }}
       />
       <PathNumber
         path="iceVehicle.maintenancePerKm"
@@ -154,9 +154,10 @@ function Workplace({
             label={t('workplace.way', {
               roadType: c(`roadTypes.${road}`),
             })}
-            name={`${title}: ${t('workplace.way', {
-              roadType: c(`roadTypes.${road}`),
-            })}`}
+            name={c('field.inGroup', {
+              group: title,
+              field: t('workplace.way', { roadType: c(`roadTypes.${road}`) }),
+            })}
             unit={c('units.km')}
             marked={false}
             rules={{ required: true, nullable: true, min: 0 }}
@@ -168,7 +169,8 @@ function Workplace({
           {t('workplace.oneWay', { km: formatKm(oneWay) })}
         </span>{' '}
         <span className="muted">
-          · {t('workplace.roundTrip', { km: formatKm(oneWay * 2) })}
+          {c('separator')}
+          {t('workplace.roundTrip', { km: formatKm(oneWay * 2) })}
         </span>
       </p>
       <WeekdayToggle
@@ -179,7 +181,10 @@ function Workplace({
       <PathNumber
         path={`${base}.freeDaysPerYear`}
         label={t('workplace.freeDays')}
-        name={`${title}: ${t('workplace.freeDays')}`}
+        name={c('field.inGroup', {
+          group: title,
+          field: t('workplace.freeDays'),
+        })}
         unit={c('units.days')}
         hint={t('workplace.freeDaysHint')}
         withDefault
@@ -222,7 +227,8 @@ function Extra({ scenario }: { scenario: Scenario }) {
           {t('extra.sumPerMonth', { km: formatKm(perMonth) })}
         </span>{' '}
         <span className="muted">
-          · {t('extra.sumPerYear', { km: formatKm(perMonth * 12) })}
+          {c('separator')}
+          {t('extra.sumPerYear', { km: formatKm(perMonth * 12) })}
         </span>
       </p>
     </Card>
@@ -237,7 +243,7 @@ export function FahrprofilPage() {
     <>
       <AreaHead title={t('title')} intro={t('intro')} />
       {scenario && (
-        <div className="cols2">
+        <div className="cols2" key={scenario.id}>
           <div className="stack-lg">
             <Vehicle scenario={scenario} />
             <Extra scenario={scenario} />
