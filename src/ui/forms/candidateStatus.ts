@@ -71,7 +71,11 @@ export function candidateStatus(
       profileMissing: paths.some((p) => !p.startsWith(own)),
     };
   }
-  const unsuitable = found.find((r) => r.status === 'unsuitable');
+  // The purchase offer's reason first, so the card does not describe a lease
+  // when the purchase has one too.
+  const unsuitable =
+    found.find((r) => r.status === 'unsuitable' && r.kind === 'purchase') ??
+    found.find((r) => r.status === 'unsuitable');
   return unsuitable && unsuitable.status === 'unsuitable'
     ? { kind: 'unsuitable', reason: unsuitable.reason }
     : { kind: 'pending' };

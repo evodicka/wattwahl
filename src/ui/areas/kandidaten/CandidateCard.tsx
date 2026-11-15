@@ -15,7 +15,6 @@ import { labelOfPath } from '../../forms/fieldLabels';
 
 type Props = {
   candidate: Candidate;
-  index: number;
   scenario: Scenario;
   status: ReturnType<typeof candidateStatus>;
   onEdit: () => void;
@@ -36,7 +35,6 @@ const BADGE: Record<
 /** One candidate of the list (boards D2, M2): status, key figures and the actions. */
 export function CandidateCard({
   candidate,
-  index,
   scenario,
   status,
   onEdit,
@@ -149,7 +147,7 @@ export function CandidateCard({
       {candidate.warrantyNeedsReview && (
         <Notice tone="warn" title={t('card.checkWarrantyTitle')} />
       )}
-      <div className="row-wrap" style={{ marginTop: 'var(--space-3)' }}>
+      <div className="row-wrap card-actions">
         <Button
           variant={status.kind === 'incomplete' ? 'primary' : 'normal'}
           onClick={onEdit}
@@ -170,7 +168,6 @@ export function CandidateCard({
           variant="danger"
           onClick={onDelete}
           aria-label={`${c('actions.delete')}: ${name}`}
-          data-index={index}
         >
           {c('actions.delete')}
         </Button>

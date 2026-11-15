@@ -71,7 +71,6 @@ export function CandidateList() {
               <CandidateCard
                 key={candidate.id}
                 candidate={candidate}
-                index={index}
                 scenario={scenario}
                 status={candidateStatus(candidate, index, results)}
                 onEdit={() => void navigate(`/kandidaten/${candidate.id}`)}

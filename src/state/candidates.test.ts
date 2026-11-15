@@ -124,4 +124,14 @@ describe('S18: candidates of the active scenario', () => {
     store.dispatch(removeLeaseTier(candidate.id, tier.id));
     expect(active().candidates[0]?.leaseTiers).toEqual([]);
   });
+
+  it('a lease offer that cannot be added leaves the scenario untouched', () => {
+    const { store, active, original } = setup();
+    const id = original.candidates[0]?.id ?? '';
+    for (let i = 0; i < 3; i += 1) store.dispatch(addLeaseTier(id));
+    const before = active();
+    store.dispatch({ type: 'noop' });
+    expect(store.dispatch(addLeaseTier(id))).toBeNull();
+    expect(active()).toBe(before);
+  });
 });

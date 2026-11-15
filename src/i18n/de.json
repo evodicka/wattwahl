@@ -383,9 +383,9 @@
       "remainingLine": "{{what}}: {{years}}, {{km}}",
       "jumpMenu": "Gruppen im Formular",
       "backToList": "Kandidaten",
-      "stepProgress": "Schritt {{current}} von {{total}}",
       "budgetNone": "Kein Jahresbudget, weil keine Garantie läuft.",
-      "jumpTo": "Springen zu"
+      "jumpTo": "Springen zu",
+      "warrantyHintTitle": "Normale Garantie ab Erstzulassung"
     }
   },
   "parameter": {

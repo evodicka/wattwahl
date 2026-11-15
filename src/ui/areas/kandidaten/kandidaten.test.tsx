@@ -280,6 +280,91 @@ describe('S18: candidate form on a desktop', () => {
   });
 });
 
+describe('S18: list, more states', () => {
+  it('a gap in the Fahrprofil shows a link to it instead of a list of fields (Z02)', async () => {
+    const scenario = exampleScenario();
+    scenario.iceVehicle = { ...scenario.iceVehicle, maintenancePerKm: null };
+    await open('/kandidaten', scenario);
+    const card = screen.getByRole('region', { name: 'Example EV' });
+    expect(
+      within(card).getByText(/Das Fahrprofil ist nicht vollständig/),
+    ).toBeTruthy();
+    expect(
+      within(card)
+        .getByRole('link', { name: 'Zum Fahrprofil' })
+        .getAttribute('href'),
+    ).toBe('/fahrprofil');
+  });
+
+  it('an unsuitable card names its reason (Z03)', async () => {
+    const scenario = exampleScenario();
+    const [candidate] = scenario.candidates;
+    if (!candidate) throw new Error('no candidate');
+    scenario.candidates = [
+      {
+        ...candidate,
+        leaseTiers: [],
+        rangeKm: {
+          city: { mild: 40, cold: 30 },
+          highway: { mild: 40, cold: 30 },
+          combined: { mild: 40, cold: 30 },
+        },
+      },
+    ];
+    await open('/kandidaten', scenario);
+    const card = screen.getByRole('region', { name: 'Example EV' });
+    expect(within(card).getByText('Ungeeignet')).toBeTruthy();
+    expect(
+      within(card).getByText(/nicht fahrbar|Streng-Modus|SoH/),
+    ).toBeTruthy();
+  });
+});
+
+describe('S18: candidate form, more states', () => {
+  it('does not claim "no annual budget" before there is a result', async () => {
+    const app = await renderApp('/kandidaten', { randomId });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Ersten Kandidaten anlegen' }),
+    );
+    expect(app.router.state.location.pathname).toMatch(/^\/kandidaten\//);
+    expect(screen.queryByText(/Kein Jahresbudget/)).toBeNull();
+    expect(screen.getByText('Normale Garantie ab Erstzulassung')).toBeTruthy();
+  });
+
+  it('a duplicate made in the form opens at the first step', async () => {
+    window.matchMedia = ((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    const app = await open(`/kandidaten/${EXAMPLE_IDS.candidate}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    expect(screen.getByText('Schritt 2 von 4')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Duplizieren' }));
+    expect(app.router.state.location.pathname).not.toBe(
+      `/kandidaten/${EXAMPLE_IDS.candidate}`,
+    );
+    expect(screen.getByText('Schritt 1 von 4')).toBeTruthy();
+  });
+
+  it('a tier message goes when the user edits the field again', async () => {
+    await open(`/kandidaten/${EXAMPLE_IDS.candidate}`);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Leasingstufe hinzufügen' }),
+    );
+    const second = document.getElementById(
+      'f-candidates.0.leaseTiers.1.tierKmPerYear',
+    );
+    if (!second) throw new Error('no second tier field');
+    fireEvent.change(second, { target: { value: '15.000' } });
+    fireEvent.blur(second);
+    expect(screen.getByText('Diese Stufe gibt es schon.')).toBeTruthy();
+    fireEvent.change(second, { target: { value: '12.000' } });
+    expect(screen.queryByText('Diese Stufe gibt es schon.')).toBeNull();
+  });
+});
+
 describe('S18: candidate form on a phone', () => {
   const phone = () => {
     window.matchMedia = ((query: string) => ({

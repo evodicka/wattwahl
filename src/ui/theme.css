@@ -441,3 +441,8 @@ p {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Actions at the foot of a candidate card */
+.card-actions {
+  margin-top: var(--space-3);
+}

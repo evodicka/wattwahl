@@ -227,7 +227,10 @@ export function NumberField({
               .filter(Boolean)
               .join(' ') || undefined
           }
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setCustom(null);
+          }}
           onBlur={leave}
           onKeyDown={(event) => {
             if (event.key === 'Enter') leave();
