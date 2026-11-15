@@ -1,6 +1,6 @@
 node_modules
 dist
-dist-b
+dist-b*
 coverage
 playwright-report
 test-results

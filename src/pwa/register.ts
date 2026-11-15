@@ -12,6 +12,9 @@ export type UpdatePrompt = {
   dismiss(): void;
 };
 
+// One check timer for the whole page, however often the hook is mounted.
+let checkTimer: number | undefined;
+
 /**
  * Registers the service worker and tells when a new version is ready
  * (architecture 6.4, 8.12). The worker only precaches and does not take over
@@ -23,9 +26,13 @@ export function useUpdatePrompt(): UpdatePrompt {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_url, registration) {
-      if (!registration) return;
+      if (!registration || checkTimer !== undefined) return;
       // A phone app stays open for days: look for a new version now and then.
-      setInterval(() => void registration.update(), UPDATE_CHECK_MS);
+      // Offline there is nothing to find, and a failed check is no error.
+      checkTimer = window.setInterval(() => {
+        if (!navigator.onLine || registration.installing) return;
+        registration.update().catch(() => undefined);
+      }, UPDATE_CHECK_MS);
     },
   });
   return {

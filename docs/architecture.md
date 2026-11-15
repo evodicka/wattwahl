@@ -425,9 +425,10 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 ### 8.12 Offline und Updates
 
 - vite-plugin-pwa mit `registerType: "prompt"`: Alle Build-Artefakte werden vorab gecacht. Liegt eine neue Version bereit, zeigt die App einen Hinweis mit „Aktualisieren“.
-- Manifest mit `name: "Wattwahl"`, `short_name: "Wattwahl"`, `display: "standalone"` und `start_url: "./#/"`. Auf iOS zeigt der erste Start eine Anleitung zur Installation auf dem Home-Bildschirm (`isIosBrowserTab()`: iPhone oder iPad im Browser, nicht als installierte App). Der erste Start zeigt einmal einen Willkommenshinweis (Z18, Z09); danach steht `firstRunCompleted` in den Geräteeinstellungen.
+- Manifest mit `name: "Wattwahl"`, `short_name: "Wattwahl"`, `display: "standalone"` und `start_url: "./#/"`. Auf iOS zeigt der erste Start eine Anleitung zur Installation auf dem Home-Bildschirm (`isIosBrowserTab()`: iPhone oder iPad im Browser, nicht als installierte App). Der erste Start zeigt einmal einen Willkommenshinweis (Z18, Z09); danach steht `firstRunCompleted` in den Geräteeinstellungen. In einer Datenbank einer neueren App (nur lesbar) wird die Einstellung nicht geschrieben, dort erscheint der Hinweis bei jedem Start.
 - „Aktualisieren“ ruft `saveBeforeUpdate()` auf. Konnten Änderungen nicht gespeichert werden (Speicher voll), lädt die App nicht neu und sagt es. In einer Datenbank einer neueren App wird nichts geschrieben, dort ist das Update erlaubt, weil es der Ausweg ist. Der Dienst-Worker prüft zusätzlich jede Stunde, ob es eine neue Version gibt.
-- Der Build schreibt `<meta name="build-id">` (`BUILD_ID` aus der Umgebung, sonst `local`). Zwei Builds unterscheiden sich so in `index.html`; der End-to-End-Test für das Update baut Build B mit `BUILD_ID=b` nach `dist-b` und tauscht ihn hinter demselben Server aus.
+- Der Build schreibt `<meta name="build-id">` (`BUILD_ID` aus der Umgebung, sonst `local`). Zwei Builds unterscheiden sich so in `index.html`; der End-to-End-Test für das Update baut Build B mit `BUILD_ID=b` nach `dist-b-<Projekt>` (ein Ordner je Browser, weil die Projekte parallel laufen) und tauscht ihn hinter demselben Server aus.
+- Bekannte Grenze: Nur der Tab, in dem „Aktualisieren“ gedrückt wird, lädt neu. Ein zweiter offener Tab läuft mit altem Code weiter. Nach dem Update fehlen ihm die alten Chunk-Dateien, ein nachgeladenes Diagramm kann dort ausfallen und die Fehlerseite des Bereichs zeigt sich; die Daten sind gespeichert. Ein Neuladen des Tabs behebt es.
 
 ### 8.13 Teststrategie
 
