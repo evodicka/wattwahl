@@ -347,7 +347,7 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 | --- | --- |
 | Fahrprofil | Bestandsfahrzeug, Arbeitsstätte A, Arbeitsstätte B, Zusatzstrecke |
 | Kandidaten | Liste mit Karten, Formular je Kandidat, Leasingangebote |
-| Parameter | Alle Rechenparameter mit Standardwert und Zurücksetzen je Feld, Preise und Preissteigerung |
+| Parameter | Alle Rechenparameter mit Standardwert und Zurücksetzen je Feld, Preise und Preissteigerung. Die freien Tage stehen nur im Fahrprofil, je Arbeitsstätte. |
 | Ergebnis | Vergleich, Reichweitenreserve, Zuordnungsplan, Garantie, Rechenweg, Preis-Regler |
 | Szenarien und Daten | Szenarioliste, Szenariovergleich, Export, Import, Hinweis zum letzten Export |
 
@@ -480,7 +480,7 @@ Jeder Parameter ist in der Oberfläche änderbar. "Platzhalter" heißt: Der Wert
 | Heimstrompreis Minimum, Mittel, Maximum | Pflichteingabe | €/kWh |  |
 | Preissteigerung Benzin und Strom | 0 | % pro Jahr | getrennt einstellbar |
 | Arbeitswochen pro Jahr | 52 | Wochen |  |
-| Freie Tage je Arbeitsstätte | 30 | Tage pro Jahr | Platzhalter |
+| Freie Tage je Arbeitsstätte | 30 | Tage pro Jahr | Platzhalter, Vorbelegung jeder Arbeitsstätte, geändert wird der Wert je Arbeitsstätte im Fahrprofil |
 | Zuordnung der Zusatzstrecke | frei optimiert | Auswahl | Alternative: fester E-Auto-Anteil in % |
 | Anteilsschritt Zusatzstrecke | 10 | % |  |
 | Streng-Modus | aus | Schalter | siehe Optimierung |
