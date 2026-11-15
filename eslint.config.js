@@ -66,11 +66,24 @@ export default tseslint.config(
           message: 'Only src/storage/repository.ts opens the database (8.2).',
         },
       ],
+      'no-restricted-properties': [
+        'error',
+        ...['window', 'globalThis', 'self'].map((object) => ({
+          object,
+          property: 'indexedDB',
+          message: 'Only src/storage/repository.ts opens the database (8.2).',
+        })),
+      ],
       'no-restricted-imports': [
         'error',
         {
-          name: 'idb',
-          message: 'Only src/storage/repository.ts opens the database (8.2).',
+          patterns: [
+            {
+              regex: '^idb(/|$)',
+              message:
+                'Only src/storage/repository.ts opens the database (8.2).',
+            },
+          ],
         },
       ],
     },

@@ -43,7 +43,7 @@ afterEach(() => {
 async function seed(
   dbName: string,
   version: number,
-  records: StoredScenario[],
+  records: unknown[],
 ): Promise<void> {
   const db = await openDB(dbName, version, {
     upgrade(database) {
@@ -51,8 +51,17 @@ async function seed(
       database.createObjectStore('settings');
     },
   });
-  for (const record of records) await db.put('scenarios', record);
+  for (const record of records) {
+    await db.put('scenarios', record as StoredScenario);
+  }
   db.close();
+}
+
+async function rawSettings(dbName: string): Promise<unknown[]> {
+  const db = await openDB(dbName);
+  const entries = await db.getAll('settings');
+  db.close();
+  return entries;
 }
 
 async function rawRecords(dbName: string): Promise<unknown[]> {
@@ -128,12 +137,107 @@ describe('S12: migration on load', () => {
     const [stored] = (await rawRecords(dbName)) as StoredScenario[];
     expect(stored?.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(stored?.data).toEqual(scenarios[0]);
+    // A migration is no edit.
+    expect(stored?.updatedAt).toBe('x');
+  });
+
+  const v1Record = () => ({
+    id: v1.data.id,
+    schemaVersion: 1,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    data: v1.data,
+  });
+
+  it('opens a database of an older IDB version and keeps its records', async () => {
+    const dbName = freshName();
+    await seed(dbName, 1, [v1Record()]);
+    const repo = await repository(dbName);
+    expect(repo.mode).toBe('readWrite');
+    expect((await repo.loadAll()).scenarios.map((s) => s.id)).toEqual([
+      v1.data.id,
+    ]);
+  });
+
+  it('does not write back over a record saved between reading and writing back', async () => {
+    const dbName = freshName();
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [v1Record()]);
+    const repo = await repository(dbName);
+    const edited: Scenario = {
+      ...exampleScenario(),
+      id: v1.data.id,
+      name: 'edited',
+    };
+    // The save is queued after the read of loadAll and before its write-back.
+    const loading = repo.loadAll();
+    expect(await repo.save(edited)).toEqual({ status: 'ok' });
+    await loading;
+    const [stored] = (await rawRecords(dbName)) as StoredScenario[];
+    expect(stored?.data).toEqual(edited);
+  });
+
+  it('migrates next to a newer record without touching it', async () => {
+    const dbName = freshName();
+    const newer = {
+      id: '00000000-0000-4000-8000-0000000000ff',
+      schemaVersion: CURRENT_SCHEMA_VERSION + 1,
+      updatedAt: '2027-01-01T00:00:00.000Z',
+      data: { future: true },
+    };
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [v1Record(), newer]);
+    const repo = await repository(dbName);
+    const loaded = await repo.loadAll();
+    expect(loaded.scenarios).toHaveLength(1);
+    expect(loaded.readOnly.map((r) => r.id)).toEqual([newer.id]);
+    const records = (await rawRecords(dbName)) as StoredScenario[];
+    expect(records.find((r) => r.id === newer.id)).toEqual(newer);
+    expect(records.find((r) => r.id === v1.data.id)?.schemaVersion).toBe(
+      CURRENT_SCHEMA_VERSION,
+    );
+  });
+
+  it('migrates in memory only when the database is read only', async () => {
+    const dbName = freshName();
+    await seed(dbName, CURRENT_SCHEMA_VERSION + 1, [v1Record()]);
+    const repo = await repository(dbName);
+    expect(repo.mode).toBe('readOnly');
+    expect((await repo.loadAll()).scenarios).toHaveLength(1);
+    expect(await rawRecords(dbName)).toEqual([v1Record()]);
+  });
+
+  it('a failing write-back loses nothing: the scenario loads, the old record stays', async () => {
+    const dbName = freshName();
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [v1Record()]);
+    const repo = await repository(dbName);
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new DOMException('Full.', 'QuotaExceededError');
+    });
+    expect((await repo.loadAll()).scenarios).toHaveLength(1);
+    vi.restoreAllMocks();
+    expect(await rawRecords(dbName)).toEqual([v1Record()]);
+  });
+
+  it('a record stored under another key than its id is left untouched', async () => {
+    const dbName = freshName();
+    const record = {
+      id: '00000000-0000-4000-8000-0000000000aa',
+      schemaVersion: 1,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      data: v1.data,
+    };
+    await seed(dbName, CURRENT_SCHEMA_VERSION, [record]);
+    const repo = await repository(dbName);
+    const loaded = await repo.loadAll();
+    expect(loaded.scenarios).toEqual([]);
+    expect(loaded.invalid).toEqual([
+      expect.objectContaining({ id: record.id, reason: 'schemaMismatch' }),
+    ]);
+    expect(await rawRecords(dbName)).toEqual([record]);
   });
 
   it.each([
     [
       'an unknown version',
-      { schemaVersion: 'one' as unknown as number, data: exampleScenario() },
+      { schemaVersion: 'one', data: exampleScenario() },
       'unknownVersion',
     ],
     [
@@ -229,6 +333,37 @@ describe('S12: full storage (8.10)', () => {
     expect(await rawRecords(dbName)).toEqual(before);
   });
 
+  it('a QuotaExceededError when the transaction commits gives the same status', async () => {
+    // Browsers often fail a full storage only on commit: the put succeeds,
+    // then the transaction aborts with QuotaExceededError. `_abort` is the
+    // fake-indexeddb step that aborts a transaction with a named error.
+    const dbName = freshName();
+    const repo = await repository(dbName);
+    await repo.save(scenarioWithName('before'));
+    const before = await rawRecords(dbName);
+    const put = IDBObjectStore.prototype.put;
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<IDBObjectStore['put']>
+    ) {
+      const request = put.apply(this, args);
+      const transaction = this.transaction as IDBTransaction & {
+        _abort(name: string): void;
+      };
+      request.addEventListener('success', () =>
+        transaction._abort('QuotaExceededError'),
+      );
+      return request;
+    });
+    expect(await repo.save(scenarioWithName('after'))).toEqual({
+      status: 'quotaExceeded',
+    });
+    vi.restoreAllMocks();
+    // The repository holds no state: "the state in memory stays" is the
+    // caller's part (src/state). Here the stored state must stay.
+    expect(await rawRecords(dbName)).toEqual(before);
+  });
+
   it('other errors are not hidden', async () => {
     const repo = await repository(freshName());
     vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
@@ -293,6 +428,9 @@ describe('S12: device settings', () => {
     const repo = await repository(dbName);
     await repo.saveSettings(DEFAULT_DEVICE_SETTINGS);
     expect(await rawRecords(dbName)).toEqual([]);
+    await repo.save(exampleScenario());
+    expect(await rawSettings(dbName)).toEqual([DEFAULT_DEVICE_SETTINGS]);
+    expect(await rawRecords(dbName)).toHaveLength(1);
   });
 });
 

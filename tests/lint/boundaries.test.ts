@@ -156,8 +156,34 @@ describe('database access only in the repository (8.2)', () => {
       'src/storage/__lint_fixture__.ts',
       'no-restricted-imports',
     ],
+    [
+      'window.indexedDB in src/state',
+      "export const x = window.indexedDB.open('eauto');\n",
+      'src/state/__lint_fixture__.ts',
+      'no-restricted-properties',
+    ],
+    [
+      'globalThis.indexedDB in src/ui',
+      "export const x = globalThis.indexedDB.open('eauto');\n",
+      'src/ui/__lint_fixture__.ts',
+      'no-restricted-properties',
+    ],
+    [
+      'an idb subpath import',
+      "import { openDB } from 'idb/with-async-ittr';\nexport const x = openDB;\n",
+      'src/state/__lint_fixture__.ts',
+      'no-restricted-imports',
+    ],
   ])('rejects %s', async (_name, code, filePath, rule) => {
     expect(await ruleIds(code, filePath)).toEqual([rule]);
+  });
+
+  it('allows test files to use the database', async () => {
+    const code =
+      "import { openDB } from 'idb';\nexport const x = [openDB, indexedDB];\n";
+    expect(await ruleIds(code, 'src/state/__lint_fixture__.test.ts')).toEqual(
+      [],
+    );
   });
 
   it('allows src/storage/repository.ts to open the database', async () => {
