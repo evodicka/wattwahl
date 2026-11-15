@@ -130,6 +130,7 @@ export function startApp(options: {
 
     let settings = await repository.loadSettings();
     if (!settings.firstRunCompleted) {
+      dispatch(noticeShown('firstStart'));
       // Not awaited: Firefox asks the user and answers only then, and the
       // start must not wait for that. A refusal shows its hint when it comes.
       void services.requestPersistence().then((result) => {
@@ -165,6 +166,21 @@ export function startApp(options: {
     dispatch(checkExportReminder());
     // Started, not awaited: the result arrives through the store.
     void dispatch(requestCompute());
+  };
+}
+
+/**
+ * Saves everything before the app reloads for an update (6.4, step 3). Answers
+ * whether the reload is safe: `false` when edits could not be written, so the
+ * reload would lose them. In a database of a newer app nothing is written at
+ * all, and the update is exactly what the user needs, so it stays allowed.
+ */
+export function saveBeforeUpdate(): AppThunk<Promise<boolean>> {
+  return async (dispatch, getState, { repository }) => {
+    await dispatch(flushSaves());
+    return (
+      repository.mode === 'readOnly' || getState().scenario.dirty.length === 0
+    );
   };
 }
 

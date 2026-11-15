@@ -1,4 +1,5 @@
 /** Zod schemas, defaults, migrations and plausibility warnings. Imported by every module. */
+import './zodConfig';
 export {
   CURRENT_SCHEMA_VERSION,
   MAX_COMPARISON_MONTHS,

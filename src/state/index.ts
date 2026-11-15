@@ -35,6 +35,7 @@ export {
   importFile,
   openTrace,
   requestCompute,
+  saveBeforeUpdate,
   startApp,
 } from './thunks';
 export {

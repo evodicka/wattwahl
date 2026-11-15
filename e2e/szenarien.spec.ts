@@ -1,42 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { open, seedScenario } from './helpers';
+import { open, seedScenario, waitSaved } from './helpers';
 
 // S22: scenarios, comparison, export and import (boards D7, M10; states Z10 to Z12, Z19).
-
-/** Waits until the autosave has written the candidate: reads the stored records. */
-async function waitSaved(page: Page) {
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve, reject) => {
-            const request = indexedDB.open('eauto');
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-              const db = request.result;
-              const all = db
-                .transaction('scenarios')
-                .objectStore('scenarios')
-                .getAll();
-              all.onsuccess = () => {
-                db.close();
-                resolve(
-                  all.result.reduce(
-                    (n: number, r: { data: { candidates: unknown[] } }) =>
-                      n + r.data.candidates.length,
-                    0,
-                  ),
-                );
-              };
-              all.onerror = () => reject(all.error);
-            };
-          }),
-      ),
-    )
-    .toBeGreaterThan(0);
-}
 
 /** Waits until the database holds this many scenarios (the autosave is debounced). */
 async function waitRecords(page: Page, count: number) {

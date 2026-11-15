@@ -34,7 +34,7 @@ const boundaryZones = MODULES.flatMap((target) =>
 );
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'playwright-report', 'test-results'] },
+  { ignores: ['dist', 'dist-b', 'coverage', 'playwright-report', 'test-results'] },
   js.configs.recommended,
   tseslint.configs.strict,
   prettier,

@@ -97,3 +97,36 @@ export async function seedScenario(page: Page) {
   ]);
   await page.getByRole('link', { name: /← Kandidaten/ }).click();
 }
+
+/** Waits until the autosave has written the candidate: reads the stored records. */
+export async function waitSaved(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve, reject) => {
+            const request = indexedDB.open('eauto');
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+              const db = request.result;
+              const all = db
+                .transaction('scenarios')
+                .objectStore('scenarios')
+                .getAll();
+              all.onsuccess = () => {
+                db.close();
+                resolve(
+                  all.result.reduce(
+                    (n: number, r: { data: { candidates: unknown[] } }) =>
+                      n + r.data.candidates.length,
+                    0,
+                  ),
+                );
+              };
+              all.onerror = () => reject(all.error);
+            };
+          }),
+      ),
+    )
+    .toBeGreaterThan(0);
+}
