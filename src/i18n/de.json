@@ -154,6 +154,8 @@
       "readOnlyBody": "Die gespeicherten Daten stammen von einer neueren Version der App. Bis zum Update wird nichts gespeichert.",
       "startFailedTitle": "Die gespeicherten Daten lassen sich nicht laden",
       "startFailedBody": "Der Browser erlaubt keinen Zugriff auf den Speicher. In einem privaten Fenster ist er oft gesperrt.",
+      "startErrorTitle": "Die App konnte nicht starten",
+      "startErrorBody": "Lade die Seite neu. Deine gespeicherten Daten bleiben dabei erhalten.",
       "pageFailedTitle": "Diese Seite ist ausgefallen",
       "pageFailedBody": "Deine Daten sind gespeichert."
     },
