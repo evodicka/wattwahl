@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { checkWarnings, type Warning } from '../../domain';
-import { formatInput } from '../../i18n';
-import { NumberField, type NumberRules } from '../components';
+import { formatInput, formatMonthYear } from '../../i18n';
+import { NumberField, type FieldMarks, type NumberRules } from '../components';
 import { getAt } from './paths';
 import {
   isChanged,
@@ -29,7 +29,7 @@ export function useWarning(path: string): string | null {
       return t('warning.wayLong');
     case 'firstRegistrationAfterReferenceMonth':
       return t('warning.firstRegistrationAfterCutoff', {
-        cutoff: `${String(scenario.parameters.warrantyReferenceMonth.month).padStart(2, '0')}/${scenario.parameters.warrantyReferenceMonth.year}`,
+        cutoff: formatMonthYear(scenario.parameters.warrantyReferenceMonth),
       });
   }
 }
@@ -48,6 +48,13 @@ type Props = {
   /** Marks from the parameter list; off for fields without a row there. */
   marked?: boolean;
   error?: string | null;
+  /** Needed for a calculation: shows "Pflicht" and stores `null` when emptied. */
+  required?: boolean;
+  /** Replaces the markers of the parameter list. */
+  marks?: FieldMarks;
+  placeholder?: string;
+  /** A rule across entries; a message keeps the value from being stored. */
+  validate?: (value: number | null) => string | null;
   /** Shows the default as a hint, with "Zurücksetzen" for a changed value. */
   withDefault?: boolean;
 };
@@ -69,6 +76,10 @@ export function PathNumber({
   marked = true,
   error = null,
   withDefault = false,
+  required: requiredProp = false,
+  marks: marksProp,
+  placeholder,
+  validate,
 }: Props) {
   const { t } = useTranslation();
   const { scenario, set } = useScenarioEditor();
@@ -77,7 +88,7 @@ export function PathNumber({
   const raw = getAt(scenario, path);
   const value = typeof raw === 'number' ? raw : null;
   const entry = parameterDefault(path);
-  const required = entry?.flag === 'required';
+  const required = entry?.flag === 'required' || requiredProp;
   const resettable =
     withDefault &&
     entry !== undefined &&
@@ -97,7 +108,11 @@ export function PathNumber({
       value={value}
       decimals={decimals}
       rules={{ required, nullable: required, ...rules }}
-      marks={marked ? parameterMarks(scenario, path) : { required }}
+      marks={
+        marksProp ?? (marked ? parameterMarks(scenario, path) : { required })
+      }
+      placeholder={placeholder}
+      validate={validate}
       hint={
         hint !== undefined && defaultHint !== undefined ? (
           <>

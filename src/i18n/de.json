@@ -231,6 +231,10 @@
       "no": "Nein",
       "on": "An",
       "off": "Aus"
+    },
+    "weather": {
+      "mild": "mild",
+      "cold": "kalt"
     }
   },
   "fahrprofil": {
@@ -303,7 +307,17 @@
       "checkWarrantyBody": "Jetzt Normalgarantie statt Restgarantie. Die alten Werte konnten nicht umgerechnet werden.",
       "editWarranty": "Garantie bearbeiten",
       "warrantyOk": "Werte stimmen",
-      "missingFirstRegistration": "Gebraucht ohne Erstzulassung: Die Restgarantie lässt sich nicht berechnen."
+      "missingFirstRegistration": "Gebraucht ohne Erstzulassung: Die Restgarantie lässt sich nicht berechnen.",
+      "copyName": "{{name}} (Kopie)",
+      "unsuitableBoth": "{{weekday}}, {{month}}: beide Wege nicht fahrbar. Reserve Weg A {{a}}, Weg B {{b}}.",
+      "unsuitableStrict": "Streng-Modus: Weg {{way}} im {{month}} nicht fahrbar, Reserve {{km}}.",
+      "unsuitableCoupling": "Die Wege sind fahrbar, aber mit den E-Auto-Kilometern sinkt der Akku auf {{soh}} SoH und reicht dann nicht mehr.",
+      "profileMissing": "Das Fahrprofil ist nicht vollständig, deshalb wird noch nicht gerechnet.",
+      "toProfile": "Zum Fahrprofil",
+      "fieldRange": "Reichweite {{road}} {{weather}}",
+      "fieldLease": "Leasing {{tier}}: {{field}}",
+      "fieldWarranty": "{{group}} {{field}}",
+      "computing": "Wird berechnet …"
     },
     "form": {
       "editTitle": "{{name}} bearbeiten",
@@ -362,7 +376,16 @@
       "underKmRefund": "Minderkilometer-Erstattung",
       "savedToResult": "Alles gespeichert",
       "savedToResultBody": "Das Ergebnis rechnet bereits mit {{name}}.",
-      "toResult": "Zum Ergebnis"
+      "toResult": "Zum Ergebnis",
+      "newTitle": "Neuer Kandidat",
+      "tierTaken": "Diese Stufe gibt es schon.",
+      "noMoreTiers": "Mehr als vier Stufen sind nicht möglich.",
+      "remainingLine": "{{what}}: {{years}}, {{km}}",
+      "jumpMenu": "Gruppen im Formular",
+      "backToList": "Kandidaten",
+      "stepProgress": "Schritt {{current}} von {{total}}",
+      "budgetNone": "Kein Jahresbudget, weil keine Garantie läuft.",
+      "jumpTo": "Springen zu"
     }
   },
   "parameter": {

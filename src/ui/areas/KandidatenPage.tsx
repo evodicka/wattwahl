@@ -1,8 +1,9 @@
-import { useTranslation } from 'react-i18next';
-import { AreaHead } from './AreaHead';
+import { useParams } from 'react-router';
+import { CandidateForm } from './kandidaten/CandidateForm';
+import { CandidateList } from './kandidaten/CandidateList';
 
-// Frame only: S18 builds the list (#/kandidaten) and the form (#/kandidaten/:id).
+/** The candidate list (#/kandidaten) and the form of one candidate (#/kandidaten/:id). */
 export function KandidatenPage() {
-  const { t } = useTranslation('kandidaten');
-  return <AreaHead title={t('title')} />;
+  const { id } = useParams();
+  return id ? <CandidateForm id={id} /> : <CandidateList />;
 }

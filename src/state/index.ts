@@ -2,6 +2,15 @@
 export { createAppStore, useAppDispatch, useAppSelector } from './store';
 export type { AppDependencies, AppStore } from './store';
 export type { AppDispatch, AppThunk, RootState } from './types';
+export {
+  MAX_LEASE_TIERS,
+  addCandidate,
+  addLeaseTier,
+  deleteCandidate,
+  duplicateCandidate,
+  removeLeaseTier,
+  setCandidateCondition,
+} from './candidates';
 export { DEBOUNCE_MS, MAX_RESTARTS, attachLifecycle } from './listeners';
 export {
   closeTrace,

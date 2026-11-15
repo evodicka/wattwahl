@@ -57,6 +57,7 @@ export {
   formatEuro,
   formatInput,
   formatKm,
+  formatMonthYear,
   formatPercent,
   formatTime,
 } from './format';

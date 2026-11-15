@@ -123,6 +123,8 @@ export async function renderApp(
     mode?: Repository['mode'];
     /** The browser's answer to the request for persistent storage. */
     persistence?: 'granted' | 'denied';
+    /** Source of new ids; one fixed id by default. */
+    randomId?: () => string;
   } = {},
 ) {
   const scenarios = options.scenarios ?? [];
@@ -138,7 +140,8 @@ export async function renderApp(
     repository,
     spawnWorker: () => worker.handle,
     now: () => NOW,
-    randomId: () => '40000000-0000-4000-8000-000000000001',
+    randomId:
+      options.randomId ?? (() => '40000000-0000-4000-8000-000000000001'),
     requestPersistence: async () => options.persistence ?? 'granted',
   });
   const router = createMemoryRouter(options.routes ?? appRoutes, {
