@@ -15,6 +15,8 @@ export type Notices = {
   databaseReadOnly: boolean;
   /** The browser refused persistent storage: a hint, not an error (8.2). */
   persistenceDenied: boolean;
+  /** The first start on this device: a welcome with the hint on assumed values (Z18, Z09). */
+  firstStart: boolean;
   importError: ImportError | null;
 };
 
@@ -41,6 +43,7 @@ const initialState: UiState = {
     reloadRequired: false,
     databaseReadOnly: false,
     persistenceDenied: false,
+    firstStart: false,
     importError: null,
   },
 };

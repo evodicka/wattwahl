@@ -165,7 +165,10 @@
       "startErrorTitle": "Die App konnte nicht starten",
       "startErrorBody": "Lade die Seite neu. Deine gespeicherten Daten bleiben dabei erhalten.",
       "pageFailedTitle": "Diese Seite ist ausgefallen",
-      "pageFailedBody": "Deine Daten sind gespeichert."
+      "pageFailedBody": "Deine Daten sind gespeichert.",
+      "updateBody": "Die neue Version ist geladen. Beim Aktualisieren wird zuerst gespeichert, dann startet die Seite neu.",
+      "updateBlockedBody": "Es konnte nicht gespeichert werden, deshalb wird nicht neu geladen. Exportiere deine Szenarien und versuche es noch einmal.",
+      "welcomeBody": "Die App rechnet mit Beispielwerten. Die Zahlen mit „Annahme“ sind Platzhalter, bitte prüfe sie. Alles bleibt auf diesem Gerät."
     },
     "dialog": {
       "deleteCandidateTitle": "Kandidat „{{name}}“ löschen?",

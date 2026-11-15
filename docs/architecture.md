@@ -186,7 +186,7 @@ Die Oberfläche erreicht den Rechenkern nur über `src/state` und den Worker. `s
 | `src/state` | `store.ts`, `scenarioSlice.ts`, `resultSlice.ts`, `uiSlice.ts`, `listeners.ts`, `coreClient.ts`, `thunks.ts`, `selectors.ts`, `types.ts` | `createAppStore(…)`, `useAppSelector`, `useAppDispatch`, Thunks `requestCompute()` mit Debounce, `startApp()`, `importFile()`, `exportScenarios()`, `openTrace()` |
 | `src/ui` | `areas/`, `components/`, `charts/`, `theme.css` | Routen aus 8.8 |
 | `src/i18n` | `de.json`, `index.ts`, `format.ts` | `t()`, `formatEuro()`, `formatKm()`, `formatConsumption()` |
-| `src/pwa` | `register.ts` | `useUpdatePrompt()` |
+| `src/pwa` | `register.ts`, `install.ts` | `useUpdatePrompt()`, `isIosBrowserTab()` |
 
 ### 5.2 Rechenkern im Detail
 
@@ -418,13 +418,16 @@ Die Konzepte gelten für alle Bausteine und sind die verbindliche Vorgabe für d
 ### 8.11 Sicherheit und Datenschutz
 
 - Content Security Policy als `<meta>`-Tag, weil GitHub Pages keine Header erlaubt: `default-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'`.
-- Kein `eval`, kein `dangerouslySetInnerHTML`. Importierte Inhalte werden nur als Text gerendert.
+- Die Richtlinie wird nur im Build in `index.html` eingefügt (`build/html.ts`), als erstes Element im Kopf, weil sie nur gilt, was nach ihr kommt. Der Entwicklungsserver braucht Inline-Skripte für das Neuladen. `assetsInlineLimit: 0` hält Schriften und kleine Dateien als Dateien, denn `font-src data:` ist nicht erlaubt.
+- Kein `eval`, kein `dangerouslySetInnerHTML`. Importierte Inhalte werden nur als Text gerendert. Zod 4 erzeugt zur Laufzeit Code mit `new Function` und prüft das mit einer Probe, die die Richtlinie als Verstoß meldet. `src/domain/zodConfig.ts` schaltet das mit `z.config({ jitless: true })` ab, bevor das erste Schema läuft.
 - Das Repository enthält nur Code und fiktive Testdaten.
 
 ### 8.12 Offline und Updates
 
 - vite-plugin-pwa mit `registerType: "prompt"`: Alle Build-Artefakte werden vorab gecacht. Liegt eine neue Version bereit, zeigt die App einen Hinweis mit „Aktualisieren“.
-- Manifest mit `name: "Wattwahl"`, `short_name: "Wattwahl"`, `display: "standalone"` und `start_url: "./#/"`. Auf iOS zeigt der erste Start eine Anleitung zur Installation auf dem Home-Bildschirm.
+- Manifest mit `name: "Wattwahl"`, `short_name: "Wattwahl"`, `display: "standalone"` und `start_url: "./#/"`. Auf iOS zeigt der erste Start eine Anleitung zur Installation auf dem Home-Bildschirm (`isIosBrowserTab()`: iPhone oder iPad im Browser, nicht als installierte App). Der erste Start zeigt einmal einen Willkommenshinweis (Z18, Z09); danach steht `firstRunCompleted` in den Geräteeinstellungen.
+- „Aktualisieren“ ruft `saveBeforeUpdate()` auf. Konnten Änderungen nicht gespeichert werden (Speicher voll), lädt die App nicht neu und sagt es. In einer Datenbank einer neueren App wird nichts geschrieben, dort ist das Update erlaubt, weil es der Ausweg ist. Der Dienst-Worker prüft zusätzlich jede Stunde, ob es eine neue Version gibt.
+- Der Build schreibt `<meta name="build-id">` (`BUILD_ID` aus der Umgebung, sonst `local`). Zwei Builds unterscheiden sich so in `index.html`; der End-to-End-Test für das Update baut Build B mit `BUILD_ID=b` nach `dist-b` und tauscht ihn hinter demselben Server aus.
 
 ### 8.13 Teststrategie
 
@@ -571,6 +574,8 @@ Als Entscheidung gilt (ADR-16): keiner dieser Pfade wird jetzt gebaut. Reicht di
 | Eine zweite axe-Prüfung auf derselben Seite, nachdem die nachgeladenen Chunks der Detailansicht geladen waren (Test in `e2e/ergebnis.spec.ts`), stürzte lokal in drei von drei Läufen ab. Sie trat auch früher „ab und zu“ auf, wenn eine Datei Liste und Detail in einem Test prüfte. | Der Absturz hängt am Zustand der Seite nach einer ersten Prüfung und dem Laden schwerer Chunks, nicht an einer Seitenart. |
 | Mit sechs parallelen Workern stürzte Firefox lokal gelegentlich ab, mit zwei oder drei Workern nicht. Im CI mit zwei Workern stürzt er bei der Diagrammseite jedes Mal ab. | Last erklärt es nicht allein. |
 | Die Seite ist klein genug (rund 700 SVG-Knoten im Zuordnungsplan, danach ein Knoten je Zeile statt vier); das Verkleinern auf einen SVG-Knoten je Zeile änderte nichts. | Die Knotenzahl ist nicht der Auslöser. |
+
+**Neuer Befund (S23).** Die axe-Prüfung der Willkommensseite (`#/fahrprofil` mit dem Hinweis des ersten Starts, ein Formular ohne Diagramm, ohne nachgeladenen Chunk) stürzte lokal in Firefox ebenfalls ab, in drei von zwölf Läufen unter vier Workern. Damit sind weder Diagramme noch nachgeladene Chunks die Voraussetzung. Der Test ist wie die anderen für Firefox mit `test.fixme` ausgenommen (`e2e/offline.spec.ts`).
 
 **Hypothesen, nicht geprüft.**
 
