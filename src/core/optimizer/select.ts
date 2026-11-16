@@ -24,6 +24,31 @@ export type OfferInput = Pick<
 
 export type Solver = { solve: (offer: OfferInput, trace?: Trace) => Selection };
 
+type Table = { cost: Float64Array; km: Float64Array };
+
+/**
+ * The DP of a set of groups, computed per option set on first use. Solvers
+ * over the same groups that differ only in their SoH lookup (mode `switch`:
+ * the SoH at the end and at the start) share it, so the second solver costs
+ * almost nothing.
+ */
+export type SharedDp = {
+  prep: Prepared;
+  tables: Map<number, Table | null>;
+  planners: Map<number, (cell: number) => number[]>;
+};
+
+export function createSharedDp(
+  groups: SolverSetup['groups'],
+  cellKm: number,
+): SharedDp {
+  return {
+    prep: prepare(groups, cellKm),
+    tables: new Map(),
+    planners: new Map(),
+  };
+}
+
 type Context = {
   setup: SolverSetup;
   prep: Prepared;
@@ -62,13 +87,13 @@ function buildContext(setup: SolverSetup, prep: Prepared): Context {
  * shared by every offer of the candidate (purchase and lease tiers); only the
  * cheap target and selection pass runs per offer.
  */
-export function createSolver(setup: SolverSetup): Solver {
-  const prep = prepare(setup.groups, setup.cellKm);
+export function createSolver(
+  setup: SolverSetup,
+  shared: SharedDp = createSharedDp(setup.groups, setup.cellKm),
+): Solver {
+  const { prep, tables: dp, planners } = shared;
   const ctx = buildContext(setup, prep);
   const fullMask = (1 << setup.thresholds.length) - 1;
-  type Table = { cost: Float64Array; km: Float64Array };
-  const dp = new Map<number, Table | null>();
-  const planners = new Map<number, (cell: number) => number[]>();
   const tableFor = (mask: number): Table | null => {
     if (!dp.has(mask)) dp.set(mask, dpTable(prep, mask));
     return dp.get(mask) ?? null;
@@ -133,12 +158,12 @@ export function createSolver(setup: SolverSetup): Solver {
     if (smallestFeasible < 0) {
       // The fewest km any plan can have, ignoring permissions, gives the best
       // SoH any plan can have: an upper bound, so no plan is better off.
+      const bestKm = Math.ceil(prep.minKm / setup.gridKm) * setup.gridKm;
       return {
         status: 'unsuitable',
         cause: 'groups',
-        bestSoh: setup.sohForKmPerYear(
-          Math.ceil(prep.minKm / setup.gridKm) * setup.gridKm,
-        ),
+        bestSoh: setup.sohForKmPerYear(bestKm),
+        bestKmPerYear: bestKm,
       };
     }
 

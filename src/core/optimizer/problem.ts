@@ -32,6 +32,7 @@ import {
   sohAt,
   sohCurve,
   sohKEnd,
+  type SohCurve,
 } from '../calc/soh';
 import {
   checkWay,
@@ -42,7 +43,7 @@ import {
 } from '../calc/suitability';
 import { attendanceFactors, expectedDays } from '../calc/workdays';
 import type { Trace } from '../trace';
-import { createSolver, type Solver } from './select';
+import { createSharedDp, createSolver, type Solver } from './select';
 import type { Group, Option } from './types';
 
 // Maps a scenario, a candidate and one price case to the decision groups of the
@@ -80,6 +81,24 @@ export type Problem = {
   /** SoH thresholds per permission pair, indexed by `pairIndex`. */
   thresholds: number[];
   sohForKmPerYear: (kmPerYear: number) => number;
+  /**
+   * Mode `switch`: the solver that checks every option at the SoH at the start
+   * (plan P). It shares the DP with `solver` and is built on first use.
+   */
+  startSolver: () => Solver;
+  /** Ageing curve and odometer of the candidate, for the switch simulation. */
+  curve: SohCurve;
+  mileageKm: number;
+  /** What the cost of an option over a time window needs (spec section 7). */
+  costInput: {
+    electricityPrice: number;
+    petrolPrice: number;
+    electricityEscalationPct: number;
+    petrolEscalationPct: number;
+    evPerKm: number;
+    icePerKm: number;
+    comparisonMonths: number;
+  };
   /** Smallest reserve in percent over both ways and all months at a SoH. */
   reserveAtSoh: (soh: number) => number;
   /** Suitability of one way in one month at a SoH (section 3). */
@@ -359,13 +378,15 @@ export function buildProblem(
     return smallest;
   };
 
-  const solver = createSolver({
+  const setup = {
     groups,
     thresholds,
-    sohForKmPerYear,
     gridKm: parameters.kmGridPerYear,
     cellKm: DP_CELL_KM,
-  });
+  };
+  const sharedDp = createSharedDp(groups, DP_CELL_KM);
+  const solver = createSolver({ ...setup, sohForKmPerYear }, sharedDp);
+  let startSolver: Solver | undefined;
 
   return {
     groups,
@@ -373,6 +394,25 @@ export function buildProblem(
     solver,
     thresholds,
     sohForKmPerYear,
+    startSolver: () =>
+      (startSolver ??= createSolver(
+        {
+          ...setup,
+          sohForKmPerYear: () => sohAt(curve, candidate.mileageKm),
+        },
+        sharedDp,
+      )),
+    curve,
+    mileageKm: candidate.mileageKm,
+    costInput: {
+      electricityPrice: prices.electricityPrice,
+      petrolPrice: prices.petrolPrice,
+      electricityEscalationPct: prices.electricityEscalationPct,
+      petrolEscalationPct: prices.petrolEscalationPct,
+      evPerKm,
+      icePerKm,
+      comparisonMonths,
+    },
     reserveAtSoh,
     checkWayAt,
   };
