@@ -2,7 +2,7 @@
 
 Nov 14, 2026 · @Eduard Vodicka
 
-Wattwahl entsteht in 32 Schritten über acht Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4 und die Änderungsschritte C1a und C1b (Phase 3b). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
+Wattwahl entsteht in 34 Schritten über neun Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4, die Änderungsschritte C1a und C1b (Phase 3b) und die Folgeversion mit C2a und C2b (Phase 7). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
 
 ## Arbeitsweise
 
@@ -34,7 +34,7 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. In der App-Infrastruktur beginnt zunächst nur S15, Speicher und Worker (S12 bis S14) folgen nach der Änderung C1a und C1b (Phase 3b). Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
-**Fahrplan · 3 Spuren, 8 Phasen, 4 Freigaben**
+**Fahrplan · 3 Spuren, 9 Phasen, 4 Freigaben**
 
 ```mermaid
 flowchart TD
@@ -80,18 +80,19 @@ flowchart TD
     P5["<b>Phase 5 · Oberfläche</b><br/>S16 App-Shell und Theme<br/>S17–S22 die fünf Bereiche, parallel baubar<br/>S23 Offline, Updates und Sicherheit"]
     P6["<b>Phase 6 · Qualität und Abnahme</b><br/>S24 Gesamtsuite und Messungen Q1–Q11<br/>S25 Doku und Release-Kandidat<br/>S26 Abnahme am iPhone und Android-Handy durch den Nutzer"]
     G4{"G4 Abnahme"}
+    P7["<b>Phase 7 · Folgeversion</b><br/>C2a Spezifikation und Architektur<br/>C2b Umsetzung: Kilometerreserve"]
 
     core --> P5
     design --> P5
     app --> P5
-    P5 --> P6 --> G4
+    P5 --> P6 --> G4 --> P7
 
     classDef gate fill:#fdf0d5,stroke:#d97706,stroke-width:2px,color:#1a1a1a
     classDef cd fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
     classDef agent fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
     class G1,G2,G3,G4 gate
     class D2,D3 cd
-    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6 agent
+    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6,P7 agent
 ```
 
 *Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
@@ -683,3 +684,49 @@ Phase 6 weist alle Abnahmekriterien der Spezifikation und alle Qualitätsszenari
 ### Freigabe G4 · Abnahme
 
 Sind alle Punkte aus S24 und S26 erfüllt, gilt die App als abgenommen. Gefundene Fehler werden als neue Schritte nach diesem Schema geplant.
+
+## Phase 7 – Folgeversion: Kilometerreserve
+
+Die Nutzung der veröffentlichten App hat eine fachliche Änderung ausgelöst: eine feste Kilometerreserve für die Eignung, die Eignung im Zeitverlauf (nur Anzeige) und der Kilometerstand des E-Autos am Ende. Die Änderung kommt als Folgeversion nach dem Release-Kandidaten (S25) und der manuellen Abnahme (S26), der Release-Kandidat bleibt unverändert. Beschreibung, Testfälle, Migration, betroffene Stellen und Entscheidungen: `docs/change-kilometerreserve.md`. Die Aufteilung folgt Phase 3b: C2a ändert nur Dokumente, C2b setzt um. Die Freigabe von C2a ist wie bei C1a das Zusammenführen durch den Nutzer, kein neues Tor.
+
+### C2a · Kilometerreserve: Spezifikation, Architektur und Plan
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+- Spezifikation und Architektur an allen Dokument-Stellen der Tabelle „Betroffene Stellen“ in `docs/change-kilometerreserve.md` ändern. Der Zeitverlauf steht als Unterabschnitt in Abschnitt 3 der Berechnungslogik. Neue ADR-18.
+- Testfälle 20 bis 22 mit den Zahlen aus `docs/change-kilometerreserve.md` in die Spezifikation übernehmen, dazu diesen Plan ergänzen.
+- Kein Code, keine Tests.
+
+**Validierung**
+
+- Jede Dokument-Zeile der Tabelle „Betroffene Stellen“ ist einer Änderung im Pull Request zugeordnet, ohne Lücke.
+- Die Testfälle 21 und 22 sind nachgerechnet, der Rechenweg steht im Pull Request.
+- Keine Stelle nennt noch „19 Testfälle“ (Suche im Pull Request, ausgenommen die Historie in Q3).
+- Der Nutzer liest die Änderung gegen und merged sie. Das ist die Freigabe für C2b.
+
+**Voraussetzung:** G4
+
+### C2b · Kilometerreserve: Umsetzung
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+In der Reihenfolge C (Kilometerstand, klein), A (Kilometerreserve), B (Zeitverlauf), jeweils mit eigenen Tests:
+
+- Schema, Standardwerte und Ergebnisschema: Parameter `minReserveKm`, `CURRENT_SCHEMA_VERSION = 3`, Migration v2 → v3, Beispieldatei `scenario.v3.json`, Validierung und Plausibilitätswarnung.
+- C: Ergebnisfeld `evOdometerEnd` mit Verweis auf `F2.kEnd`, Spalte und Kartenzeile „E-Auto am Ende“.
+- A: Kilometerreserve in `isSuitable`, `checkWay`, `sohThreshold`, Optimierer (`explain`, `worstPair`), Grund bei ungeeignet, Feld in der Parameterseite, Kennzeichnung „unter der Kilometerreserve“.
+- B: `soh.ts` mit Monaten bis zu einem SoH, `OPT.timeline` und `OPT.suitableUntil`, Zeitverlauf im Ergebnis, Zeitregler und Textliste in der Detailansicht.
+- Test-Fixtures, Q1-Messszenario und Referenz-Hashes (Q5, S24) einmal neu erzeugen, Benchmark erneut laufen lassen und Architektur 11.1 nachführen, falls sich Werte ändern. Abnahmepunkt für die neuen Anzeigen in `docs/acceptance-checklist.md`.
+
+**Validierung**
+
+- Testfälle 1 bis 19 bleiben unverändert, die Testfälle 20 bis 22 bestehen mit der Toleranz aus Architektur 8.4, dazu der Integrationstest mit R = 10.
+- Migration: Ergebnisse mit `minReserveKm = 0` sind gleich den bisherigen.
+- Q6: Die neuen Ergebnisfelder haben je einen Rechenweg-Eintrag, mit der Ausnahme für den Zeitverlauf aus Architektur 8.4.
+- Q1 neu gemessen, axe-Prüfung für Zeitregler und Kennzeichnung, Q5 gleicher Hash in drei Engines. Kein bestehender Test wird abgeschwächt.
+
+**Voraussetzung:** C2a
