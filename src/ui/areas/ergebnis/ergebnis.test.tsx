@@ -55,6 +55,7 @@ describe('S19: result table on a desktop', () => {
       'Gesamtkosten (Mittel)Spanne günstig bis ungünstig',
       'Kleinste ReserveWeg, Monat',
       'E-Auto km/Jahr',
+      'E-Auto am Ende',
       'Verbrenner am Ende',
       'Garantie',
     ]);
@@ -104,7 +105,8 @@ describe('S19: result table on a desktop', () => {
     expect(cells[4]?.textContent).toMatch(/\d+\s?km · \d+\s?%.*Weg [AB], /);
     expect(cells[5]?.textContent).toMatch(/^\d+(\.\d{3})?$/);
     expect(cells[6]?.textContent).toMatch(/km$/);
-    expect(cells[7]?.textContent).toMatch(
+    expect(cells[7]?.textContent).toMatch(/km$/);
+    expect(cells[8]?.textContent).toMatch(
       /im Budget|Budget wirkt|ohne Garantie|überschritten/i,
     );
   });
@@ -262,6 +264,9 @@ describe('S19: result cards on a phone', () => {
     ).toBeTruthy();
     expect(within(card).getByText('Kleinste Reserve')).toBeTruthy();
     expect(within(card).getByText('E-Auto pro Jahr')).toBeTruthy();
+    // C2b: the EV odometer at the end, like the petrol car's, for a suitable offer only.
+    expect(within(card).getByText('E-Auto am Ende')).toBeTruthy();
+    expect(within(card).getByText('Verbrenner am Ende')).toBeTruthy();
     expect(
       within(card)
         .getByRole('link', { name: /Details ansehen/ })
@@ -275,6 +280,7 @@ describe('S19: result cards on a phone', () => {
     expect(
       within(incomplete).queryByRole('link', { name: /Details/ }),
     ).toBeNull();
+    expect(within(incomplete).queryByText('E-Auto am Ende')).toBeNull();
   });
 });
 

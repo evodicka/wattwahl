@@ -156,9 +156,21 @@ export function v1ToV2(data: unknown, context: MigrationContext): unknown {
   };
 }
 
+/**
+ * v2 -> v3, Kilometerreserve (docs/change-kilometerreserve.md): every scenario
+ * gets `minReserveKm = 0`, which is the rule without a reserve, so all results
+ * stay the same. Data without the v2 shape passes through untouched, the
+ * schema check reports it.
+ */
+export function v2ToV3(data: unknown): unknown {
+  if (!isObject(data) || !isObject(data.parameters)) return data;
+  return { ...data, parameters: { ...data.parameters, minReserveKm: 0 } };
+}
+
 /** Steps keyed by the version they start from. */
 export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = {
   1: v1ToV2,
+  2: v2ToV3,
 };
 
 export const migrate = createMigrator(MIGRATIONS, CURRENT_SCHEMA_VERSION);

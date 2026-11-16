@@ -175,7 +175,7 @@ describe('S17: Parameter', () => {
     const placeholders = PARAMETER_DEFAULTS.filter(
       (e) => e.flag === 'placeholder',
     );
-    expect(placeholders.length).toBe(12);
+    expect(placeholders.length).toBe(13);
     for (const entry of placeholders) {
       if (entry.path === 'parameters.monthlyTempC') {
         expect(

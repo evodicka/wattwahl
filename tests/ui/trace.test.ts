@@ -30,6 +30,7 @@ describe('S21: Rechenweg view (Q6)', () => {
       'costs.maintenance',
       'evKmPerYear',
       'iceOdometerEnd',
+      'evOdometerEnd',
       'warranty.budgetKmPerYear',
     ]) {
       expect(paths, path).toContain(path);

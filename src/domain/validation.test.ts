@@ -202,6 +202,16 @@ describe('S04: plausibility warnings', () => {
     expect(checkWarnings(scenario)).toEqual([]);
   });
 
+  it('C2b: a Kilometerreserve above 100 km warns, 100 km itself does not', () => {
+    const scenario = exampleScenario();
+    scenario.parameters.minReserveKm = 100;
+    expect(checkWarnings(scenario)).toEqual([]);
+    scenario.parameters.minReserveKm = 100.1;
+    expect(checkWarnings(scenario)).toEqual([
+      { code: 'minReserveAbove100', path: 'parameters.minReserveKm' },
+    ]);
+  });
+
   it('S04: a commute of exactly 300 km does not warn', () => {
     const scenario = exampleScenario();
     scenario.workplaces.b.commute = { city: 100, rural: 100, highway: 100 };

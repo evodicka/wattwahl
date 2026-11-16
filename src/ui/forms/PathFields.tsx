@@ -27,6 +27,8 @@ export function useWarning(path: string): string | null {
       return t('warning.capacity');
     case 'commuteAbove300':
       return t('warning.wayLong');
+    case 'minReserveAbove100':
+      return t('warning.minReserveLong');
     case 'firstRegistrationAfterReferenceMonth':
       return t('warning.firstRegistrationAfterCutoff', {
         cutoff: formatMonthYear(scenario.parameters.warrantyReferenceMonth),

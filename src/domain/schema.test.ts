@@ -107,7 +107,7 @@ describe('S03: parameter list', () => {
   }
 
   it('reads every row of the spec table', () => {
-    expect(specRows).toHaveLength(29);
+    expect(specRows).toHaveLength(30);
   });
 
   it.each(specRows)('%s', (label, standard, unit, hint) => {
@@ -470,7 +470,7 @@ describe('S03: no parallel type definitions (architecture 8.1)', () => {
     expect(objectTypes).toEqual([]);
   });
 
-  it('is schema version 2 since the warranty change (C1b)', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(2);
+  it('is schema version 3 since the Kilometerreserve (C2b)', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(3);
   });
 });
