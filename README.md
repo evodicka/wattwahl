@@ -4,7 +4,7 @@ Wattwahl is a decision aid for choosing an electric car. For each candidate (pur
 
 It is a client-only progressive web app. There is no server, all data stays in the browser, and the only way data leaves the device is the export file.
 
-Live: <https://wattwahl.evodicka.dev/> (release candidate `1.0.0-rc.1`; the version and build are shown at the bottom of the area "Szenarien und Daten")
+Live: <https://wattwahl.evodicka.dev/> (release candidate `1.0.0-rc.2`; the version and build are shown at the bottom of the area "Szenarien und Daten")
 
 ## Getting started
 

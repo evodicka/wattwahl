@@ -1,6 +1,6 @@
 # Wattwahl – Checkliste zur Abnahme am Gerät (S26)
 
-Stand: Release-Kandidat `1.0.0-rc.1` · Freigabe G4 · Grundlage: Architektur 8.13,
+Stand: Release-Kandidat `1.0.0-rc.2` (mit Kilometerreserve, C2b) · Freigabe G4 · Grundlage: Architektur 8.13,
 Spezifikation „Abnahmekriterien“
 
 Diese Checkliste prüft, was nur am echten Gerät prüfbar ist. Alles andere läuft
@@ -10,7 +10,7 @@ Geräte: ein iPhone mit Safari und ein Android-Mittelklasse-Handy mit Chrome.
 **Vorher am Rechner**
 
 - [ ] Auf <https://wattwahl.evodicka.dev/> steht unten im Bereich „Szenarien und
-      Daten“ `Version 1.0.0-rc.1 (Build …)`, und der Build ist der Stand von `main`.
+      Daten“ `Version 1.0.0-rc.2 (Build …)`, und der Build ist der Stand von `main`.
 - [ ] Die Datei `docs/acceptance/q1-messszenario.json` (10 Kandidaten, das Messszenario
       von Q1) liegt auf beiden Handys, zum Beispiel per Cloud-Ordner oder AirDrop.
       Für Abschnitt 5 dazu `docs/acceptance/eauto-export-2026-11-16-v2_3.json`.

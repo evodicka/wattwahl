@@ -89,7 +89,7 @@ To make a release:
 2. Merge it. Wait until the pipeline has published, then open the live site and
    check the version at the bottom of "Szenarien und Daten" and that the build
    id is the commit of `main`.
-3. Tag that commit: `git tag v1.0.0-rc.1 <commit> && git push origin v1.0.0-rc.1`.
+3. Tag that commit: `git tag v1.0.0-rc.2 <commit> && git push origin v1.0.0-rc.2`.
 
 Browsers that have the app installed get the update notice ("Aktualisieren")
 once the new service worker is on the server (architecture 6.4, 8.12).
