@@ -13,6 +13,7 @@ Geräte: ein iPhone mit Safari und ein Android-Mittelklasse-Handy mit Chrome.
       Daten“ `Version 1.0.0-rc.1 (Build …)`, und der Build ist der Stand von `main`.
 - [ ] Die Datei `docs/acceptance/q1-messszenario.json` (10 Kandidaten, das Messszenario
       von Q1) liegt auf beiden Handys, zum Beispiel per Cloud-Ordner oder AirDrop.
+      Für Abschnitt 5 dazu `docs/acceptance/eauto-export-2026-11-16-v2_3.json`.
 
 ## 1. iPhone mit Safari (Q9, Q8)
 
@@ -68,22 +69,26 @@ Diese Punkte gelten für die Folgeversion nach dem Release-Kandidaten, auf dem
 Handy mit dem Szenario aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json`
 (Datei einlesen, sie wird beim Einlesen auf Version 3 gebracht).
 
-- [ ] Unter „Parameter“ gibt es das Feld **Kilometerreserve** (Standard 0 km, mit
-      „Annahme“). Eine Eingabe über 100 km zeigt eine Warnung und blockiert nicht.
-- [ ] Kilometerreserve auf **10 km** setzen: Für den Opel Corsa 2023 fällt „E-Auto
-      pro Jahr“ gegenüber 0 km, und die Heatmap zeigt im Januar Weg A **rot** mit
-      Symbol ⊘ und dem Text „unter der Kilometerreserve“, die Zahl bleibt positiv.
-- [ ] Kilometerreserve auf **200 km** setzen: Die Angebote sind „ungeeignet“, der
-      Grund nennt die Kilometerreserve und wie viel fehlt.
 - [ ] Im Ergebnis steht neben „Verbrenner am Ende“ die Spalte **„E-Auto am Ende“**
       (Handy: eigene Zeile auf der Karte), ungeeignete Angebote zeigen keinen Wert.
-      Für den MG4 (neu) etwa 152.442 km.
-- [ ] In der Detailansicht unter der Heatmap steht ein **Zeitregler**. Er steht
-      auf „Ende“, lässt sich mit dem Finger ziehen, und die Heatmap zeigt die
-      Reserven des gewählten Zeitpunkts. Die Textliste „Zeitgrenzen der Eignung“
-      nennt zum Beispiel „…, Januar: geeignet bis Monat 30“.
+      Für den MG4 (neu) etwa 152.442 km, für den Opel Corsa 2023 etwa 171.442 km.
+- [ ] Unter „Parameter“ gibt es das Feld **Kilometerreserve** (Standard 0 km, mit
+      „Annahme“). Eine Eingabe über 100 km zeigt eine Warnung und blockiert nicht.
+- [ ] In der Detailansicht des Opel Corsa 2023 steht unter der Heatmap ein
+      **Zeitregler**. Er steht auf „Ende“, lässt sich mit dem Finger ziehen, und die
+      Heatmap zeigt die Reserven des gewählten Zeitpunkts. Bei 0 km steht unter
+      „Zeitgrenzen der Eignung“, dass alle Wege bis zum Ende geeignet sind.
+- [ ] Kilometerreserve auf **10 km** setzen: „E-Auto pro Jahr“ des Opel Corsa 2023
+      fällt (etwa 15.100 statt 19.100 km), in der Heatmap ist Weg A im Januar **rot**
+      mit Symbol ⊘ und dem Text „unter der Kilometerreserve“, die Zahl bleibt
+      positiv. Die Textliste nennt „…, Januar: geeignet bis Monat 38“ (ein Plan mit
+      den dann geplanten Kilometern, nicht die 30 Monate aus Testfall 21, der die
+      Kilometer festhält). Der Zeitregler auf „Start“ zeigt den Januar grün.
 - [ ] Der Hinweis „Der Verlauf gilt bei diesem Plan“ ist lesbar, nichts wird
       abgeschnitten, die Seite scrollt nicht seitwärts.
+- [ ] Kilometerreserve auf **200 km** setzen: Die Angebote sind „ungeeignet“, der
+      Grund nennt die Kilometerreserve und wie viel fehlt. Danach **wieder auf
+      0 km** setzen.
 
 ## Ergebnis
 

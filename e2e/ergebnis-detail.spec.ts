@@ -209,6 +209,37 @@ test.describe('S20: accessibility (Q10)', () => {
   }
 });
 
+test.describe('C2b: accessibility with a Kilometerreserve (Q10)', () => {
+  // The same detail view, but with cells under the Kilometerreserve and a list
+  // of time limits on it, so the check sees the new marks and not an empty list.
+  for (const colorScheme of ['light', 'dark'] as const) {
+    for (const width of [1280, 390]) {
+      test(`no axe violations in the detail view at ${width} px, ${colorScheme}`, async ({
+        page,
+      }) => {
+        await seedScenario(page);
+        await open(page, '/parameter');
+        const field = page.locator('[id="f-parameters.minReserveKm"]');
+        await field.fill('50');
+        await field.blur();
+        await page.emulateMedia({ colorScheme });
+        await page.setViewportSize({ width, height: 900 });
+        await openDetail(page);
+        const heatmap = page.getByRole('region', { name: /^Heatmap/ });
+        await expect(heatmap.getByText('⊘').first()).toBeVisible();
+        const limits = page
+          .getByRole('heading', { name: 'Zeitgrenzen der Eignung' })
+          .locator('xpath=..');
+        await expect(limits.getByRole('listitem').first()).toBeVisible();
+        const result = await new AxeBuilder({ page }).analyze();
+        expect(
+          result.violations.map((v) => `kilometerreserve: ${v.id} ${v.help}`),
+        ).toEqual([]);
+      });
+    }
+  }
+});
+
 // Screenshots for the comparison with D5, D6, M8 and M9 (chromium only,
 // screenshots/s20/, ignored by git).
 test.describe('S20: screenshots', () => {
