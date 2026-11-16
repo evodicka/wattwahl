@@ -99,6 +99,7 @@ export function requestCompute(): AppThunk<Promise<void>> {
     const generation = state.result.generation + 1;
     dispatch(computeRequested(generation));
     let response: Awaited<ReturnType<typeof core.compute>>;
+    const started = performance.now();
     try {
       response = await core.compute({
         generation,
@@ -110,7 +111,13 @@ export function requestCompute(): AppThunk<Promise<void>> {
       return;
     }
     if (response.status === 'done') {
-      dispatch(computeSucceeded({ response, computedAt: now().toISOString() }));
+      dispatch(
+        computeSucceeded({
+          response,
+          computedAt: now().toISOString(),
+          computeMs: performance.now() - started,
+        }),
+      );
     }
   };
 }

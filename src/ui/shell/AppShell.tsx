@@ -7,6 +7,7 @@ import { isAreaHandle } from './areas';
 import styles from './AppShell.module.css';
 import { FrameNotices } from './FrameNotices';
 import { Nav } from './Nav';
+import { ResultProbe } from './ResultProbe';
 import { useTrafficLightColors } from './useTrafficLightColors';
 
 /**
@@ -87,6 +88,7 @@ export function AppShell() {
       <div className="app-bottom">
         <Nav variant="bottom" />
       </div>
+      <ResultProbe />
     </div>
   );
 }

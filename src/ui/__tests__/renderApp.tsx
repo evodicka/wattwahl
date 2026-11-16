@@ -119,6 +119,7 @@ export function testWorker() {
         generation: call.request.generation,
         scenarioId: call.request.scenario.id,
         results,
+        hash: 'fake-hash',
       });
     },
     /** Fails the latest compute call, e.g. a bad scenario in the core. */

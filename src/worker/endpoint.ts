@@ -1,4 +1,4 @@
-import { ComputeCache, Trace, computeOffer } from '../core';
+import { ComputeCache, Trace, computeOffer, hashResult } from '../core';
 import {
   listOffers,
   parseOfferId,
@@ -37,6 +37,8 @@ export type ComputeResponse =
       generation: number;
       scenarioId: string;
       results: OfferResults;
+      /** `hashResult` of `results`: the bitwise check of Q5 across engines. */
+      hash: string;
     }
   /** A newer request arrived; this run stopped between two offers. */
   | { status: 'superseded'; generation: number };
@@ -109,7 +111,13 @@ export function createCoreEndpoint(
         results[offer.offerId] = byCase;
       }
     }
-    return { status: 'done', generation, scenarioId: scenario.id, results };
+    return {
+      status: 'done',
+      generation,
+      scenarioId: scenario.id,
+      results,
+      hash: hashResult(results),
+    };
   }
 
   async function explain(request: ExplainRequest): Promise<ExplainResponse> {

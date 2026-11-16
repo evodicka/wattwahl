@@ -130,3 +130,49 @@ export async function waitSaved(page: Page) {
     )
     .toBeGreaterThan(0);
 }
+
+/**
+ * Acceptance criterion "no cut-off input fields": every visible field lies
+ * inside the viewport, or sits in a scroll container (a table, the heatmap)
+ * that itself lies inside it, and the page does not scroll sideways. Returns
+ * a description per offender, so a failure names the field.
+ */
+export async function cutOffFields(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    const problems: string[] = [];
+    const overflow = document.documentElement.scrollWidth - width;
+    if (overflow > 0) problems.push(`page scrolls sideways by ${overflow} px`);
+    const scroller = (element: Element): Element | null => {
+      for (let node = element.parentElement; node; node = node.parentElement) {
+        const { overflowX } = getComputedStyle(node);
+        if (
+          (overflowX === 'auto' || overflowX === 'scroll') &&
+          node.scrollWidth > node.clientWidth
+        ) {
+          return node;
+        }
+      }
+      return null;
+    };
+    const inside = (rect: DOMRect) =>
+      rect.left >= -0.5 && rect.right <= width + 0.5;
+    for (const field of document.querySelectorAll(
+      'input:not([type="hidden"]), select, textarea',
+    )) {
+      const rect = field.getBoundingClientRect();
+      // Visually hidden controls (the real input behind a styled switch).
+      if (rect.width <= 1 || rect.height <= 1) continue;
+      if (getComputedStyle(field).visibility === 'hidden') continue;
+      if (inside(rect)) continue;
+      const parent = scroller(field);
+      if (parent && inside(parent.getBoundingClientRect())) continue;
+      const label =
+        field.id || field.getAttribute('name') || field.tagName.toLowerCase();
+      problems.push(
+        `${label} at ${Math.round(rect.left)}..${Math.round(rect.right)} of ${width} px`,
+      );
+    }
+    return problems;
+  });
+}

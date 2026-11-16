@@ -56,6 +56,19 @@ describe('S14: worker endpoint', () => {
     expect(response.scenarioId).toBe(scenario.id);
     expect(Object.keys(response.results)).toHaveLength(50);
     expect(hashResult(response.results)).toBe(hashResult(direct(scenario)));
+    // The answer carries the hash itself, so the app can show it (Q5 in S24).
+    expect(response.hash).toBe(hashResult(direct(scenario)));
+  });
+
+  it('Q5: the same request gives the same hash twice', async () => {
+    const scenario = q1Scenario();
+    const api = createCoreEndpoint();
+    const first = await api.compute({ generation: 1, scenario });
+    const second = await api.compute({ generation: 2, scenario });
+    if (first.status !== 'done' || second.status !== 'done') {
+      throw new Error('expected two finished runs');
+    }
+    expect(first.hash).toBe(second.hash);
   });
 
   it('computes the price case "slider" only while the slider is active', async () => {
