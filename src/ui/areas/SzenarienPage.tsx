@@ -7,6 +7,7 @@ import {
   useAppSelector,
 } from '../../state';
 import { AreaHead } from './AreaHead';
+import { AppVersion } from './szenarien/AppVersion';
 import { ExportImport } from './szenarien/ExportImport';
 import { ExportReminder } from '../shell/ExportReminder';
 import { ScenarioComparison } from './szenarien/ScenarioComparison';
@@ -49,6 +50,7 @@ export function SzenarienPage() {
         <ScenarioComparison ids={compared} />
       </section>
       <ExportImport />
+      <AppVersion />
     </>
   );
 }

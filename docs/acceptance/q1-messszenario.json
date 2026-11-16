@@ -1,0 +1,867 @@
+{
+  "format": "eauto-export",
+  "schemaVersion": 2,
+  "exportedAt": "2026-11-16T12:00:00.000Z",
+  "scenarios": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "Q1 measurement scenario",
+      "iceVehicle": {
+        "name": "Example petrol car",
+        "consumptionLPer100Km": {
+          "city": 8,
+          "rural": 6,
+          "highway": 7
+        },
+        "mileageKm": 120000,
+        "maintenancePerKm": 0.04,
+        "petrolPrice": {
+          "min": 1.7,
+          "mid": 1.9,
+          "max": 2.1
+        },
+        "petrolEscalationPct": 0
+      },
+      "workplaces": {
+        "a": {
+          "name": "Workplace A",
+          "commute": {
+            "city": 10,
+            "rural": 15,
+            "highway": 35
+          },
+          "weekdays": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+          ],
+          "freeDaysPerYear": 30,
+          "chargesFreeAtWork": false
+        },
+        "b": {
+          "name": "Workplace B",
+          "commute": {
+            "city": 5,
+            "rural": 20,
+            "highway": 25
+          },
+          "weekdays": [
+            "tue",
+            "thu"
+          ],
+          "freeDaysPerYear": 10,
+          "chargesFreeAtWork": false
+        }
+      },
+      "extraMileage": {
+        "kmPerMonth": {
+          "city": 50,
+          "rural": 100,
+          "highway": 150
+        }
+      },
+      "parameters": {
+        "comparisonMonths": 48,
+        "chargeLowerPct": 10,
+        "chargeUpperPct": 80,
+        "safetyBufferPct": 10,
+        "sohMinPct": 85,
+        "kmToSohMin": 200000,
+        "sohReference": "end",
+        "chargingEfficiencyPct": 90,
+        "tempColdC": -10,
+        "tempMildC": 23,
+        "monthlyTempC": [
+          1,
+          2,
+          5,
+          9,
+          14,
+          17,
+          19,
+          19,
+          15,
+          10,
+          5,
+          2
+        ],
+        "coldReserveK": 0,
+        "highwayDiscountPct": 0,
+        "trafficLightGreenFromPct": 15,
+        "depreciationPctPerYear": 15,
+        "evMaintenancePerKm": 0.02,
+        "electricityPrice": {
+          "min": 0.25,
+          "mid": 0.3,
+          "max": 0.35
+        },
+        "electricityEscalationPct": 0,
+        "workWeeksPerYear": 52,
+        "extraMileageMode": "optimized",
+        "extraMileageFixedEvSharePct": null,
+        "extraMileageStepPct": 10,
+        "strictMode": false,
+        "warrantyBudgetAsTarget": true,
+        "kmGridPerYear": 250,
+        "warrantyReferenceMonth": {
+          "month": 3,
+          "year": 2026
+        },
+        "warrantyReferenceMonthSetByUser": false
+      },
+      "candidates": [
+        {
+          "id": "00000000-0000-4000-8000-000000001000",
+          "name": "Candidate 1",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 32000,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 58,
+          "rangeKm": {
+            "city": {
+              "mild": 418,
+              "cold": 301
+            },
+            "highway": {
+              "mild": 267,
+              "cold": 195
+            },
+            "combined": {
+              "mild": 336,
+              "cold": 242
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 3,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002000",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 280,
+              "termMonths": 36,
+              "downPayment": 1500,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002001",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 305,
+              "termMonths": 36,
+              "downPayment": 1500,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002002",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 330,
+              "termMonths": 36,
+              "downPayment": 1500,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002003",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 355,
+              "termMonths": 36,
+              "downPayment": 1500,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001001",
+          "name": "Candidate 2",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 35500,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 63,
+          "rangeKm": {
+            "city": {
+              "mild": 454,
+              "cold": 327
+            },
+            "highway": {
+              "mild": 290,
+              "cold": 212
+            },
+            "combined": {
+              "mild": 365,
+              "cold": 263
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 4,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002010",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 292,
+              "termMonths": 36,
+              "downPayment": 1600,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002011",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 317,
+              "termMonths": 36,
+              "downPayment": 1600,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002012",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 342,
+              "termMonths": 36,
+              "downPayment": 1600,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002013",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 367,
+              "termMonths": 36,
+              "downPayment": 1600,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001002",
+          "name": "Candidate 3",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 39000,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 68,
+          "rangeKm": {
+            "city": {
+              "mild": 490,
+              "cold": 353
+            },
+            "highway": {
+              "mild": 313,
+              "cold": 228
+            },
+            "combined": {
+              "mild": 394,
+              "cold": 284
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 5,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002020",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 304,
+              "termMonths": 36,
+              "downPayment": 1700,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002021",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 329,
+              "termMonths": 36,
+              "downPayment": 1700,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002022",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 354,
+              "termMonths": 36,
+              "downPayment": 1700,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002023",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 379,
+              "termMonths": 36,
+              "downPayment": 1700,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001003",
+          "name": "Candidate 4",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 42500,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 73,
+          "rangeKm": {
+            "city": {
+              "mild": 526,
+              "cold": 378
+            },
+            "highway": {
+              "mild": 336,
+              "cold": 245
+            },
+            "combined": {
+              "mild": 423,
+              "cold": 305
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 3,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002030",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 316,
+              "termMonths": 36,
+              "downPayment": 1800,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002031",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 341,
+              "termMonths": 36,
+              "downPayment": 1800,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002032",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 366,
+              "termMonths": 36,
+              "downPayment": 1800,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002033",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 391,
+              "termMonths": 36,
+              "downPayment": 1800,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001004",
+          "name": "Candidate 5",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 46000,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 78,
+          "rangeKm": {
+            "city": {
+              "mild": 562,
+              "cold": 404
+            },
+            "highway": {
+              "mild": 359,
+              "cold": 262
+            },
+            "combined": {
+              "mild": 452,
+              "cold": 326
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 4,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002040",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 328,
+              "termMonths": 36,
+              "downPayment": 1900,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002041",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 353,
+              "termMonths": 36,
+              "downPayment": 1900,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002042",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 378,
+              "termMonths": 36,
+              "downPayment": 1900,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002043",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 403,
+              "termMonths": 36,
+              "downPayment": 1900,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001005",
+          "name": "Candidate 6",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 49500,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 83,
+          "rangeKm": {
+            "city": {
+              "mild": 598,
+              "cold": 430
+            },
+            "highway": {
+              "mild": 382,
+              "cold": 279
+            },
+            "combined": {
+              "mild": 481,
+              "cold": 347
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 5,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002050",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 340,
+              "termMonths": 36,
+              "downPayment": 2000,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002051",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 365,
+              "termMonths": 36,
+              "downPayment": 2000,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002052",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 390,
+              "termMonths": 36,
+              "downPayment": 2000,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002053",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 415,
+              "termMonths": 36,
+              "downPayment": 2000,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001006",
+          "name": "Candidate 7",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 53000,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 88,
+          "rangeKm": {
+            "city": {
+              "mild": 634,
+              "cold": 456
+            },
+            "highway": {
+              "mild": 405,
+              "cold": 296
+            },
+            "combined": {
+              "mild": 510,
+              "cold": 367
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 3,
+            "km": 100000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002060",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 352,
+              "termMonths": 36,
+              "downPayment": 2100,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002061",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 377,
+              "termMonths": 36,
+              "downPayment": 2100,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002062",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 402,
+              "termMonths": 36,
+              "downPayment": 2100,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002063",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 427,
+              "termMonths": 36,
+              "downPayment": 2100,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001007",
+          "name": "Candidate 8",
+          "note": "",
+          "condition": "used",
+          "purchasePrice": 56500,
+          "firstRegistration": {
+            "month": 3,
+            "year": 2023
+          },
+          "mileageKm": 15000,
+          "netCapacityKwh": 93,
+          "rangeKm": {
+            "city": {
+              "mild": 670,
+              "cold": 482
+            },
+            "highway": {
+              "mild": 428,
+              "cold": 312
+            },
+            "combined": {
+              "mild": 539,
+              "cold": 388
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 5,
+            "km": 55000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 115000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002070",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 364,
+              "termMonths": 36,
+              "downPayment": 2200,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002071",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 389,
+              "termMonths": 36,
+              "downPayment": 2200,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002072",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 414,
+              "termMonths": 36,
+              "downPayment": 2200,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002073",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 439,
+              "termMonths": 36,
+              "downPayment": 2200,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001008",
+          "name": "Candidate 9",
+          "note": "",
+          "condition": "used",
+          "purchasePrice": 60000,
+          "firstRegistration": {
+            "month": 3,
+            "year": 2023
+          },
+          "mileageKm": 30000,
+          "netCapacityKwh": 98,
+          "rangeKm": {
+            "city": {
+              "mild": 706,
+              "cold": 508
+            },
+            "highway": {
+              "mild": 451,
+              "cold": 329
+            },
+            "combined": {
+              "mild": 568,
+              "cold": 409
+            }
+          },
+          "sohKnownPct": 93,
+          "vehicleWarranty": {
+            "years": 4,
+            "km": 70000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 130000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002080",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 376,
+              "termMonths": 36,
+              "downPayment": 2300,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002081",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 401,
+              "termMonths": 36,
+              "downPayment": 2300,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002082",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 426,
+              "termMonths": 36,
+              "downPayment": 2300,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002083",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 451,
+              "termMonths": 36,
+              "downPayment": 2300,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000001009",
+          "name": "Candidate 10",
+          "note": "",
+          "condition": "used",
+          "purchasePrice": 63500,
+          "firstRegistration": {
+            "month": 3,
+            "year": 2023
+          },
+          "mileageKm": 45000,
+          "netCapacityKwh": 103,
+          "rangeKm": {
+            "city": {
+              "mild": 742,
+              "cold": 534
+            },
+            "highway": {
+              "mild": 474,
+              "cold": 346
+            },
+            "combined": {
+              "mild": 597,
+              "cold": 430
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 5,
+            "km": 85000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 145000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": null,
+          "leaseTiers": [
+            {
+              "id": "00000000-0000-4000-8000-000000002090",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 388,
+              "termMonths": 36,
+              "downPayment": 2400,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002091",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 413,
+              "termMonths": 36,
+              "downPayment": 2400,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002092",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 438,
+              "termMonths": 36,
+              "downPayment": 2400,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000002093",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 463,
+              "termMonths": 36,
+              "downPayment": 2400,
+              "extraKmPrice": 0.08,
+              "underKmRefund": 0.04
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

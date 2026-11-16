@@ -4,15 +4,19 @@ Wattwahl is a decision aid for choosing an electric car. For each candidate (pur
 
 It is a client-only progressive web app. There is no server, all data stays in the browser, and the only way data leaves the device is the export file.
 
-Live: <https://wattwahl.evodicka.dev/>
+Live: <https://wattwahl.evodicka.dev/> (release candidate `1.0.0-rc.1`; the version and build are shown at the bottom of the area "Szenarien und Daten")
 
 ## Getting started
 
-Requires Node.js 26 (see `.nvmrc`).
+Requires Node.js 26 (see `.nvmrc`; `engine-strict` is on). From a fresh clone:
 
 ```sh
 npm ci
-npm run dev
+npx playwright install   # once, for npm run test:e2e
+npm run lint && npm run typecheck && npm test
+npm run build
+npm run test:e2e         # builds are served by `npm run preview`, run the build first
+npm run dev              # development server
 ```
 
 | Script                  | Purpose                                        |
@@ -27,6 +31,8 @@ npm run dev
 | `npm run format:check`  | Prettier check (`npm run format` fixes)        |
 | `npm run bench`         | Micro-benchmark of `detPow` and Q1 in Node     |
 | `npm run bench:browser` | Q1 in Chromium, Firefox, WebKit (not in CI)    |
+
+The end-to-end tests assert the Q1 time limits (2 s on the desktop) only with `Q1_STRICT=1 npm run test:e2e`, because a CI runner is several times slower than a developer machine. Without it they log the time and check that the result arrives.
 
 The project `.npmrc` pins the public npm registry and exact dependency versions. Do not commit a lockfile that references a private registry.
 
@@ -45,6 +51,8 @@ The documents are written in German and are binding. If code and documents disag
 - [Specification](docs/specification.md): functional rules, formulas and test cases
 - [Architecture](docs/architecture.md): arc42 documentation, module structure, decisions
 - [Implementation plan](docs/implementation_plan.md): steps, order and validation
+- [Developer guide](docs/development.md) (English): architecture overview, tests, releases, adding a schema version
+- [Acceptance checklist](docs/acceptance-checklist.md) (German): the manual acceptance on a phone
 
 ## Project layout
 

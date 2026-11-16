@@ -747,6 +747,8 @@
     "title": "Szenarien und Daten",
     "intro": "Szenarien speichern, vergleichen, exportieren und wieder einlesen. Alles bleibt auf diesem Gerät.",
     "new": "Neues Szenario",
+    "version": "Version {{version}}",
+    "versionBuild": "Version {{version}} (Build {{build}})",
     "list": {
       "title": "Szenarien",
       "compareCheckbox": "{{name}} im Vergleich",
