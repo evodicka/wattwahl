@@ -56,11 +56,34 @@ Geräte: ein iPhone mit Safari und ein Android-Mittelklasse-Handy mit Chrome.
 ## 4. Export und Import zwischen den Geräten
 
 - [ ] Auf dem Handy „Alle Szenarien exportieren“. Die Datei heißt
-      `eauto-export-JJJJ-MM-TT-v2.json`.
+      `eauto-export-JJJJ-MM-TT-v3.json`.
 - [ ] Die Datei auf den Desktop bringen und dort unter „Szenarien und Daten“
       einlesen (Modus „Hinzufügen“).
 - [ ] Die Ergebnisse im Bereich „Ergebnis“ sind auf beiden Geräten gleich (Kosten
       des günstigsten Angebots, Preisfall „Mittel“): Handy ________ · Desktop ________
+
+## 5. Kilometerreserve, Zeitverlauf und Kilometerstand (Folgeversion C2b)
+
+Diese Punkte gelten für die Folgeversion nach dem Release-Kandidaten, auf dem
+Handy mit dem Szenario aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json`
+(Datei einlesen, sie wird beim Einlesen auf Version 3 gebracht).
+
+- [ ] Unter „Parameter“ gibt es das Feld **Kilometerreserve** (Standard 0 km, mit
+      „Annahme“). Eine Eingabe über 100 km zeigt eine Warnung und blockiert nicht.
+- [ ] Kilometerreserve auf **10 km** setzen: Für den Opel Corsa 2023 fällt „E-Auto
+      pro Jahr“ gegenüber 0 km, und die Heatmap zeigt im Januar Weg A **rot** mit
+      Symbol ⊘ und dem Text „unter der Kilometerreserve“, die Zahl bleibt positiv.
+- [ ] Kilometerreserve auf **200 km** setzen: Die Angebote sind „ungeeignet“, der
+      Grund nennt die Kilometerreserve und wie viel fehlt.
+- [ ] Im Ergebnis steht neben „Verbrenner am Ende“ die Spalte **„E-Auto am Ende“**
+      (Handy: eigene Zeile auf der Karte), ungeeignete Angebote zeigen keinen Wert.
+      Für den MG4 (neu) etwa 152.442 km.
+- [ ] In der Detailansicht unter der Heatmap steht ein **Zeitregler**. Er steht
+      auf „Ende“, lässt sich mit dem Finger ziehen, und die Heatmap zeigt die
+      Reserven des gewählten Zeitpunkts. Die Textliste „Zeitgrenzen der Eignung“
+      nennt zum Beispiel „…, Januar: geeignet bis Monat 30“.
+- [ ] Der Hinweis „Der Verlauf gilt bei diesem Plan“ ist lesbar, nichts wird
+      abgeschnitten, die Seite scrollt nicht seitwärts.
 
 ## Ergebnis
 
@@ -73,6 +96,7 @@ Geräte: ein iPhone mit Safari und ein Android-Mittelklasse-Handy mit Chrome.
 | Q1 höchstens 5 s | Android | ☐ | |
 | Zwei Kandidaten ohne Hilfe | Handy | ☐ | |
 | Export und Import, gleiche Ergebnisse | Handy → Desktop | ☐ | |
+| Kilometerreserve, Zeitregler, „E-Auto am Ende“ (Abschnitt 5) | Handy | ☐ | |
 
 **Fehler:** Was nicht besteht, wird als neuer Schritt nach dem Schema des
 Implementierungsplans geplant. Reicht die Zeit bei Q1 nicht, ist der erste Hebel
@@ -88,5 +112,5 @@ zur Entscheidung:
   von drei Engines nachgewiesen (Chromium, WebKit).
 - **Ein zweiter offener Tab läuft nach einem Update mit altem Code weiter**
   (Architektur 11.3). Daten sind sicher, Neuladen behebt es.
-- **Die Reserve im Start-Bundle ist klein:** 245,3 von 250 KB gzip (Architektur 11).
-- **Q1 in Firefox am Desktop liegt bei 1,8 s von 2 s.**
+- **Die Reserve im Start-Bundle ist klein:** 247,1 von 250 KB gzip (Architektur 11), seit C2b (vorher 245,3).
+- **Q1 in Firefox am Desktop liegt bei 1,9 s von 2 s** (seit C2b, vorher 1,8 s).

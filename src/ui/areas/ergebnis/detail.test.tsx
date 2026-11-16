@@ -265,9 +265,9 @@ describe('S20: reserve heatmap', () => {
       await screen.findByRole('region', {
         name: /^Heatmap der Reichweitenreserve/,
       });
-      const section = screen
-        .getByRole('heading', { name: 'Zeitgrenzen der Eignung' })
-        .closest('section') as HTMLElement;
+      const section = screen.getByRole('heading', {
+        name: 'Zeitgrenzen der Eignung',
+      }).parentElement as HTMLElement;
       const items = within(section).getAllByRole('listitem');
       expect(items).toHaveLength(5);
       for (const item of items) {

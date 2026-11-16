@@ -49,7 +49,7 @@ Rules worth knowing before the first change:
 | End to end | Playwright, Chromium + Firefox + WebKit | `e2e/` | `npm run test:e2e` |
 | Benchmarks | Vitest bench, Playwright (not in CI) | `tests/bench`, `bench/` | `npm run bench`, `npm run bench:browser` |
 
-Every test case (TC1 to TC19 of the specification), quality scenario (Q1 to
+Every test case (TC1 to TC22 of the specification), quality scenario (Q1 to
 Q11) and formula carries its id in the test title, so coverage can be checked
 with a search: `grep -rn "TC12" src tests e2e`. Keep that when adding tests.
 
