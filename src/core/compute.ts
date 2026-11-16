@@ -12,6 +12,7 @@ import {
   type Scenario,
   type ScenarioCompute,
   type SliderPrices,
+  type Timeline,
 } from '../domain';
 import {
   effectiveDepreciationPct,
@@ -31,13 +32,18 @@ import {
   type PriceSelection,
   type ResolvedPrices,
 } from './calc/prices';
-import { sohAt, sohCurve, sohKEnd } from './calc/soh';
+import { monthsUntilSoh, sohAt, sohCurve, sohKEnd } from './calc/soh';
 import {
   optimizeOffer,
   type OfferTerms,
   type OptimizerOutcome,
 } from './optimizer/optimize';
-import { WAYS, buildProblem, type Problem } from './optimizer/problem';
+import {
+  WAYS,
+  buildProblem,
+  pairIndex,
+  type Problem,
+} from './optimizer/problem';
 import type { Trace } from './trace';
 
 type ScenarioCheck = ReturnType<typeof ScenarioComputeSchema.safeParse>;
@@ -274,6 +280,83 @@ function findTier(
   return tier;
 }
 
+/**
+ * Suitability over time (spec "Eignung im Zeitverlauf"), display only. The
+ * plan is the one already chosen, so the odometer grows with its K_EV. Per
+ * point in time one OPT.timeline step carries month, odometer and SoH; the 24
+ * reserves of that point have no steps of their own (architecture 8.4, Q6).
+ * `suitableForMonths` comes straight from the SoH threshold of each cell.
+ */
+function buildTimeline(input: {
+  problem: Problem;
+  curve: ReturnType<typeof sohCurve>;
+  mileageKm: number;
+  evKmPerYear: number;
+  comparisonMonths: number;
+  trace: Trace | undefined;
+}): Timeline {
+  const { problem, curve, mileageKm, evKmPerYear, comparisonMonths, trace } =
+    input;
+  const times: number[] = [];
+  for (let month = 0; month < comparisonMonths; month += 12) times.push(month);
+  times.push(comparisonMonths);
+
+  const points = times.map((month, index) => {
+    const odometerKm = sohKEnd(mileageKm, evKmPerYear, month);
+    const soh = sohAt(curve, odometerKm);
+    trace?.add({
+      formula: 'OPT.timeline',
+      inputs: { month, odometerKm },
+      value: soh,
+      resultPath: `timeline.points[${index}].soh`,
+    });
+    const cells: ReserveCell[] = [];
+    for (const way of WAYS) {
+      for (let cellMonth = 0; cellMonth < 12; cellMonth++) {
+        const check = problem.checkWayAt(way, cellMonth, soh);
+        cells.push({
+          way,
+          month: cellMonth,
+          reserveKm: check.reserveKm,
+          reservePct: check.reservePct,
+          light: check.light,
+          belowMinReserve: check.belowMinReserve,
+        });
+      }
+    }
+    return { month, odometerKm, soh, cells };
+  });
+
+  const suitableForMonths: (number | null)[] = [];
+  for (const way of WAYS) {
+    for (let cellMonth = 0; cellMonth < 12; cellMonth++) {
+      const threshold = problem.thresholds[pairIndex(way, cellMonth)] as number;
+      const exact = monthsUntilSoh(curve, mileageKm, evKmPerYear, threshold);
+      // Rounded down to whole months: the one place a result is rounded in the
+      // core (spec: suitableForMonths counts whole months by definition).
+      const whole = exact >= comparisonMonths ? null : Math.floor(exact);
+      trace?.add({
+        formula: 'OPT.suitableUntil',
+        inputs: {
+          way,
+          month: cellMonth,
+          threshold,
+          exactMonths: Number.isFinite(exact) ? exact : 'never',
+          comparisonMonths,
+        },
+        value: whole ?? 'end',
+        ...(whole === null
+          ? {}
+          : {
+              resultPath: `timeline.suitableForMonths[${suitableForMonths.length}]`,
+            }),
+      });
+      suitableForMonths.push(whole);
+    }
+  }
+  return { points, suitableForMonths };
+}
+
 type OkInput = {
   compute: ScenarioCompute;
   candidate: CandidateCompute;
@@ -487,6 +570,15 @@ function okResult(
     };
   }
 
+  const timeline = buildTimeline({
+    problem,
+    curve,
+    mileageKm: candidate.mileageKm,
+    evKmPerYear,
+    comparisonMonths: months,
+    trace,
+  });
+
   // The plan, and the share of the extra mileage the EV takes per month.
   const plan: OkOfferResult['plan'] = [];
   const extraSharePct: (number | null)[] = Array.from(
@@ -565,6 +657,7 @@ function okResult(
     },
     reserves,
     minReserve,
+    timeline,
     warranty: {
       noWarranty: budget.noWarranty,
       remaining,

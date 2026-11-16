@@ -1,7 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { expectSpec } from '../../tests/helpers/specTolerance';
-import { listOffers, upgradeScenario, type Scenario } from '../domain';
+import {
+  CandidateComputeSchema,
+  ScenarioComputeSchema,
+  listOffers,
+  upgradeScenario,
+  type Scenario,
+} from '../domain';
+import { resolvePrices } from './calc/prices';
+import { monthsUntilSoh, sohCurve } from './calc/soh';
+import { buildProblem, pairIndex } from './optimizer/problem';
 import { Trace, computeOffer } from './index';
 
 // Change C2b (docs/change-kilometerreserve.md): the test cases 20 to 22 of the
@@ -40,6 +49,12 @@ describe('C2b: the export of the published app', () => {
   beforeAll(() => {
     scenario = loadExport();
   });
+
+  const okOfOffer = (sc: Scenario, name: string) => {
+    const result = computeOffer(sc, purchaseOf(sc, name), 'mid');
+    if (result.status !== 'ok') throw new Error(`${name}: ${result.status}`);
+    return result;
+  };
 
   it('is migrated to R = 0 and compares over 96 months', () => {
     expect(scenario.parameters.minReserveKm).toBe(0);
@@ -181,6 +196,188 @@ describe('C2b: the export of the published app', () => {
       if (result.reason.kind !== 'strict') return;
       expect(result.reason.minReserveKm).toBe(40);
       expect(result.reason.reserveKm).toBeLessThan(40);
+    });
+  });
+
+  describe('test case 21: suitability over time', () => {
+    /** The problem of a candidate in the price case "Mittel", for its thresholds. */
+    function thresholdOf(
+      sc: Scenario,
+      name: string,
+      way: 'a' | 'b',
+      month: number,
+    ) {
+      const compute = ScenarioComputeSchema.parse(sc);
+      const candidate = CandidateComputeSchema.parse(
+        sc.candidates.find((c) => c.name === name),
+      );
+      const problem = buildProblem(
+        compute,
+        candidate,
+        resolvePrices(compute.iceVehicle, compute.parameters, {
+          priceCase: 'mid',
+        }),
+      );
+      return {
+        threshold: problem.thresholds[pairIndex(way, month)] as number,
+        curve: sohCurve(compute.parameters, candidate),
+        mileageKm: candidate.mileageKm,
+      };
+    }
+    const withR = (minReserveKm: number): Scenario => ({
+      ...scenario,
+      parameters: { ...scenario.parameters, minReserveKm },
+    });
+    // K_EV of the plan without a Kilometerreserve, held fixed as the test case says.
+    const kEv = () => {
+      const result = computeOffer(
+        scenario,
+        purchaseOf(scenario, 'Opel Corsa 2023'),
+        'mid',
+      );
+      if (result.status !== 'ok') throw new Error(result.status);
+      return result.evKmPerYear;
+    };
+
+    it('R = 0: the threshold 0,829 is below the lowest SoH of 0,85, the cell is suitable to the end', () => {
+      const { threshold, curve, mileageKm } = thresholdOf(
+        withR(0),
+        'Opel Corsa 2023',
+        'a',
+        0,
+      );
+      expectSpec(threshold, '0,829');
+      expect(threshold).toBeLessThan(0.85);
+      expect(monthsUntilSoh(curve, mileageKm, kEv(), threshold)).toBe(Infinity);
+    });
+
+    it('R = 10: the threshold 0,914 is crossed after 30,47 months, so the cell is suitable for 30 months', () => {
+      const { threshold, curve, mileageKm } = thresholdOf(
+        withR(10),
+        'Opel Corsa 2023',
+        'a',
+        0,
+      );
+      expectSpec(threshold, '0,914');
+      const exact = monthsUntilSoh(curve, mileageKm, kEv(), threshold);
+      expectSpec(exact, '30,47');
+      expect(Math.floor(exact)).toBe(30);
+    });
+
+    it('the timeline of the offer: points every 12 months and at the end, 24 cells each', () => {
+      const result = okOfOffer(scenario, 'Opel Corsa 2023');
+      expect(result.timeline.points.map((p) => p.month)).toEqual([
+        0, 12, 24, 36, 48, 60, 72, 84, 96,
+      ]);
+      for (const point of result.timeline.points) {
+        expect(point.cells).toHaveLength(24);
+        expect(point.odometerKm).toBeCloseTo(
+          19000 + (result.evKmPerYear * point.month) / 12,
+          6,
+        );
+      }
+      expect(result.timeline.suitableForMonths).toHaveLength(24);
+    });
+
+    it('a period that is no multiple of 12 ends with its own point', () => {
+      for (const [months, expected] of [
+        [30, [0, 12, 24, 30]],
+        [12, [0, 12]],
+        [1, [0, 1]],
+        [13, [0, 12, 13]],
+      ] as const) {
+        const sc = {
+          ...scenario,
+          parameters: { ...scenario.parameters, comparisonMonths: months },
+        };
+        const result = okOfOffer(sc, 'MG4 Urban');
+        expect(result.timeline.points.map((p) => p.month)).toEqual(expected);
+      }
+    });
+
+    it('the point "Ende" is exactly sohCheck and reserves, the point "Start" the SoH at the odometer now', () => {
+      const result = okOfOffer(scenario, 'Opel Corsa 2023');
+      const last = result.timeline.points.at(-1);
+      expect(last?.soh).toBe(result.sohEnd);
+      expect(last?.soh).toBe(result.sohCheck);
+      expect(last?.odometerKm).toBe(result.evOdometerEnd);
+      expect(last?.cells).toEqual(result.reserves);
+      expect(result.timeline.points[0]?.odometerKm).toBe(19000);
+
+      const atStart = {
+        ...scenario,
+        parameters: { ...scenario.parameters, sohReference: 'start' as const },
+      };
+      const other = okOfOffer(atStart, 'Opel Corsa 2023');
+      expect(other.timeline.points[0]?.soh).toBe(other.sohCheck);
+      expect(other.timeline.points[0]?.cells).toEqual(other.reserves);
+    });
+
+    it.each([0, 5, 10, 20, 40])(
+      'R = %s: a cell is suitable at a point exactly while the point is within its suitableForMonths',
+      (minReserveKm) => {
+        for (const sohReference of ['end', 'start'] as const) {
+          const sc = {
+            ...scenario,
+            parameters: { ...scenario.parameters, minReserveKm, sohReference },
+          };
+          for (const candidate of sc.candidates) {
+            const result = computeOffer(
+              sc,
+              purchaseOf(sc, candidate.name),
+              'mid',
+            );
+            if (result.status !== 'ok') continue;
+            for (const point of result.timeline.points) {
+              point.cells.forEach((cell, index) => {
+                const months = result.timeline.suitableForMonths[index];
+                // 0 means "less than a full month", which includes "not suitable
+                // at the start": it says nothing about the colour at t = 0.
+                if (months === 0 && point.month === 0) return;
+                const within = months === null || point.month <= (months ?? 0);
+                expect(
+                  cell.light !== 'red',
+                  `${candidate.name} R${minReserveKm} ${sohReference} t=${point.month} ${cell.way}${cell.month}`,
+                ).toBe(within);
+              });
+            }
+          }
+        }
+      },
+    );
+
+    it('with the "start" reference the plan is checked at the start, so cells can tip later', () => {
+      const atStart = {
+        ...scenario,
+        parameters: {
+          ...scenario.parameters,
+          minReserveKm: 10,
+          sohReference: 'start' as const,
+        },
+      };
+      const result = okOfOffer(atStart, 'Opel Corsa 2023');
+      expect(
+        result.timeline.suitableForMonths.some((m) => m !== null && m > 0),
+      ).toBe(true);
+    });
+
+    it('does not depend on whether a trace is collected, and is the same for a lease', () => {
+      const offer = purchaseOf(scenario, 'Opel Corsa 2023');
+      const plain = computeOffer(scenario, offer, 'mid');
+      const traced = computeOffer(scenario, offer, 'mid', {
+        trace: new Trace(),
+      });
+      expect(traced).toEqual(plain);
+    });
+
+    it('a period of 1.200 months stays small: D / 12 + 1 points, at most D / 12 + 2', () => {
+      const long = {
+        ...scenario,
+        parameters: { ...scenario.parameters, comparisonMonths: 1200 },
+      };
+      const result = okOfOffer(long, 'MG4 Urban');
+      expect(result.timeline.points).toHaveLength(101);
+      expect(result.timeline.points.at(-1)?.month).toBe(1200);
     });
   });
 });

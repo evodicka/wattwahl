@@ -556,7 +556,25 @@
       "reserve": {
         "title": "Reichweitenreserve",
         "candidate": "Kandidat",
-        "subtitle": "Reserve in km und % je Weg und Monat · SoH am Ende der Vergleichsdauer {{soh}} · Ampel grün ab {{threshold}}",
+        "subtitle": "Reserve in km und % je Weg und Monat · SoH {{when}} {{soh}} · Ampel grün ab {{threshold}}",
+        "whenStart": "am Start",
+        "whenEnd": "am Ende der Vergleichsdauer",
+        "whenMonth": "nach {{months}} Monaten",
+        "time": {
+          "label": "Zeitpunkt",
+          "start": "Start",
+          "end": "Ende",
+          "month": "Monat {{months}}",
+          "valueText": "{{when}}, E-Auto-Kilometerstand {{km}}, SoH {{soh}}",
+          "hint": "Der Verlauf gilt bei diesem Plan, mit seinen E-Auto-Kilometern. Er sagt nicht, was geschieht, wenn man einen Weg, den der Plan dem Verbrenner gibt, doch mit dem E-Auto fährt."
+        },
+        "limits": {
+          "title": "Zeitgrenzen der Eignung",
+          "none": "Alle Wege sind in allen Monaten bis zum Ende der Vergleichsdauer geeignet.",
+          "until": "{{way}}, {{month}}: geeignet bis Monat {{months}}",
+          "fromStart": "{{way}}, {{month}}: nicht geeignet oder weniger als einen Monat geeignet",
+          "others": "Alle anderen Zellen bleiben bis zum Ende der Vergleichsdauer geeignet."
+        },
         "way": "Weg {{way}}",
         "wayInfo": "Weg {{way}}: {{km}}, {{charging}}",
         "chargingAtWork": "Laden vor Ort",
@@ -664,7 +682,9 @@
           "OPT_target": "Zielkosten",
           "OPT_select": "Gewählte E-Auto-Strecke",
           "OPT_budgetExtraCost": "Mehrkosten durch Garantie-Budget",
-          "OPT_yearsToKmLimit": "Jahre bis zur Kilometergrenze"
+          "OPT_yearsToKmLimit": "Jahre bis zur Kilometergrenze",
+          "OPT_timeline": "SoH zu einem Zeitpunkt der Vergleichsdauer",
+          "OPT_suitableUntil": "Monate, die ein Weg geeignet bleibt"
         },
         "formulaText": {
           "F1_w": "w = min(1, max(0, (T − T_kalt) / (T_mild − T_kalt)))",
@@ -710,7 +730,9 @@
           "OPT_target": "Zielkosten = variable Kosten + Anschaffung",
           "OPT_select": "kleinste Zielkosten unter dem Budget",
           "OPT_budgetExtraCost": "Zielkosten mit Budget − Gesamtoptimum",
-          "OPT_yearsToKmLimit": "Garantie-km ÷ K_EV"
+          "OPT_yearsToKmLimit": "Garantie-km ÷ K_EV",
+          "OPT_timeline": "SoH(k(t)) mit k(t) = k₀ + K_EV · t / 12",
+          "OPT_suitableUntil": "Monate, bis der SoH unter die Schwelle der Zelle fällt, abgerundet"
         },
         "show": "Rechenweg anzeigen",
         "loading": "Der Rechenweg wird berechnet …",
@@ -737,6 +759,8 @@
         },
         "unlimited": "unbegrenzt",
         "none": "keine",
+        "untilEnd": "bis zum Ende",
+        "never": "nie",
         "noResultTitle": "Für dieses Angebot gibt es keinen Rechenweg",
         "noResultBody": "Das Angebot ist nicht mehr berechenbar. Prüfe die Eingaben."
       },

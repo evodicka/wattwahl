@@ -82,3 +82,28 @@ export function sohKEnd(
   });
   return kEnd;
 }
+
+/**
+ * The exact number of months from the start of the comparison until the SoH
+ * falls below `threshold` (the inverse of F2.soh along k(t) = mileage +
+ * K_EV · t / 12). The cell of a way is suitable from the threshold up, so this
+ * is how long it stays suitable, before it is rounded down to whole months.
+ * - `0` if the SoH is below the threshold already at the start,
+ * - `Infinity` if it never falls below it: the threshold is not above the
+ *   lowest SoH the curve reaches, or the EV does not drive, or nothing ages.
+ */
+export function monthsUntilSoh(
+  curve: SohCurve,
+  mileageKm: number,
+  evKmPerYear: number,
+  threshold: number,
+): number {
+  if (sohAt(curve, mileageKm) < threshold) return 0;
+  const lowest = Math.min(curve.sohMin, curve.soh0);
+  if (threshold <= lowest || evKmPerYear <= 0 || curve.slope <= 0) {
+    return Infinity;
+  }
+  // Odometer reading at which the straight part of the curve crosses the threshold.
+  const kTip = curve.k0 + (curve.soh0 - threshold) / curve.slope;
+  return (12 * (kTip - mileageKm)) / evKmPerYear;
+}
