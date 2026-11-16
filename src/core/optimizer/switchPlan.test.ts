@@ -150,6 +150,13 @@ describe('C3b: simulation on the export (test cases 23 and 24)', () => {
     expect(sim.phases[0]?.toMonth).toBe(96);
   });
 
+  it('the allowed set is constant exactly when no threshold can be crossed (the second plan is then skipped)', () => {
+    // R = 0: all thresholds lie below the lowest SoH, nothing can tip.
+    expect(corsa(scenario, 0).problem.solver.allowedSetIsConstant).toBe(true);
+    // R = 10: the thresholds of way A lie above 0,85, so the set changes with the rate.
+    expect(corsa(scenario, 10).problem.solver.allowedSetIsConstant).toBe(false);
+  });
+
   it('the phases are contiguous, cover the period, and the figures follow them', () => {
     const { problem, selection, months } = corsa(scenario, 10);
     const sim = simulateSwitch(problem, selection.optionIndex);

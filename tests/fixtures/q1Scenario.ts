@@ -61,8 +61,20 @@ export function q1Candidate(index: number): Candidate {
   return candidate;
 }
 
-export function q1Scenario(): Scenario {
+/**
+ * The parameters of the Q1 measurement in mode `switch` (C3b): the plan with
+ * switch points and a Kilometerreserve, so that ways tip and events happen.
+ */
+export const Q1_SWITCH_PARAMETERS = {
+  sohPlanMode: 'switch',
+  minReserveKm: 10,
+} as const;
+
+export function q1Scenario(
+  parameters: Partial<Scenario['parameters']> = {},
+): Scenario {
   const scenario = exampleScenario();
+  Object.assign(scenario.parameters, parameters);
   scenario.name = 'Q1 measurement scenario';
   scenario.candidates = Array.from({ length: 10 }, (_, index) =>
     q1Candidate(index),

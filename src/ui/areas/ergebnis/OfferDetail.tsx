@@ -157,7 +157,7 @@ function SwitchComparison({ result }: { result: OkOfferResult }) {
     text = t('detail.switch.infeasible', {
       months: Math.floor(planSwitch.infeasibleAfterMonths),
     });
-  } else if (plan !== null && fixed !== null) {
+  } else if (plan !== null && fixed !== null && plan - fixed > 0.005) {
     text = t('detail.switch.notCheaper', {
       amount: formatEuro(Math.max(0, plan - fixed)),
     });

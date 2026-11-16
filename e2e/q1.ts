@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { createCoreEndpoint } from '../src/worker/endpoint';
 import { buildExport, parseImport } from '../src/storage/exportImport';
-import { q1Scenario } from '../tests/fixtures/q1Scenario';
+import { Q1_SWITCH_PARAMETERS, q1Scenario } from '../tests/fixtures/q1Scenario';
 import { open } from './helpers';
 
 // The Q1 measurement scenario (10 candidates, purchase and 4 lease tiers each,
@@ -12,8 +12,11 @@ const EXPORTED_AT = new Date('2026-11-16T12:00:00.000Z');
 
 export const Q1_SCENARIO_ID = q1Scenario().id;
 
+/** `Q1_PLAN=switch` runs the measurement in mode `switch` (C3b); the file in docs/acceptance stays in mode `fixed`. */
+const PARAMETERS = process.env.Q1_PLAN === 'switch' ? Q1_SWITCH_PARAMETERS : {};
+
 export function q1File(): string {
-  return buildExport([q1Scenario()], EXPORTED_AT).content;
+  return buildExport([q1Scenario(PARAMETERS)], EXPORTED_AT).content;
 }
 
 /**

@@ -1,6 +1,6 @@
 # Wattwahl – Checkliste zur Abnahme am Gerät (S26)
 
-Stand: Release-Kandidat `1.0.0-rc.2` (mit Kilometerreserve, C2b) · Freigabe G4 · Grundlage: Architektur 8.13,
+Stand: Release-Kandidat `1.0.0-rc.2` (mit Kilometerreserve, C2b, und SoH-Plan, C3b) · Freigabe G4 · Grundlage: Architektur 8.13,
 Spezifikation „Abnahmekriterien“
 
 Diese Checkliste prüft, was nur am echten Gerät prüfbar ist. Alles andere läuft
@@ -90,6 +90,31 @@ Handy mit dem Szenario aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json`
       Grund nennt die Kilometerreserve und wie viel fehlt. Danach **wieder auf
       0 km** setzen.
 
+## 6. SoH-Plan „mit Wechsel“ (Folgeversion C3b)
+
+Diese Punkte gelten für die Folgeversion nach C2b, auf dem Handy mit dem Szenario
+aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json` (Datei einlesen, sie wird
+beim Einlesen auf Version 4 gebracht). Kilometerreserve auf **10 km** setzen.
+
+- [ ] Unter „Parameter“ steht direkt unter „SoH-Bezug der Eignungsprüfung“ die
+      Auswahl **SoH-Plan** (Standard „fest“). Auf „mit Wechsel“ gestellt, ist der
+      SoH-Bezug **ausgegraut** und nennt den Grund, der Wert bleibt gespeichert.
+- [ ] Im Ergebnis trägt der Opel Corsa 2023 die Kennzeichnung **„mit Wechsel“**
+      (als Text), Gesamtkosten etwa 27.007 € statt 27.999 €, „E-Auto pro Jahr“
+      etwa 17.027 km. Der MG4 trägt keine Kennzeichnung und ändert sich nicht.
+- [ ] In der Detailansicht des Opel Corsa 2023 steht der **Zeitregler** auf „Start“.
+      Unter dem Regler steht in Worten, was der Plan zum gewählten Zeitpunkt tut
+      („… Einträge ruhen …“); auf „Ende“ gezogen ändern sich die Zahlen. Die
+      Textliste nennt „…, Januar: E-Auto bis Monat 30, danach Verbrenner“, der
+      Hinweis zum Plan für die Optionsmenge am Start ist lesbar.
+- [ ] Im Zuordnungsplan steht bei Mittwoch, Januar, nur ein Standort besetzt, der
+      Text **„E→A bis M30, dann E ruht“**, nichts wird abgeschnitten, die Seite
+      scrollt nicht seitwärts. Im Detail steht, wie viel günstiger der Plan als der
+      feste Plan ist.
+- [ ] Kilometerreserve auf **58 km** setzen: Der Opel Corsa 2023 ist ungeeignet, der
+      Grund nennt, nach wie vielen Monaten der letzte Weg kippt. Danach SoH-Plan
+      wieder auf „fest“ und Kilometerreserve auf **0 km**.
+
 ## Ergebnis
 
 | Kriterium | Gerät | Bestanden | Bemerkung |
@@ -102,6 +127,7 @@ Handy mit dem Szenario aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json`
 | Zwei Kandidaten ohne Hilfe | Handy | ☐ | |
 | Export und Import, gleiche Ergebnisse | Handy → Desktop | ☐ | |
 | Kilometerreserve, Zeitregler, „E-Auto am Ende“ (Abschnitt 5) | Handy | ☐ | |
+| SoH-Plan „mit Wechsel“, Zeitregler, Kennzeichnung (Abschnitt 6) | Handy | ☐ | |
 
 **Fehler:** Was nicht besteht, wird als neuer Schritt nach dem Schema des
 Implementierungsplans geplant. Reicht die Zeit bei Q1 nicht, ist der erste Hebel
@@ -118,4 +144,4 @@ zur Entscheidung:
 - **Ein zweiter offener Tab läuft nach einem Update mit altem Code weiter**
   (Architektur 11.3). Daten sind sicher, Neuladen behebt es.
 - **Die Reserve im Start-Bundle ist klein:** 250,7 von 255 KB gzip (Architektur 11), seit dem SoH-Plan C3b (vorher 247,1 bei 250 KB, davor 245,3).
-- **Q1 in Firefox am Desktop liegt bei 1,9 s von 2 s** (seit C2b, vorher 1,8 s).
+- **Q1 in Firefox am Desktop liegt bei 1,9 s von 2 s** (seit C2b, vorher 1,8 s; mit C3b unverändert, auch im Modus „mit Wechsel“ beim Messszenario). Haben alle Kandidaten Ereignisse, braucht der Modus „mit Wechsel“ etwa 30 % mehr Rechenzeit (Architektur 11.1).

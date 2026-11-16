@@ -1,6 +1,6 @@
 # Änderung: Plan mit Wechselzeitpunkt bei sinkendem SoH
 
-Nov 16, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 8 nach C2b geplant, C3a in Spezifikation, Architektur und Plan umgesetzt
+Nov 16, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 8 nach C2b geplant, C3a in Spezifikation, Architektur und Plan umgesetzt, C3b im Code umgesetzt
 
 Auslöser ist die Eignung im Zeitverlauf (Änderung Kilometerreserve, Teil B). Sie zeigt, ab wann ein Weg kippt, rechnet aber nicht damit. Ein Weg, der erst im letzten Drittel der Vergleichsdauer kippt, wird heute für die ganze Dauer dem Verbrenner zugeteilt oder macht das Angebot ungeeignet. Der Nutzer will, dass das E-Auto den Weg fährt, solange es geeignet ist, und danach eine andere Option übernimmt. Gemeint ist eine Änderung der Kalkulation, nicht der Anzeige. Der SoH selbst geht weiterhin nur über die Eignung ein, der Verbrauch hängt nicht vom SoH ab (Spezifikation, Abschnitt 4). Ein SoH-Einfluss auf Kosten (Mehrverbrauch, Restwert, SoH-Garantie) ist nicht Teil dieser Änderung.
 
@@ -56,7 +56,7 @@ Die Testfälle 1 bis 22 bleiben unverändert.
 | 25 | Nie schlechter | Derselbe Export mit R = 10, alle drei Kandidaten und Angebote | Die Zielkosten im Modus `switch` sind je Angebot kleiner oder gleich denen im Modus `fixed` mit Bezug „Ende“. Mindestens ein Angebot ist günstiger. Die genauen Werte werden in C3b aus dem Rechenkern übernommen. |
 | 26 | Zusammenlegung der Phasen | Ein Eintrag mit Wechsel zum Zeitpunkt 0 und einer mit Wechsel zum Ende, Preissteigerungen 0 und 3 %, D = 48 | Wechsel zum Zeitpunkt 0 gibt die Kosten der Ausweichoption, Wechsel zum Ende die Kosten der Ausgangsoption. Mit Steigerung 0 % sind die Phasenkosten proportional zur Dauer. Mit 3 % ist F\_s = 4,1836 über die ganze Dauer, 2,0300 für [0; 24) und 2,1536 für [24; 48), die Summe ist wieder 4,1836. |
 
-Dazu Integrationstests: Im Modus `fixed` sind alle Zahlen der Testfälle 1 bis 22 bitgleich. Fehlt eine Ausweichoption in einer Gruppe, ist das Angebot ungeeignet mit Monat im Grund. Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab (Q5). Die Werte der Testfälle 23, 24 und 26 sind in C3a nachgerechnet und in die Spezifikation übernommen. Testfall 25 bleibt in C3a qualitativ, seine genauen Werte folgen in C3b. „Alle 22 Testfälle“ wird „Alle 26 Testfälle“.
+Dazu Integrationstests: Im Modus `fixed` sind alle Zahlen der Testfälle 1 bis 22 bitgleich. Fehlt eine Ausweichoption in einer Gruppe, ist das Angebot ungeeignet mit Monat im Grund. Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab (Q5). Die Werte der Testfälle 23, 24 und 26 sind in C3a nachgerechnet und in die Spezifikation übernommen. Testfall 25 war in C3a qualitativ, seine Werte stehen seit C3b in der Spezifikation. „Alle 22 Testfälle“ wird „Alle 26 Testfälle“.
 
 ## Migration v3 → v4
 

@@ -6,7 +6,15 @@ import {
   type OfferResults,
 } from '../src/worker';
 import { runQ1 } from '../tests/bench/q1';
-import { q1Scenario } from '../tests/fixtures/q1Scenario';
+import { Q1_SWITCH_PARAMETERS, q1Scenario } from '../tests/fixtures/q1Scenario';
+
+// `?plan=switch` measures mode `switch` (C3b), otherwise mode `fixed`.
+const scenarioOfPage = () =>
+  q1Scenario(
+    new URLSearchParams(location.search).get('plan') === 'switch'
+      ? Q1_SWITCH_PARAMETERS
+      : {},
+  );
 
 // Test-only entry of the browser benchmark (S11). It runs the Q1 workload in
 // the page on the main thread, which is the same work the worker will do, and
@@ -23,7 +31,7 @@ export type Q1BenchResult = {
 };
 
 function runBench(runs: number): Q1BenchResult {
-  const scenario = q1Scenario();
+  const scenario = scenarioOfPage();
   const timesMs: number[] = [];
   let last: ReturnType<typeof runQ1> | undefined;
   for (let run = 0; run < runs; run++) {
@@ -68,7 +76,7 @@ function directResults(scenario: Scenario): OfferResults {
 }
 
 async function runWorkerBench(runs: number): Promise<WorkerBenchResult> {
-  const scenario = q1Scenario();
+  const scenario = scenarioOfPage();
   const worker = spawnCoreWorker();
   const workerMs: number[] = [];
   const directMs: number[] = [];
