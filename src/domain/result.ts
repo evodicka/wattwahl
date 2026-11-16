@@ -94,8 +94,10 @@ export const UnsuitableReasonSchema = z.discriminatedUnion('kind', [
     kind: z.literal('both'),
     weekday: WeekdaySchema,
     month: MonthSchema,
-    /** Reserve of each way in km at `soh`; negative where the EV cannot drive. */
+    /** Reserve of each way in km at `soh`; below `minReserveKm` where the EV cannot drive. */
     reserveKm: z.object({ a: z.number(), b: z.number() }),
+    /** The Kilometerreserve the ways were measured against (R, 0 if none). */
+    minReserveKm: z.number(),
     soh: z.number(),
   }),
   z.object({
@@ -104,6 +106,7 @@ export const UnsuitableReasonSchema = z.discriminatedUnion('kind', [
     way: WaySchema,
     month: MonthSchema,
     reserveKm: z.number(),
+    minReserveKm: z.number(),
     soh: z.number(),
   }),
   z.object({
@@ -135,6 +138,8 @@ export const ReserveCellSchema = z.object({
   /** In percent: 25.9 means 25.9 %. */
   reservePct: z.number(),
   light: TrafficLightSchema,
+  /** Red although the reserve is not negative: it lies below the Kilometerreserve. */
+  belowMinReserve: z.boolean(),
 });
 export type ReserveCell = z.infer<typeof ReserveCellSchema>;
 
@@ -200,7 +205,10 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
      * ways and at the SoH of their raster bucket, which is at most the SoH
      * `reserves` are checked at.
      */
-    minReserve: ReserveCellSchema.omit({ light: true }).nullable(),
+    minReserve: ReserveCellSchema.omit({
+      light: true,
+      belowMinReserve: true,
+    }).nullable(),
     warranty: z.object({
       /** Both warranties are expired: "ohne Garantie". */
       noWarranty: z.boolean(),

@@ -6,6 +6,8 @@ import styles from './ReserveHeatmap.module.css';
 
 const WAYS = ['a', 'b'] as const;
 const SYMBOL = { green: '✓', yellow: '▲', red: '✕' } as const;
+/** Red because the reserve is positive but below the Kilometerreserve. */
+const BELOW_SYMBOL = '⊘';
 
 type Props = { result: OkOfferResult; scenario: Scenario };
 
@@ -21,6 +23,7 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
   const { t } = useTranslation('ergebnis');
   const { t: c } = useTranslation();
   const threshold = scenario.parameters.trafficLightGreenFromPct;
+  const minReserveKm = scenario.parameters.minReserveKm;
   const monthName = (index: number) =>
     c(`months.${MONTH_KEYS[index] ?? 'jan'}`);
   const cells = WAYS.map((way) =>
@@ -83,12 +86,16 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
                       className={`${styles.cell} ${styles[cell.light]}`}
                     >
                       <span className={styles.symbol} aria-hidden="true">
-                        {SYMBOL[cell.light]}
+                        {cell.belowMinReserve
+                          ? BELOW_SYMBOL
+                          : SYMBOL[cell.light]}
                       </span>
                       {formatDecimal(cell.reserveKm, 0)}
                       <small>{formatPercent(cell.reservePct)}</small>
                       <span className="visually-hidden">
                         {c(`light.${cell.light}`)}
+                        {cell.belowMinReserve &&
+                          `, ${t('detail.reserve.belowMinReserve')}`}
                       </span>
                     </td>
                   ))}
@@ -105,19 +112,31 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
           {c('light.betweenZeroAnd', { value: formatPercent(threshold) })}
         </TrafficLight>
         <TrafficLight level="red">{c('light.belowZero')}</TrafficLight>
+        {minReserveKm > 0 && (
+          <TrafficLight level="red">
+            {`${BELOW_SYMBOL} ${t('detail.reserve.legendBelowMinReserve', {
+              value: formatKm(minReserveKm),
+            })}`}
+          </TrafficLight>
+        )}
       </div>
       <details className={styles.alt}>
         <summary>{t('detail.reserve.asTable')}</summary>
         <ul>
           {cells.flat().map((cell) => (
             <li key={`${cell.way}${cell.month}`}>
-              {t('detail.reserve.cell', {
-                way: cell.way.toUpperCase(),
-                month: monthName(cell.month),
-                km: formatKm(cell.reserveKm),
-                pct: formatPercent(cell.reservePct),
-                light: c(`light.${cell.light}`),
-              })}
+              {t(
+                cell.belowMinReserve
+                  ? 'detail.reserve.cellBelow'
+                  : 'detail.reserve.cell',
+                {
+                  way: cell.way.toUpperCase(),
+                  month: monthName(cell.month),
+                  km: formatKm(cell.reserveKm),
+                  pct: formatPercent(cell.reservePct),
+                  light: c(`light.${cell.light}`),
+                },
+              )}
             </li>
           ))}
         </ul>

@@ -188,7 +188,14 @@ describe('S18: aggregation over the offers of a candidate', () => {
     const leaseReason: OfferResult = {
       ...leaseMid,
       status: 'unsuitable',
-      reason: { kind: 'strict', way: 'a', month: 0, reserveKm: -3, soh: 90 },
+      reason: {
+        kind: 'strict',
+        way: 'a',
+        month: 0,
+        reserveKm: -3,
+        minReserveKm: 0,
+        soh: 90,
+      },
     } as OfferResult;
     const status = candidateStatus(candidate, 0, {
       [lease.offerId]: { mid: leaseReason },
@@ -221,10 +228,54 @@ describe('S18: aggregation over the offers of a candidate', () => {
         way: 'b',
         month: 0,
         reserveKm: -12,
+        minReserveKm: 0,
         soh: 90,
       }),
     ).toBe(
       'Streng-Modus: Weg B im Januar nicht fahrbar, Reserve \u221212\u00a0km.',
+    );
+  });
+});
+
+describe('C2b: unsuitable reasons with a Kilometerreserve', () => {
+  const both = {
+    kind: 'both',
+    weekday: 'fri',
+    month: 0,
+    reserveKm: { a: 3, b: 12 },
+    minReserveKm: 20,
+    soh: 0.9,
+  } as const;
+  const strict = {
+    kind: 'strict',
+    way: 'a',
+    month: 0,
+    reserveKm: 3,
+    minReserveKm: 20,
+    soh: 0.9,
+  } as const;
+
+  it('names the Kilometerreserve and the missing amount, measured at the better way for "both"', () => {
+    expect(unsuitableText(both)).toBe(
+      'Freitag, Januar: beide Wege unter der Kilometerreserve von 20\u00a0km. Reserve Weg A 3\u00a0km, Weg B 12\u00a0km, es fehlen 8\u00a0km.',
+    );
+    expect(unsuitableText(both, 'table')).toContain(
+      'Beide Wege unter der Kilometerreserve von 20\u00a0km, es fehlen 8\u00a0km.',
+    );
+  });
+
+  it('names the way, month and the missing amount in strict mode', () => {
+    expect(unsuitableText(strict)).toBe(
+      'Streng-Modus: Weg A im Januar unter der Kilometerreserve von 20\u00a0km, Reserve 3\u00a0km, es fehlen 17\u00a0km.',
+    );
+    expect(unsuitableText(strict, 'table')).toContain(
+      'Weg A liegt im Januar unter der Kilometerreserve von 20\u00a0km',
+    );
+  });
+
+  it('keeps the texts without a Kilometerreserve', () => {
+    expect(unsuitableText({ ...strict, minReserveKm: 0, reserveKm: -3 })).toBe(
+      'Streng-Modus: Weg A im Januar nicht fahrbar, Reserve \u22123\u00a0km.',
     );
   });
 });

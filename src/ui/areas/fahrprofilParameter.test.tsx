@@ -194,6 +194,25 @@ describe('S17: Parameter', () => {
     }
   });
 
+  it('C2b: the Kilometerreserve starts at 0 km, takes a decimal and rejects a negative number', async () => {
+    const app = await renderApp('/parameter');
+    expect(active(app).parameters.minReserveKm).toBe(0);
+    enter(/^Kilometerreserve/, '12,5');
+    expect(active(app).parameters.minReserveKm).toBe(12.5);
+    const input = enter(/^Kilometerreserve/, '-1');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(active(app).parameters.minReserveKm).toBe(12.5);
+  });
+
+  it('C2b: a Kilometerreserve above 100 km warns and still stores the value', async () => {
+    const app = await renderApp('/parameter');
+    enter(/^Kilometerreserve/, '100');
+    expect(screen.queryByText(/Kilometerreserve über 100 km/)).toBeNull();
+    enter(/^Kilometerreserve/, '150');
+    expect(screen.getAllByText(/Kilometerreserve über 100 km/).length).toBe(1);
+    expect(active(app).parameters.minReserveKm).toBe(150);
+  });
+
   it('marks every required input and lists the missing ones (Z16)', async () => {
     await renderApp('/parameter');
     for (const entry of PARAMETER_DEFAULTS.filter(

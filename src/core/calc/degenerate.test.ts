@@ -89,6 +89,7 @@ describe('F3: zero phi, range or SoH', () => {
         u: 0.63,
         chargesFreeAtWork: false,
         greenFromPct: 15,
+        minReserveKm: 0,
       },
       trace,
     );
@@ -110,6 +111,7 @@ describe('F3: zero phi, range or SoH', () => {
       u: 0.63,
       chargesFreeAtWork: false,
       greenFromPct: 15,
+      minReserveKm: 0,
     });
     expect(check.suitable).toBe(false);
     expect(check.light).toBe('red');

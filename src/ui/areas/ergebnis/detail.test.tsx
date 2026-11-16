@@ -104,6 +104,47 @@ describe('S20: reserve heatmap', () => {
     expect(within(region).getByText('Weg B')).toBeTruthy();
   });
 
+  it('C2b: cells under the Kilometerreserve are red with their own symbol and text, the reserve is still shown', async () => {
+    const scenario = exampleScenario();
+    scenario.parameters.minReserveKm = 40;
+    await open(purchasePath(scenario), scenario);
+    const region = await screen.findByRole('region', {
+      name: /^Heatmap der Reichweitenreserve/,
+    });
+    const below = heatCells(region).filter((c) => c.textContent?.includes('⊘'));
+    expect(below.length).toBeGreaterThan(0);
+    for (const cell of below) {
+      expect(cell.className).toMatch(/red/);
+      expect(cell.textContent).toMatch(/Rot, unter der Kilometerreserve/);
+      // The number is the reserve itself, not negative: it is below R, not below 0.
+      expect(cell.textContent).toMatch(/\d/);
+      expect(cell.textContent).not.toMatch(/[−-]\d/);
+    }
+    expect(
+      screen.getByText(/unter der Kilometerreserve von 40\s?km/),
+    ).toBeTruthy();
+    const list = screen
+      .getAllByText('Als Tabelle lesen')
+      .map((s) => s.closest('details') as HTMLElement)
+      .find((d) => d.querySelector('li'));
+    expect(
+      within(list as HTMLElement).getAllByText(/unter der Kilometerreserve$/)
+        .length,
+    ).toBe(below.length);
+  });
+
+  it('without a Kilometerreserve no cell has the symbol and the legend does not name it', async () => {
+    const scenario = exampleScenario();
+    await open(purchasePath(scenario), scenario);
+    const region = await screen.findByRole('region', {
+      name: /^Heatmap der Reichweitenreserve/,
+    });
+    expect(heatCells(region).some((c) => c.textContent?.includes('⊘'))).toBe(
+      false,
+    );
+    expect(screen.queryByText(/unter der Kilometerreserve von/)).toBeNull();
+  });
+
   it('names SoH and threshold, and the threshold changes the colours', async () => {
     const strict = exampleScenario();
     strict.parameters.trafficLightGreenFromPct = 90;

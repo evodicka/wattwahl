@@ -176,7 +176,14 @@ export function buildProblem(
         // Per working day: kWh from the grid, litres of petrol.
         gridKwh: trips[way] * grid,
         litres,
-        threshold: sohThreshold(commute, checkRange, trips[way], u, trace),
+        threshold: sohThreshold(
+          commute,
+          checkRange,
+          trips[way],
+          u,
+          parameters.minReserveKm,
+          trace,
+        ),
       };
     };
     return { range, checkRange, c, a: wayCosts('a'), b: wayCosts('b') };
@@ -332,6 +339,7 @@ export function buildProblem(
         u,
         chargesFreeAtWork: workplaces[way].chargesFreeAtWork,
         greenFromPct: parameters.trafficLightGreenFromPct,
+        minReserveKm: parameters.minReserveKm,
       },
       wayTrace,
     );
