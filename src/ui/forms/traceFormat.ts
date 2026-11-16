@@ -28,6 +28,7 @@ type Kind =
   | 'years'
   | 'days'
   | 'integer'
+  | 'months'
   | 'bool'
   | 'light'
   | 'slope'
@@ -79,6 +80,8 @@ const KIND: Record<FormulaId, Kind> = {
   'OPT.select': 'km',
   'OPT.budgetExtraCost': 'euro',
   'OPT.yearsToKmLimit': 'years',
+  'OPT.timeline': 'percentFraction',
+  'OPT.suitableUntil': 'months',
 };
 
 const t = (key: string, options: Record<string, unknown> = {}): string =>
@@ -96,6 +99,8 @@ const UNLIMITED_FROM = 1e15;
 /** Strings the core writes as values or inputs, in words. */
 const WORDS: Record<string, string> = {
   none: 'detail.trace.none',
+  end: 'detail.trace.untilEnd',
+  never: 'detail.trace.never',
   city: 'roadTypes.city',
   rural: 'roadTypes.rural',
   highway: 'roadTypes.highway',
@@ -161,6 +166,8 @@ export function formatTraceValue(entry: TraceEntry): string {
       return formatDecimal(value, 2);
     case 'integer':
       return formatDecimal(value, 0);
+    case 'months':
+      return `${formatDecimal(value, 0)} ${t('units.months')}`;
     case 'slope':
       return formatScientific(value);
     case 'warranty':

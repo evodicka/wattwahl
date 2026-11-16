@@ -50,6 +50,8 @@ export const FORMULA_IDS = [
   'OPT.select',
   'OPT.budgetExtraCost',
   'OPT.yearsToKmLimit',
+  'OPT.timeline',
+  'OPT.suitableUntil',
 ] as const;
 
 export const FormulaIdSchema = z.enum(FORMULA_IDS);
@@ -143,6 +145,35 @@ export const ReserveCellSchema = z.object({
 });
 export type ReserveCell = z.infer<typeof ReserveCellSchema>;
 
+/**
+ * Suitability over the comparison period, display only (spec "Eignung im
+ * Zeitverlauf"): the 24 cells at points in time of the chosen plan, and how
+ * long each cell stays suitable.
+ */
+export const TimelineSchema = z.object({
+  /** t = 0, 12, 24, … months below D, and D itself. */
+  points: z
+    .array(
+      z.object({
+        /** Months from the start; a label, not a result. */
+        month: z.number().int().min(0),
+        /** Odometer of the EV at that time, mileage + K_EV · t / 12. */
+        odometerKm: z.number(),
+        soh: z.number(),
+        /** Both ways in each month at that SoH: 24 cells, way a first, like `reserves`. */
+        cells: z.array(ReserveCellSchema).length(24),
+      }),
+    )
+    .min(2),
+  /**
+   * Per cell of `reserves` (same order): whole months from the start in which
+   * it stays suitable, rounded down. `null`: until the end of the comparison.
+   * `0`: less than one full month, also if unsuitable from the start.
+   */
+  suitableForMonths: z.array(z.number().int().min(0).nullable()).length(24),
+});
+export type Timeline = z.infer<typeof TimelineSchema>;
+
 /** Remaining years and km of one warranty at the reference month (spec "Restgarantie"). */
 const RemainingWarrantySchema = z.object({
   years: z.number(),
@@ -209,6 +240,7 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
       light: true,
       belowMinReserve: true,
     }).nullable(),
+    timeline: TimelineSchema,
     warranty: z.object({
       /** Both warranties are expired: "ohne Garantie". */
       noWarranty: z.boolean(),

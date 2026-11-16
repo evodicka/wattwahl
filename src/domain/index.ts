@@ -91,6 +91,7 @@ export {
   PlanChoiceSchema,
   ReserveCellSchema,
   SliderPricesSchema,
+  TimelineSchema,
   TraceEntrySchema,
   UnsuitableReasonSchema,
 } from './result';
@@ -100,6 +101,7 @@ export type {
   OkOfferResult,
   ReserveCell,
   SliderPrices,
+  Timeline,
   TraceEntry,
   UnsuitableReason,
   WayKey,

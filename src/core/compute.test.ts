@@ -74,9 +74,17 @@ function makeTc18(scenario: Scenario): void {
 
 const LABELS = new Set(['month', 'comparisonMonths']);
 
+/**
+ * The numbers of the timeline that have no step of their own (architecture
+ * 8.4, exception to Q6): the odometer and the 24 reserves of a point in time.
+ * They are explained by the OPT.timeline step of their point.
+ */
+const TIMELINE_EXEMPT = /^timeline\.points\[\d+\]\.(odometerKm|cells\[)/;
+
 /** Paths of all numbers in a result, such as `reserves[3].reserveKm`; labels (month, comparison period) are not results. */
 function numericLeaves(value: unknown, path = ''): string[] {
-  if (typeof value === 'number') return [path];
+  if (typeof value === 'number')
+    return TIMELINE_EXEMPT.test(path) ? [] : [path];
   if (Array.isArray(value)) {
     return value.flatMap((item, index) =>
       numericLeaves(item, `${path}[${index}]`),
@@ -204,6 +212,38 @@ describe('Q6: every number of the result has a Rechenweg entry', () => {
       }
     },
   );
+
+  it('Q6: every point of the timeline has an OPT.timeline step with its month, odometer and SoH, every cell an OPT.suitableUntil step', () => {
+    const scenario = exampleScenario();
+    const trace = new Trace();
+    const result = ok(
+      computeOffer(scenario, first(offersOf(scenario)), 'mid', { trace }),
+    );
+    const timelineSteps = trace.entries.filter(
+      (entry) => entry.formula === 'OPT.timeline',
+    );
+    expect(timelineSteps).toHaveLength(result.timeline.points.length);
+    result.timeline.points.forEach((point, index) => {
+      const step = timelineSteps[index];
+      expect(step?.resultPath).toBe(`timeline.points[${index}].soh`);
+      expect(step?.value).toBe(point.soh);
+      expect(step?.inputs).toEqual({
+        month: point.month,
+        odometerKm: point.odometerKm,
+      });
+    });
+    const untilSteps = trace.entries.filter(
+      (entry) => entry.formula === 'OPT.suitableUntil',
+    );
+    expect(untilSteps).toHaveLength(24);
+    result.timeline.suitableForMonths.forEach((months, cell) => {
+      const step = untilSteps[cell];
+      expect(step?.value).toBe(months ?? 'end');
+      expect(step?.resultPath).toBe(
+        months === null ? undefined : `timeline.suitableForMonths[${cell}]`,
+      );
+    });
+  });
 
   it('Q6: the fixtures reach the numbers the plain example does not have', () => {
     const exceeded = exampleScenario();

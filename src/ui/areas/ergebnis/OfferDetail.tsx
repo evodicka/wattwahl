@@ -84,7 +84,11 @@ export function OfferDetail({
           />
         </div>
         <ChartSuspense>
-          <ReserveHeatmap result={row.result} scenario={scenario} />
+          <ReserveHeatmap
+            key={row.offerId}
+            result={row.result}
+            scenario={scenario}
+          />
         </ChartSuspense>
       </section>
 

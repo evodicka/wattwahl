@@ -178,6 +178,131 @@ describe('S20: reserve heatmap', () => {
     expect(greenLoose).toBeGreaterThan(greenStrict);
   });
 
+  describe('C2b: suitability over time', () => {
+    const slider = () => screen.getByRole('slider', { name: 'Zeitpunkt' });
+    const region = () =>
+      screen.getByRole('region', { name: /^Heatmap der Reichweitenreserve/ });
+
+    it('has a labelled slider with a step per year, standing on the end where the check is made', async () => {
+      const scenario = exampleScenario();
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      // D = 48 months: 0, 12, 24, 36 and 48.
+      expect(slider().getAttribute('min')).toBe('0');
+      expect(slider().getAttribute('max')).toBe('4');
+      expect(slider().getAttribute('step')).toBe('1');
+      expect((slider() as HTMLInputElement).value).toBe('4');
+      expect(slider().getAttribute('aria-valuetext')).toMatch(
+        /^Ende, E-Auto-Kilometerstand [\d.]+\s?km, SoH 94,0\s?%$/,
+      );
+      expect(
+        screen.getByText(/SoH am Ende der Vergleichsdauer 94,0\s?%/),
+      ).toBeTruthy();
+    });
+
+    it('stands on the start if the SoH reference is the start', async () => {
+      const scenario = exampleScenario();
+      scenario.parameters.sohReference = 'start';
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      expect((slider() as HTMLInputElement).value).toBe('0');
+      expect(screen.getByText(/SoH am Start 100,0\s?%/)).toBeTruthy();
+    });
+
+    it('shows the cells of the chosen point in time', async () => {
+      const scenario = exampleScenario();
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      const offerId = `${scenario.candidates[0]?.id}:purchase`;
+      const result = computeResults(scenario)[offerId]?.mid;
+      if (result?.status !== 'ok') throw new Error('no result');
+      const january = () => heatCells(region())[0] as HTMLElement;
+      const shows = (pointIndex: number) =>
+        String(
+          Math.round(
+            result.timeline.points[pointIndex]?.cells[0]?.reserveKm ?? NaN,
+          ),
+        );
+      // The reserve of way A in January, from the point's own cells.
+      expect(january().textContent).toContain(shows(4));
+      fireEvent.change(slider(), { target: { value: '2' } });
+      expect(screen.getByText(/SoH nach 24 Monaten/)).toBeTruthy();
+      expect(slider().getAttribute('aria-valuetext')).toMatch(/^Monat 24, /);
+      expect(january().textContent).toContain(shows(2));
+      fireEvent.change(slider(), { target: { value: '0' } });
+      expect(screen.getByText(/SoH am Start 100,0\s?%/)).toBeTruthy();
+      expect(january().textContent).toContain(shows(0));
+      // A full battery has more reserve than an aged one.
+      expect(
+        result.timeline.points[0]?.cells[0]?.reserveKm ?? 0,
+      ).toBeGreaterThan(result.timeline.points[4]?.cells[0]?.reserveKm ?? 0);
+    });
+
+    it('is operable with the keyboard: arrow keys are the native range behaviour', async () => {
+      const scenario = exampleScenario();
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      // A native range input takes arrow keys by itself; it must be one, enabled and focusable.
+      const input = slider() as HTMLInputElement;
+      expect(input.tagName).toBe('INPUT');
+      expect(input.type).toBe('range');
+      expect(input.disabled).toBe(false);
+      expect(input.tabIndex).toBeGreaterThanOrEqual(0);
+    });
+
+    it('lists the cells that tip with their limit in words, and says the rest stays suitable', async () => {
+      const scenario = exampleScenario();
+      scenario.parameters.minReserveKm = 50;
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      const section = screen
+        .getByRole('heading', { name: 'Zeitgrenzen der Eignung' })
+        .closest('section') as HTMLElement;
+      const items = within(section).getAllByRole('listitem');
+      expect(items).toHaveLength(5);
+      for (const item of items) {
+        expect(item.textContent).toMatch(
+          /^.+, \p{L}+: (geeignet bis Monat \d+|nicht geeignet oder weniger als einen Monat geeignet)$/u,
+        );
+      }
+      expect(
+        within(section).getByText(/Alle anderen Zellen bleiben bis zum Ende/),
+      ).toBeTruthy();
+    });
+
+    it('says so if no cell tips', async () => {
+      const scenario = exampleScenario();
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      expect(
+        screen.getByText(
+          'Alle Wege sind in allen Monaten bis zum Ende der Vergleichsdauer geeignet.',
+        ),
+      ).toBeTruthy();
+    });
+
+    it('says that the course holds for this plan only', async () => {
+      const scenario = exampleScenario();
+      await open(purchasePath(scenario), scenario);
+      await screen.findByRole('region', {
+        name: /^Heatmap der Reichweitenreserve/,
+      });
+      expect(screen.getByText(/Der Verlauf gilt bei diesem Plan/)).toBeTruthy();
+    });
+  });
+
   it('lists the cells as text under "Als Tabelle lesen"', async () => {
     const scenario = exampleScenario();
     await open(purchasePath(scenario), scenario);
