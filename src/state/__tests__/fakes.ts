@@ -113,6 +113,7 @@ export const done = (request: ComputeRequest): ComputeResponse => ({
   generation: request.generation,
   scenarioId: request.scenario.id,
   results: {},
+  hash: 'fake-hash',
 });
 
 /** spawnWorker that hands out the given workers in order. */

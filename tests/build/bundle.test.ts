@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib';
 import { build } from 'vite';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -7,6 +8,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 type Chunk = {
   type: 'chunk';
+  code: string;
   fileName: string;
   isEntry: boolean;
   isDynamicEntry: boolean;
@@ -15,20 +17,28 @@ type Chunk = {
   facadeModuleId: string | null;
 };
 
-async function chunksOfBuild(): Promise<Chunk[]> {
+type Asset = { type: 'asset'; fileName: string; source: string | Uint8Array };
+
+async function outputOfBuild(): Promise<{ chunks: Chunk[]; assets: Asset[] }> {
   const result = await build({
     logLevel: 'silent',
     build: { write: false },
   });
   const outputs = Array.isArray(result) ? result : [result];
   const chunks: Chunk[] = [];
+  const assets: Asset[] = [];
   for (const output of outputs) {
     if (!('output' in output)) continue;
     for (const item of output.output) {
       if (item.type === 'chunk') chunks.push(item as unknown as Chunk);
+      else assets.push(item as unknown as Asset);
     }
   }
-  return chunks;
+  return { chunks, assets };
+}
+
+async function chunksOfBuild(): Promise<Chunk[]> {
+  return (await outputOfBuild()).chunks;
 }
 
 /** Module ids with forward slashes, whatever the platform. */
@@ -85,5 +95,67 @@ describe('S20: chart library and start bundle', () => {
         owner?.fileName,
       );
     }
+  });
+});
+
+// S24 / architecture 11 (set at G2): the start chunks (main bundle and worker
+// together) stay within 250 KB gzip. Charts and other lazy chunks do not count.
+const START_BUDGET_BYTES = 250 * 1000;
+
+const chunkSize = (_output: unknown, chunk: Chunk) => gzipSize(chunk.code);
+
+const gzipSize = (source: string | Uint8Array) =>
+  gzipSync(typeof source === 'string' ? Buffer.from(source) : source).length;
+
+describe('S24: bundle budget', () => {
+  let output: { chunks: Chunk[]; assets: Asset[] } = { chunks: [], assets: [] };
+  beforeAll(async () => {
+    // Vitest sets NODE_ENV=test, which makes the build bundle React's
+    // development code, about a third larger than what is deployed. The
+    // budget is about the deployed build.
+    const before = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      output = await outputOfBuild();
+    } finally {
+      if (before === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = before;
+    }
+  }, 120_000);
+
+  it('keeps the start chunks and the worker within 250 KB gzip', () => {
+    const start = startChunks(output.chunks);
+    // Vite emits the worker either as a chunk or as an asset of its own build.
+    const workerChunks = output.chunks.filter(
+      (c) => c.isEntry && c.fileName.includes('worker'),
+    );
+    const workerAssets = output.assets.filter((a) =>
+      /worker.*\.js$/.test(a.fileName),
+    );
+    expect(
+      workerChunks.length + workerAssets.length,
+      'the core worker is part of the build output',
+    ).toBeGreaterThan(0);
+
+    const sizes = [
+      ...start.map((c) => ({ name: c.fileName, bytes: chunkSize(output, c) })),
+      ...workerChunks.map((c) => ({
+        name: c.fileName,
+        bytes: chunkSize(output, c),
+      })),
+      ...workerAssets.map((a) => ({
+        name: a.fileName,
+        bytes: gzipSize(a.source),
+      })),
+    ];
+    const total = sizes.reduce((sum, item) => sum + item.bytes, 0);
+    console.log(
+      `S24 start bundle: ${(total / 1000).toFixed(1)} KB gzip of ${START_BUDGET_BYTES / 1000} KB (` +
+        sizes
+          .map((s) => `${s.name} ${(s.bytes / 1000).toFixed(1)}`)
+          .join(', ') +
+        ')',
+    );
+    expect(total).toBeLessThanOrEqual(START_BUDGET_BYTES);
   });
 });

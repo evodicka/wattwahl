@@ -48,6 +48,11 @@ export type ResultState = {
   latest: Extract<ComputeResponse, { status: 'done' }> | null;
   /** When `latest` arrived (ISO 8601): "Stand der Berechnung". */
   computedAt: string | null;
+  /**
+   * Round trip of the run that produced `latest`, in ms: from the call to the
+   * worker to its answer, structured clone in both directions included (Q1).
+   */
+  computeMs: number | null;
   trace: TraceState | null;
   comparison: ComparisonState | null;
   comparisonRequests: number;
@@ -61,6 +66,7 @@ const initialState: ResultState = {
   status: 'idle',
   latest: null,
   computedAt: null,
+  computeMs: null,
   trace: null,
   comparison: null,
   comparisonRequests: 0,
@@ -101,12 +107,15 @@ export const resultSlice = createSlice({
         response: Extract<ComputeResponse, { status: 'done' }>;
         /** Stamped by the thunk: reducers read no clock. */
         computedAt: string;
+        /** Measured by the thunk, like `computedAt`. */
+        computeMs: number;
       }>,
     ) {
-      const { response, computedAt } = action.payload;
+      const { response, computedAt, computeMs } = action.payload;
       if (response.generation !== state.generation) return;
       state.latest = response;
       state.computedAt = computedAt;
+      state.computeMs = computeMs;
       state.status = 'idle';
       state.error = null;
     },
