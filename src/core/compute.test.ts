@@ -19,6 +19,10 @@ import {
   type TraceEntry,
 } from '../domain';
 import { expectSpec } from '../../tests/helpers/specTolerance';
+import {
+  exportWith,
+  loadExportScenario,
+} from '../../tests/helpers/exportScenario';
 import { resolvePrices } from './calc/prices';
 import {
   ComputeCache,
@@ -114,6 +118,45 @@ function valueAt(root: unknown, path: string): unknown {
     );
 }
 
+/** Q6 for every offer and price case of a scenario: every number has exactly one entry with that value. */
+function expectEveryNumberLinked(scenario: Scenario, onlyOk = false): void {
+  for (const priceCase of CASES) {
+    for (const offer of offersOf(scenario)) {
+      const trace = new Trace();
+      const computed = computeOffer(scenario, offer, priceCase, { trace });
+      if (onlyOk && computed.status !== 'ok') continue;
+      const result = ok(computed);
+      const linked = new Map<string, TraceEntry[]>();
+      for (const entry of trace.entries) {
+        if (entry.resultPath === undefined) continue;
+        linked.set(entry.resultPath, [
+          ...(linked.get(entry.resultPath) ?? []),
+          entry,
+        ]);
+      }
+      const leaves = numericLeaves(result);
+      expect(leaves.length).toBeGreaterThan(40);
+      for (const leaf of leaves) {
+        const entries = linked.get(leaf) ?? [];
+        expect(entries, `${offer.offerId} ${priceCase}: ${leaf}`).toHaveLength(
+          1,
+        );
+        const entry = entries[0];
+        // A valid entry with a formula ID from architecture 8.4 ...
+        expect(TraceEntrySchema.safeParse(entry).success).toBe(true);
+        // ... that holds the number the result shows, not just any entry of that formula.
+        expect(entry?.value, `${offer.offerId} ${priceCase}: ${leaf}`).toBe(
+          valueAt(result, leaf),
+        );
+      }
+      // And no link points at a number the result does not have.
+      for (const path of linked.keys()) {
+        expect(leaves, `dangling link ${path}`).toContain(path);
+      }
+    }
+  }
+}
+
 describe('Q6: every number of the result has a Rechenweg entry', () => {
   const allWeek = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
   const variants: [string, (scenario: Scenario) => void][] = [
@@ -174,42 +217,27 @@ describe('Q6: every number of the result has a Rechenweg entry', () => {
     (_name, change) => {
       const scenario = exampleScenario();
       change(scenario);
-      for (const priceCase of CASES) {
-        for (const offer of offersOf(scenario)) {
-          const trace = new Trace();
-          const result = ok(
-            computeOffer(scenario, offer, priceCase, { trace }),
-          );
-          const linked = new Map<string, TraceEntry[]>();
-          for (const entry of trace.entries) {
-            if (entry.resultPath === undefined) continue;
-            linked.set(entry.resultPath, [
-              ...(linked.get(entry.resultPath) ?? []),
-              entry,
-            ]);
-          }
-          const leaves = numericLeaves(result);
-          expect(leaves.length).toBeGreaterThan(40);
-          for (const leaf of leaves) {
-            const entries = linked.get(leaf) ?? [];
-            expect(
-              entries,
-              `${offer.offerId} ${priceCase}: ${leaf}`,
-            ).toHaveLength(1);
-            const entry = entries[0];
-            // A valid entry with a formula ID from architecture 8.4 ...
-            expect(TraceEntrySchema.safeParse(entry).success).toBe(true);
-            // ... that holds the number the result shows, not just any entry of that formula.
-            expect(entry?.value, `${offer.offerId} ${priceCase}: ${leaf}`).toBe(
-              valueAt(result, leaf),
-            );
-          }
-          // And no link points at a number the result does not have.
-          for (const path of linked.keys()) {
-            expect(leaves, `dangling link ${path}`).toContain(path);
-          }
-        }
-      }
+      expectEveryNumberLinked(scenario);
+    },
+  );
+
+  // Mode switch (C3b): the plan with switch points, the fixed plan chosen
+  // against it, a switch plan that ran out of options, and the strict mode.
+  it.each([
+    ['plan with switch points chosen (R = 10)', { minReserveKm: 10 }],
+    ['fixed plan chosen, no event (R = 0)', { minReserveKm: 0 }],
+    [
+      'switch plan ran out of options, fixed plan chosen (R = 54)',
+      { minReserveKm: 54 },
+    ],
+    ['strict mode (R = 10)', { minReserveKm: 10, strictMode: true }],
+  ] as const)(
+    'Q6: mode switch, %s: every number is linked to exactly one entry that holds that very value',
+    (_name, change) => {
+      expectEveryNumberLinked(
+        exportWith(loadExportScenario(), { ...change, sohPlanMode: 'switch' }),
+        true,
+      );
     },
   );
 
