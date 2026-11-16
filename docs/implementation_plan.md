@@ -2,7 +2,7 @@
 
 Nov 14, 2026 · @Eduard Vodicka
 
-Wattwahl entsteht in 34 Schritten über neun Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4, die Änderungsschritte C1a und C1b (Phase 3b) und die Folgeversion mit C2a und C2b (Phase 7). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
+Wattwahl entsteht in 36 Schritten über zehn Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4, die Änderungsschritte C1a und C1b (Phase 3b) die Folgeversion mit C2a und C2b (Phase 7) und die Folgeversion mit C3a und C3b (Phase 8). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
 
 ## Arbeitsweise
 
@@ -34,7 +34,7 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. In der App-Infrastruktur beginnt zunächst nur S15, Speicher und Worker (S12 bis S14) folgen nach der Änderung C1a und C1b (Phase 3b). Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
-**Fahrplan · 3 Spuren, 9 Phasen, 4 Freigaben**
+**Fahrplan · 3 Spuren, 10 Phasen, 4 Freigaben**
 
 ```mermaid
 flowchart TD
@@ -81,18 +81,19 @@ flowchart TD
     P6["<b>Phase 6 · Qualität und Abnahme</b><br/>S24 Gesamtsuite und Messungen Q1–Q11<br/>S25 Doku und Release-Kandidat<br/>S26 Abnahme am iPhone und Android-Handy durch den Nutzer"]
     G4{"G4 Abnahme"}
     P7["<b>Phase 7 · Folgeversion</b><br/>C2a Spezifikation und Architektur<br/>C2b Umsetzung: Kilometerreserve"]
+    P8["<b>Phase 8 · Folgeversion</b><br/>C3a Spezifikation und Architektur<br/>C3b Umsetzung: SoH-Plan"]
 
     core --> P5
     design --> P5
     app --> P5
-    P5 --> P6 --> G4 --> P7
+    P5 --> P6 --> G4 --> P7 --> P8
 
     classDef gate fill:#fdf0d5,stroke:#d97706,stroke-width:2px,color:#1a1a1a
     classDef cd fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
     classDef agent fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
     class G1,G2,G3,G4 gate
     class D2,D3 cd
-    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6,P7 agent
+    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6,P7,P8 agent
 ```
 
 *Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
@@ -730,3 +731,51 @@ In der Reihenfolge C (Kilometerstand, klein), A (Kilometerreserve), B (Zeitverla
 - Q1 neu gemessen, axe-Prüfung für Zeitregler und Kennzeichnung, Q5 gleicher Hash in drei Engines. Kein bestehender Test wird abgeschwächt.
 
 **Voraussetzung:** C2a
+
+## Phase 8 – Folgeversion: SoH-Plan mit Wechselzeitpunkt
+
+Die Eignung im Zeitverlauf (C2b) zeigt, ab wann ein Weg kippt, rechnet aber nicht damit. Die Folgeversion lässt das E-Auto einen Weg fahren, solange er geeignet ist, und danach eine andere Option übernehmen, als schaltbare Nachrechnung (Parameter `sohPlanMode`, Standard `fixed`). Beschreibung, Testfälle, Migration, betroffene Stellen und Entscheidungen: `docs/change-soh-plan.md`. Die Aufteilung folgt Phase 7: C3a ändert nur Dokumente, C3b setzt um. Die Freigabe von C3a ist das Zusammenführen durch den Nutzer, kein neues Tor.
+
+### C3a · SoH-Plan: Spezifikation, Architektur und Plan
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+- Spezifikation und Architektur an allen Dokument-Stellen der Tabelle „Betroffene Stellen“ in `docs/change-soh-plan.md` ändern. Der Plan mit Wechselzeitpunkt steht als Unterabschnitt in „Optimierung, Algorithmus“. Neue ADR-19.
+- Testfälle 23 bis 26 in die Spezifikation übernehmen, dazu diesen Plan ergänzen.
+- Testfälle 23 und 24 mit dem Export `eauto-export-2026-11-16-v2_3.json` aus den vorhandenen Kernfunktionen nachrechnen. Testfall 25 bleibt qualitativ.
+- Kein Code, keine Tests.
+
+**Validierung**
+
+- Jede Zeile der Tabelle „Betroffene Stellen“ ist einer Änderung im Pull Request zugeordnet, ohne Lücke.
+- Testfall 23 (Wechsel bei 30,47 Monaten, Phasenkosten 67,47 € und 264,84 €) und Testfall 24 (alle 24 Schwellen unter 0,85) sind nachgerechnet, der Rechenweg steht im Pull Request.
+- Keine Stelle nennt noch „22 Testfälle“ (Suche im Pull Request, ausgenommen die Historie in Q3).
+- Der Nutzer liest die Änderung gegen und merged sie. Das ist die Freigabe für C3b.
+
+**Voraussetzung:** C2b
+
+### C3b · SoH-Plan: Umsetzung
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+In dieser Reihenfolge, jeweils mit eigenen Tests:
+
+- Schema und Parameter: `sohPlanMode`, `CURRENT_SCHEMA_VERSION = 4`, Migration v3 → v4, Beispieldatei `scenario.v4.json`, Validierung, Parameterseite mit deaktiviertem SoH-Bezug. Im Modus `fixed` bleibt alles bitgleich.
+- Preisfaktoren je Zeitfenster in `prices.ts`, die Variante über die ganze Dauer ruft dieselbe Funktion auf.
+- Ereignissimulation und Phasenkosten in `optimizer/switchPlan.ts`, Formel-IDs `OPT.switchEvent` und `OPT.switchCost`.
+- Vergleich mit dem festen Plan (Bezug „Ende“), Ergebnisfeld `planSwitch`, korrigierte Kennzahlen, Grund mit Zeitpunkt, Streng-Modus über die Zeit.
+- Oberfläche: Zeitregler und Textliste mit Wechselmonat, Zuordnungsraster mit Wechsel, Kennzeichnung „mit Wechsel“.
+- Test-Fixtures, Q1-Messszenario und Referenz-Hashes (Q5, S24) einmal neu erzeugen. Abnahmepunkt für Parameter, Zeitregler und Kennzeichnung in `docs/acceptance-checklist.md`.
+
+**Validierung**
+
+- Testfälle 1 bis 22 bleiben im Modus `fixed` bitgleich, die Testfälle 23 bis 26 bestehen mit der Toleranz aus Architektur 8.4. Testfall 25 bekommt seine genauen Werte aus dem Rechenkern.
+- Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab (Q5).
+- Q1 im Modus `switch` neu gemessen, der Preis-Regler eigens. Architektur 11.1 nachführen, falls sich Werte ändern. Firefox liegt schon bei 94 % der Grenze.
+- axe-Prüfung für Zeitregler, Zuordnungsraster und Kennzeichnung, Q5 gleicher Hash in drei Engines. Kein bestehender Test wird abgeschwächt.
+
+**Voraussetzung:** C3a
