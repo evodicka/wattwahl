@@ -165,5 +165,7 @@ export function RowProblem({
 
 export const evKmText = (result: OkOfferResult) =>
   formatDecimal(result.evKmPerYear, 0);
+export const evEndText = (result: OkOfferResult) =>
+  formatKm(result.evOdometerEnd);
 export const iceEndText = (result: OkOfferResult) =>
   formatKm(result.iceOdometerEnd);

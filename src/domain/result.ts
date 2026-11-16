@@ -176,6 +176,8 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
     iceKmPerYear: z.number(),
     /** Planned mileage of the petrol car at the end of the comparison. */
     iceOdometerEnd: z.number(),
+    /** Planned mileage of the EV at the end of the comparison (display only), linked to `F2.kEnd`. */
+    evOdometerEnd: z.number(),
     /** SoH at the end of the comparison, and the SoH the reserves are checked at. */
     sohEnd: z.number(),
     sohCheck: z.number(),

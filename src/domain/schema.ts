@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Version of the stored scenario format (architecture 8.2). */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 /** Longest comparison period in months (spec "Parameterliste"): 100 years. */
 export const MAX_COMPARISON_MONTHS = 1200;
@@ -124,6 +124,8 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     sohMinPct: percent,
     kmToSohMin: positive,
     sohReference: z.enum(['end', 'start']),
+    /** Kilometerreserve R (spec section 3): the least reserve a way needs to count as suitable. */
+    minReserveKm: nonNegative,
     chargingEfficiencyPct: positive.max(100),
     tempColdC: z.number(),
     tempMildC: z.number(),

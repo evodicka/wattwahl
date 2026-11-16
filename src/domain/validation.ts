@@ -86,6 +86,7 @@ export const WarningSchema = z.object({
     'coldAboveMild',
     'capacityAbove200',
     'commuteAbove300',
+    'minReserveAbove100',
     'firstRegistrationAfterReferenceMonth',
   ]),
   /** Dot path of the field in the scenario, for example `candidates.0.netCapacityKwh`. */
@@ -95,6 +96,7 @@ export type Warning = z.infer<typeof WarningSchema>;
 
 const MAX_PLAUSIBLE_CAPACITY_KWH = 200;
 const MAX_PLAUSIBLE_COMMUTE_KM = 300;
+const MAX_PLAUSIBLE_MIN_RESERVE_KM = 100;
 
 /**
  * Plausibility warnings of the spec. They never block anything: the result has
@@ -147,6 +149,12 @@ export function checkWarnings(scenario: Scenario): Warning[] {
         path: `workplaces.${key}.commute`,
       });
     }
+  }
+  if (scenario.parameters.minReserveKm > MAX_PLAUSIBLE_MIN_RESERVE_KM) {
+    warnings.push({
+      code: 'minReserveAbove100',
+      path: 'parameters.minReserveKm',
+    });
   }
   return warnings;
 }

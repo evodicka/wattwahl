@@ -413,8 +413,10 @@ function okResult(
 
   // SoH at the end of the comparison and at the km the reserves are checked at.
   const curve = sohCurve(parameters, candidate);
-  const kEnd = sohKEnd(candidate.mileageKm, evKmPerYear, months, trace);
   let from = mark();
+  const kEnd = sohKEnd(candidate.mileageKm, evKmPerYear, months, trace);
+  link(from, 'F2.kEnd', 'evOdometerEnd');
+  from = mark();
   const sohEnd = sohAt(curve, kEnd, trace);
   link(from, 'F2.soh', 'sohEnd');
   from = mark();
@@ -549,6 +551,7 @@ function okResult(
     evKmPerYear,
     iceKmPerYear: kIce,
     iceOdometerEnd: iceOdometer,
+    evOdometerEnd: kEnd,
     sohEnd,
     sohCheck,
     costs: {

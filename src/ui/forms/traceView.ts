@@ -45,6 +45,7 @@ const PLACEHOLDER_INPUTS: ReadonlySet<string> = new Set([
   'tMildC',
   'tempC',
   'coldReserveK',
+  'minReserveKm',
   'highwayDiscountPct',
   'depreciationPctPerYear',
   'freeDaysPerYear',

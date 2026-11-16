@@ -165,6 +165,15 @@ export function ParameterPage() {
               ]}
               onChange={(value) => set('parameters.sohReference', value)}
             />
+            <PathNumber
+              path="parameters.minReserveKm"
+              label={t('minReserve')}
+              name={t('minReserve')}
+              unit={c('units.km')}
+              hint={t('minReserveHint')}
+              withDefault
+              rules={{ min: 0 }}
+            />
           </Card>
 
           <Card className="stack" aria-labelledby="s2g">

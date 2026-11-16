@@ -9,6 +9,7 @@ import {
   RowProblem,
   SuitabilityBadge,
   WarrantyBadge,
+  evEndText,
   evKmText,
   iceEndText,
   offerPath,
@@ -72,6 +73,8 @@ export function OfferCards({ rows, scenario }: Props) {
                   </dd>
                   <dt>{t('table.evPerYear')}</dt>
                   <dd>{`${evKmText(ok)} ${c('units.km')}`}</dd>
+                  <dt>{t('table.evEnd')}</dt>
+                  <dd>{evEndText(ok)}</dd>
                   <dt>{t('table.iceEnd')}</dt>
                   <dd>{iceEndText(ok)}</dd>
                   <dt>{t('table.warranty')}</dt>

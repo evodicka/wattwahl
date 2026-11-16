@@ -1,0 +1,270 @@
+{
+  "format": "eauto-export",
+  "schemaVersion": 2,
+  "exportedAt": "2026-11-16T09:09:30.221Z",
+  "scenarios": [
+    {
+      "id": "f41ef808-4716-4786-a4fc-51b5dfef669c",
+      "name": "Standard",
+      "iceVehicle": {
+        "name": "Astra K ST",
+        "consumptionLPer100Km": {
+          "city": 6.5,
+          "rural": 6.1,
+          "highway": 5.5
+        },
+        "mileageKm": 120000,
+        "maintenancePerKm": 0.03,
+        "petrolPrice": {
+          "min": 1.8,
+          "mid": 2,
+          "max": 2.15
+        },
+        "petrolEscalationPct": 0
+      },
+      "workplaces": {
+        "a": {
+          "name": "Standort A",
+          "commute": {
+            "city": 1,
+            "rural": 4,
+            "highway": 44
+          },
+          "weekdays": [
+            "wed",
+            "thu",
+            "fri"
+          ],
+          "freeDaysPerYear": 30,
+          "chargesFreeAtWork": false
+        },
+        "b": {
+          "name": "Standort B",
+          "commute": {
+            "city": 6,
+            "rural": 5,
+            "highway": 46
+          },
+          "weekdays": [
+            "tue",
+            "fri"
+          ],
+          "freeDaysPerYear": 30,
+          "chargesFreeAtWork": true
+        }
+      },
+      "extraMileage": {
+        "kmPerMonth": {
+          "city": 0,
+          "rural": 50,
+          "highway": 50
+        }
+      },
+      "parameters": {
+        "comparisonMonths": 96,
+        "chargeLowerPct": 10,
+        "chargeUpperPct": 80,
+        "safetyBufferPct": 10,
+        "sohMinPct": 85,
+        "kmToSohMin": 200000,
+        "sohReference": "end",
+        "chargingEfficiencyPct": 90,
+        "tempColdC": -10,
+        "tempMildC": 23,
+        "monthlyTempC": [
+          1,
+          2,
+          5,
+          9,
+          14,
+          17,
+          19,
+          19,
+          15,
+          10,
+          5,
+          2
+        ],
+        "coldReserveK": 10,
+        "highwayDiscountPct": 12,
+        "trafficLightGreenFromPct": 15,
+        "depreciationPctPerYear": 15,
+        "evMaintenancePerKm": 0.1,
+        "electricityPrice": {
+          "min": 0.25,
+          "mid": 0.27,
+          "max": 0.3
+        },
+        "electricityEscalationPct": 0,
+        "workWeeksPerYear": 52,
+        "extraMileageMode": "optimized",
+        "extraMileageFixedEvSharePct": null,
+        "extraMileageStepPct": 10,
+        "strictMode": false,
+        "warrantyBudgetAsTarget": true,
+        "kmGridPerYear": 250,
+        "warrantyReferenceMonth": {
+          "month": 11,
+          "year": 2026
+        },
+        "warrantyReferenceMonthSetByUser": false
+      },
+      "candidates": [
+        {
+          "id": "f9c15b35-d353-4747-ae08-04540a478beb",
+          "name": "MG4 Urban",
+          "note": "",
+          "condition": "new",
+          "purchasePrice": 21500,
+          "firstRegistration": null,
+          "mileageKm": 0,
+          "netCapacityKwh": 52.8,
+          "rangeKm": {
+            "city": {
+              "mild": 475,
+              "cold": 315
+            },
+            "highway": {
+              "mild": 290,
+              "cold": 225
+            },
+            "combined": {
+              "mild": 365,
+              "cold": 270
+            }
+          },
+          "sohKnownPct": null,
+          "vehicleWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": 0.01,
+          "leaseTiers": [
+            {
+              "id": "a1a5e6fa-e962-4e8a-960a-8bbce7d92ab8",
+              "tierKmPerYear": 10000,
+              "monthlyRate": 306,
+              "termMonths": 36,
+              "downPayment": 0,
+              "extraKmPrice": 20,
+              "underKmRefund": 0
+            },
+            {
+              "id": "555d67ee-8f1b-4561-a0da-b9ffd773925f",
+              "tierKmPerYear": 15000,
+              "monthlyRate": 314,
+              "termMonths": 36,
+              "downPayment": 0,
+              "extraKmPrice": 20,
+              "underKmRefund": 0
+            },
+            {
+              "id": "aaea8f57-7282-4206-8345-e6c82aab96d7",
+              "tierKmPerYear": 20000,
+              "monthlyRate": 322,
+              "termMonths": 48,
+              "downPayment": 0,
+              "extraKmPrice": 20,
+              "underKmRefund": 0
+            },
+            {
+              "id": "f8bd6f73-a337-4737-93df-20187aca270f",
+              "tierKmPerYear": 25000,
+              "monthlyRate": 330,
+              "termMonths": 48,
+              "downPayment": 0,
+              "extraKmPrice": 20,
+              "underKmRefund": 0
+            }
+          ]
+        },
+        {
+          "id": "d244029f-6c6b-4d82-86c0-478d4407e6c9",
+          "name": "Opel Corsa 2023",
+          "note": "",
+          "condition": "used",
+          "purchasePrice": 19000,
+          "firstRegistration": {
+            "month": 11,
+            "year": 2023
+          },
+          "mileageKm": 19000,
+          "netCapacityKwh": 46.3,
+          "rangeKm": {
+            "city": {
+              "mild": 440,
+              "cold": 285
+            },
+            "highway": {
+              "mild": 270,
+              "cold": 205
+            },
+            "combined": {
+              "mild": 340,
+              "cold": 245
+            }
+          },
+          "sohKnownPct": 95,
+          "vehicleWarranty": {
+            "years": 2,
+            "km": 250000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": 0.01,
+          "leaseTiers": []
+        },
+        {
+          "id": "552a4b63-549c-4e67-80e8-a125bfa20150",
+          "name": "Opel Corsa 2024",
+          "note": "",
+          "condition": "used",
+          "purchasePrice": 25000,
+          "firstRegistration": {
+            "month": 6,
+            "year": 2024
+          },
+          "mileageKm": 19000,
+          "netCapacityKwh": 48.1,
+          "rangeKm": {
+            "city": {
+              "mild": 475,
+              "cold": 305
+            },
+            "highway": {
+              "mild": 290,
+              "cold": 220
+            },
+            "combined": {
+              "mild": 365,
+              "cold": 265
+            }
+          },
+          "sohKnownPct": 95,
+          "vehicleWarranty": {
+            "years": 2,
+            "km": 25000
+          },
+          "batteryWarranty": {
+            "years": 8,
+            "km": 160000
+          },
+          "warrantyNeedsReview": false,
+          "depreciationPctPerYear": null,
+          "maintenancePerKm": 0.01,
+          "leaseTiers": []
+        }
+      ]
+    }
+  ]
+}

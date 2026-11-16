@@ -109,6 +109,7 @@
       "coldAboveMild": "Kalt ist größer als mild, bitte prüfen. Das blockiert nicht.",
       "capacity": "Mehr als 200 kWh, bitte prüfen.",
       "wayLong": "Weg über 300 km, bitte prüfen.",
+      "minReserveLong": "Kilometerreserve über 100 km, bitte prüfen.",
       "firstRegistrationAfterCutoff": "Liegt nach dem Stichtag {{cutoff}}. Die App rechnet mit Alter 0, bitte prüfen."
     },
     "light": {
@@ -417,6 +418,8 @@
     "sohReference": "SoH-Bezug der Eignungsprüfung",
     "sohReferenceEnd": "Ende der Vergleichsdauer",
     "sohReferenceStart": "Start",
+    "minReserve": "Kilometerreserve",
+    "minReserveHint": "Zusätzliche einfache Weglänge, die der Akku noch schaffen muss. 0 km: keine Vorgabe.",
     "warrantyCutoff": "Stichtag der Garantieberechnung",
     "warrantyCutoffHint": "Ab diesem Monat rechnet die App die Restgarantie gebrauchter Kandidaten aus Erstzulassung und Laufleistung. Vorbelegt mit dem Monat der Anlage.",
     "warrantyCutoffReset": "Zurücksetzen auf aktuellen Monat",
@@ -478,6 +481,7 @@
       "minReserve": "Kleinste Reserve",
       "minReserveWhere": "Weg, Monat",
       "evKm": "E-Auto km/Jahr",
+      "evEnd": "E-Auto am Ende",
       "iceEnd": "Verbrenner am Ende",
       "warranty": "Garantie",
       "purchase": "Kauf",

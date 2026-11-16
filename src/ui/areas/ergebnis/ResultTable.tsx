@@ -10,6 +10,7 @@ import {
   RowProblem,
   SuitabilityBadge,
   WarrantyBadge,
+  evEndText,
   evKmText,
   iceEndText,
   offerPath,
@@ -54,6 +55,9 @@ export function ResultTable({ rows, scenario, priceCaseName, busy }: Props) {
           </th>
           <th scope="col" className="num">
             {t('table.evKm')}
+          </th>
+          <th scope="col" className="num">
+            {t('table.evEnd')}
           </th>
           <th scope="col" className="num">
             {t('table.iceEnd')}
@@ -117,13 +121,14 @@ export function ResultTable({ rows, scenario, priceCaseName, busy }: Props) {
                     <ReserveCell result={ok} />
                   </td>
                   <td className="num">{evKmText(ok)}</td>
+                  <td className="num">{evEndText(ok)}</td>
                   <td className="num">{iceEndText(ok)}</td>
                   <td>
                     <WarrantyBadge result={ok} />
                   </td>
                 </>
               ) : (
-                <td colSpan={4}>
+                <td colSpan={5}>
                   <RowProblem row={row} scenario={scenario} />
                 </td>
               )}
