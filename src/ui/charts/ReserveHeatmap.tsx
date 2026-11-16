@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { OkOfferResult, Scenario } from '../../domain';
 import { MONTH_KEYS, formatDecimal, formatKm, formatPercent } from '../../i18n';
 import { TrafficLight } from '../components';
+import { cellSwitches, planStateCounts } from '../forms/switchView';
 import styles from './ReserveHeatmap.module.css';
 
 const WAYS = ['a', 'b'] as const;
@@ -26,8 +27,16 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
   const sliderId = useId();
   const { points, suitableForMonths } = result.timeline;
   const last = points.length - 1;
-  // The point the plan's suitability is checked at: the end, or the start.
-  const checkedAt = scenario.parameters.sohReference === 'end' ? last : 0;
+  // The point the plan's suitability is checked at: the end, or the start. The
+  // plan with switch points drives an entry only while it is suitable, so it
+  // is checked at the start; mode "mit Wechsel" otherwise ignores the stored
+  // reference and checks at the end.
+  const switchChosen = result.planSwitch?.chosen === 'switch';
+  const reference =
+    scenario.parameters.sohPlanMode === 'switch'
+      ? 'end'
+      : scenario.parameters.sohReference;
+  const checkedAt = !switchChosen && reference === 'end' ? last : 0;
   const [chosen, setChosen] = useState(checkedAt);
   const index = Math.min(chosen, last);
   const point = points[index] ?? points[last];
@@ -56,12 +65,23 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
         ? t('detail.reserve.whenEnd')
         : t('detail.reserve.whenMonth', { months: point.month });
   // The cells that tip before the end, in the order of the result (way a first).
+  // With switch points the EV drives such a cell until it tips, then the petrol
+  // car or the other way takes over (spec "Reichweitenreserve").
+  const switches = cellSwitches(result);
   const limits = result.reserves.flatMap((cell, at) => {
     const months = suitableForMonths[at];
     return months === null || months === undefined
       ? []
-      : [{ way: cell.way, month: cell.month, months }];
+      : [
+          {
+            way: cell.way,
+            month: cell.month,
+            months,
+            then: switches.get(`${cell.way}:${cell.month}`)?.then ?? null,
+          },
+        ];
   });
+  const state = switchChosen ? planStateCounts(result, point.month) : null;
 
   return (
     <div className="stack">
@@ -179,7 +199,20 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
           <span>{pointLabel(0)}</span>
           <span>{pointLabel(result.comparisonMonths)}</span>
         </div>
+        {state && (
+          <p className="t-sm" data-testid="plan-state">
+            {t('detail.reserve.time.planState', {
+              when: pointLabel(point.month),
+              drives: state.drives,
+              rests: state.rests,
+              swapped: state.swapped,
+            })}
+          </p>
+        )}
         <p className="t-sm muted">{t('detail.reserve.time.hint')}</p>
+        {switchChosen && (
+          <p className="t-sm muted">{t('detail.reserve.time.switchHint')}</p>
+        )}
       </div>
       {/* A plain container, not a named section: a section with aria-labelledby
           crashes Firefox's axe run in this view (architecture 11.2). */}
@@ -193,9 +226,11 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
               {limits.map((limit) => (
                 <li key={`${limit.way}${limit.month}`}>
                   {t(
-                    limit.months === 0
-                      ? 'detail.reserve.limits.fromStart'
-                      : 'detail.reserve.limits.until',
+                    limit.then !== null && limit.months > 0
+                      ? `detail.reserve.limits.switch.${limit.then}`
+                      : limit.months === 0
+                        ? 'detail.reserve.limits.fromStart'
+                        : 'detail.reserve.limits.until',
                     {
                       way: wayName(limit.way),
                       month: monthName(limit.month),

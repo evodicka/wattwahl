@@ -64,7 +64,7 @@ Things that are easy to trip over:
 - Chromium's CPU throttling does not slow the worker, so there is no throttled
   end-to-end Q1 test (architecture 11.1).
 - `tests/build/bundle.test.ts` builds the app in memory and fails when the start
-  chunks plus the worker exceed 250 KB gzip. Check it after adding a dependency.
+  chunks plus the worker exceed 255 KB gzip. Check it after adding a dependency.
 - Axe in Firefox sometimes crashes on some pages; those tests are marked
   `fixme` (architecture 11.2).
 - The screenshot tests (`S16: screenshots` and the like) run in Chromium only,

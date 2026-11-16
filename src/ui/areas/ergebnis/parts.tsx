@@ -51,6 +51,19 @@ export function SuitabilityBadge({ row }: { row: ResultRow }) {
   );
 }
 
+/**
+ * The mark "mit Wechsel" (text) of an offer whose result follows the plan with
+ * switch points and has at least one event (spec "Angebotsvergleich").
+ */
+export function SwitchMark({ result }: { result: OkOfferResult }) {
+  const { t } = useTranslation('ergebnis');
+  const planSwitch = result.planSwitch;
+  if (planSwitch?.chosen !== 'switch' || planSwitch.events.length === 0) {
+    return null;
+  }
+  return <span className="t-cap">{t('table.withSwitch')}</span>;
+}
+
 /** Light, km and percent of the smallest reserve with its way and month. */
 export function ReserveCell({ result }: { result: OkOfferResult }) {
   const { t } = useTranslation('ergebnis');

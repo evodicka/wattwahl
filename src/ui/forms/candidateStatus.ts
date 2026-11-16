@@ -105,6 +105,28 @@ export function unsuitableText(
   reason: UnsuitableReason,
   variant: 'card' | 'table' = 'card',
 ): string {
+  const base = baseText(reason, variant);
+  // Mode "mit Wechsel": the time the last way tips (spec "Ungeeignet").
+  if (
+    (reason.kind === 'both' || reason.kind === 'strict') &&
+    reason.afterMonths !== undefined
+  ) {
+    return `${base} ${t(
+      reason.afterMonths === 0
+        ? 'ergebnis:unsuitable.afterMonthsStart'
+        : reason.kind === 'both'
+          ? 'ergebnis:unsuitable.afterMonthsBoth'
+          : 'ergebnis:unsuitable.afterMonthsStrict',
+      {
+        months: reason.afterMonths,
+        way: 'way' in reason ? reason.way.toUpperCase() : '',
+      },
+    )}`;
+  }
+  return base;
+}
+
+function baseText(reason: UnsuitableReason, variant: 'card' | 'table'): string {
   const key = KEYS[variant];
   switch (reason.kind) {
     case 'both': {

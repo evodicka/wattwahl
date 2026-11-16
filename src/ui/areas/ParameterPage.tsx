@@ -164,6 +164,22 @@ export function ParameterPage() {
                 { value: 'start', label: t('sohReferenceStart') },
               ]}
               onChange={(value) => set('parameters.sohReference', value)}
+              disabled={parameters.sohPlanMode === 'switch'}
+              hint={
+                parameters.sohPlanMode === 'switch'
+                  ? t('sohReferenceSwitchHint')
+                  : undefined
+              }
+            />
+            <SelectField
+              label={t('sohPlanMode')}
+              value={parameters.sohPlanMode}
+              options={[
+                { value: 'fixed', label: t('sohPlanModeFixed') },
+                { value: 'switch', label: t('sohPlanModeSwitch') },
+              ]}
+              onChange={(value) => set('parameters.sohPlanMode', value)}
+              hint={t('sohPlanModeHint')}
             />
             <PathNumber
               path="parameters.minReserveKm"

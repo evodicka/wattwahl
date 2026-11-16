@@ -11,6 +11,8 @@ type Props<Value extends string> = {
   hint?: ReactNode;
   onReset?: { name: string; onReset: () => void } | null;
   id?: string;
+  /** Greyed out and not editable; the hint should say why. */
+  disabled?: boolean;
 };
 
 /** Native select of the design system. */
@@ -23,6 +25,7 @@ export function SelectField<Value extends string>({
   hint,
   onReset = null,
   id: givenId,
+  disabled = false,
 }: Props<Value>) {
   const generatedId = useId();
   const id = givenId ?? generatedId;
@@ -35,6 +38,7 @@ export function SelectField<Value extends string>({
         id={id}
         className={styles.select}
         value={value}
+        disabled={disabled}
         aria-describedby={describedBy(id, {
           hint: hint !== undefined || reset !== null,
           message: false,
