@@ -92,6 +92,7 @@ export {
   ReserveCellSchema,
   SliderPricesSchema,
   TimelineSchema,
+  PlanSwitchSchema,
   TraceEntrySchema,
   UnsuitableReasonSchema,
 } from './result';
@@ -102,6 +103,7 @@ export type {
   ReserveCell,
   SliderPrices,
   Timeline,
+  PlanSwitch,
   TraceEntry,
   UnsuitableReason,
   WayKey,

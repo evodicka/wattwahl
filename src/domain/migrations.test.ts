@@ -3,7 +3,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { CURRENT_SCHEMA_VERSION, ScenarioSchema } from './schema';
-import { createMigrator, migrate, upgradeScenario, v2ToV3 } from './migrations';
+import {
+  createMigrator,
+  migrate,
+  upgradeScenario,
+  v2ToV3,
+  v3ToV4,
+} from './migrations';
 
 /** Month of the migration, as src/storage would pass it. */
 const CONTEXT = { migrationMonth: { month: 11, year: 2026 } };
@@ -220,7 +226,7 @@ describe('C1b: migration v1 -> v2 (warranty from first registration)', () => {
       km: 60000 + 80000,
     });
     expect(candidate?.warrantyNeedsReview).toBe(false);
-    const { data, schemaVersion } = readFixture('scenario.v3.json');
+    const { data, schemaVersion } = readFixture('scenario.v4.json');
     expect(schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(scenario).toEqual({
       ...(data as object),
@@ -300,11 +306,11 @@ describe('C1b: migration v1 -> v2 (warranty from first registration)', () => {
 describe('C2b: migration v2 -> v3 (Kilometerreserve)', () => {
   const v2 = () => readFixture('scenario.v2.json');
 
-  it('C2b: the v2 example migrates to exactly the v3 example file', () => {
-    const result = upgradeScenario(deepFreeze(v2()), CONTEXT);
-    if (result.status !== 'ok') throw new Error(`not ok: ${result.status}`);
-    expect(result.migrated).toBe(true);
-    expect(result.scenario).toEqual(readFixture('scenario.v3.json').data);
+  it('C2b: the v2 example migrates by the v3 step to the v3 example file', () => {
+    const { data } = v2();
+    expect(v2ToV3(deepFreeze(data))).toEqual(
+      readFixture('scenario.v3.json').data,
+    );
   });
 
   it('C2b: it sets minReserveKm = 0 and changes nothing else', () => {
@@ -327,5 +333,36 @@ describe('C2b: migration v2 -> v3 (Kilometerreserve)', () => {
   it('C2b: data without the v2 shape passes through untouched', () => {
     expect(v2ToV3('nothing')).toBe('nothing');
     expect(v2ToV3({ parameters: 3 })).toEqual({ parameters: 3 });
+  });
+});
+
+describe('C3b: migration v3 -> v4 (SoH plan)', () => {
+  const v3 = () => readFixture('scenario.v3.json');
+
+  it('C3b: the v3 example migrates to exactly the v4 example file', () => {
+    const result = upgradeScenario(deepFreeze(v3()), CONTEXT);
+    if (result.status !== 'ok') throw new Error(`not ok: ${result.status}`);
+    expect(result.migrated).toBe(true);
+    expect(result.scenario).toEqual(readFixture('scenario.v4.json').data);
+  });
+
+  it("C3b: it sets sohPlanMode = 'fixed' and changes nothing else", () => {
+    const { data } = v3();
+    const migrated = v3ToV4(data) as { parameters: Record<string, unknown> };
+    const { sohPlanMode, ...rest } = migrated.parameters;
+    expect(sohPlanMode).toBe('fixed');
+    expect(rest).toEqual((data as { parameters: object }).parameters);
+  });
+
+  it('C3b: the step does not change its input', () => {
+    const { data } = v3();
+    const snapshot = structuredClone(data);
+    v3ToV4(deepFreeze(data));
+    expect(data).toEqual(snapshot);
+  });
+
+  it('C3b: data without the v3 shape passes through untouched', () => {
+    expect(v3ToV4('nothing')).toBe('nothing');
+    expect(v3ToV4({ parameters: 3 })).toEqual({ parameters: 3 });
   });
 });

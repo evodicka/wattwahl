@@ -101,6 +101,12 @@ export const PARAMETER_DEFAULTS: readonly ParameterDefault[] = [
     unit: 'choice',
     flag: 'fixed',
   }),
+  ...rows('SoH-Plan', {
+    path: 'parameters.sohPlanMode',
+    value: 'fixed',
+    unit: 'choice',
+    flag: 'fixed',
+  }),
   ...rows('Kilometerreserve', {
     path: 'parameters.minReserveKm',
     value: 0,
@@ -317,6 +323,7 @@ export function createScenarioTemplate(input: {
       sohMinPct: 0,
       kmToSohMin: 1,
       sohReference: 'end',
+      sohPlanMode: 'fixed',
       minReserveKm: 0,
       chargingEfficiencyPct: 1,
       tempColdC: 0,

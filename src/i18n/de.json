@@ -684,7 +684,9 @@
           "OPT_budgetExtraCost": "Mehrkosten durch Garantie-Budget",
           "OPT_yearsToKmLimit": "Jahre bis zur Kilometergrenze",
           "OPT_timeline": "SoH zu einem Zeitpunkt der Vergleichsdauer",
-          "OPT_suitableUntil": "Monate, die ein Weg geeignet bleibt"
+          "OPT_suitableUntil": "Monate, die ein Weg geeignet bleibt",
+          "OPT_switchEvent": "Wechselzeitpunkt: E-Auto-Kilometer pro Jahr nach dem Wechsel",
+          "OPT_switchCost": "Kosten einer Phase des Plans mit Wechsel"
         },
         "formulaText": {
           "F1_w": "w = min(1, max(0, (T − T_kalt) / (T_mild − T_kalt)))",
@@ -732,7 +734,9 @@
           "OPT_budgetExtraCost": "Zielkosten mit Budget − Gesamtoptimum",
           "OPT_yearsToKmLimit": "Garantie-km ÷ K_EV",
           "OPT_timeline": "SoH(k(t)) mit k(t) = k₀ + K_EV · t / 12",
-          "OPT_suitableUntil": "Monate, bis der SoH unter die Schwelle der Zelle fällt, abgerundet"
+          "OPT_suitableUntil": "Monate, bis der SoH unter die Schwelle der Zelle fällt, abgerundet",
+          "OPT_switchEvent": "Zeitpunkt, zu dem der SoH die höchste Schwelle der gefahrenen Optionen unterschreitet (Umkehrung von F2), und die Rate K danach",
+          "OPT_switchCost": "Menge der Option × Preisfaktor des Zeitfensters, je Phase"
         },
         "show": "Rechenweg anzeigen",
         "loading": "Der Rechenweg wird berechnet …",

@@ -15,6 +15,8 @@ const ADDED_KEYS = new Set([
   'timeline',
   'belowMinReserve',
   'minReserveKm',
+  'planSwitch',
+  'sohPlanMode',
 ]);
 
 function withoutAddedFields(value: unknown): unknown {

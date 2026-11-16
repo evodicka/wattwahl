@@ -167,10 +167,20 @@ export function v2ToV3(data: unknown): unknown {
   return { ...data, parameters: { ...data.parameters, minReserveKm: 0 } };
 }
 
+/**
+ * v3 -> v4, SoH plan (docs/change-soh-plan.md): every scenario gets
+ * `sohPlanMode = 'fixed'`, today's behaviour, so all results stay the same.
+ */
+export function v3ToV4(data: unknown): unknown {
+  if (!isObject(data) || !isObject(data.parameters)) return data;
+  return { ...data, parameters: { ...data.parameters, sohPlanMode: 'fixed' } };
+}
+
 /** Steps keyed by the version they start from. */
 export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = {
   1: v1ToV2,
   2: v2ToV3,
+  3: v3ToV4,
 };
 
 export const migrate = createMigrator(MIGRATIONS, CURRENT_SCHEMA_VERSION);

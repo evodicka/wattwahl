@@ -2,7 +2,14 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { expectSpec } from '../../../tests/helpers/specTolerance';
 import { Trace } from '../trace';
-import { monthsUntilSoh, sohAt, sohCurve, sohKEnd, sohSlope } from './soh';
+import {
+  effectiveSohReference,
+  monthsUntilSoh,
+  sohAt,
+  sohCurve,
+  sohKEnd,
+  sohSlope,
+} from './soh';
 
 const params = { sohMinPct: 85, kmToSohMin: 200000 };
 const used = (mileageKm: number, sohKnownPct: number | null) => ({
@@ -132,5 +139,19 @@ describe('C2b: months until the SoH falls below a threshold', () => {
         },
       ),
     );
+  });
+});
+
+describe('C3b: effectiveSohReference', () => {
+  it('keeps the stored reference in mode fixed and ignores it in mode switch', () => {
+    expect(
+      effectiveSohReference({ sohReference: 'start', sohPlanMode: 'fixed' }),
+    ).toBe('start');
+    expect(
+      effectiveSohReference({ sohReference: 'end', sohPlanMode: 'fixed' }),
+    ).toBe('end');
+    expect(
+      effectiveSohReference({ sohReference: 'start', sohPlanMode: 'switch' }),
+    ).toBe('end');
   });
 });
