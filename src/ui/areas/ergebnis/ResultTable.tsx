@@ -9,6 +9,7 @@ import {
   ReserveCell,
   RowProblem,
   SuitabilityBadge,
+  SwitchMark,
   WarrantyBadge,
   evEndText,
   evKmText,
@@ -96,7 +97,10 @@ export function ResultTable({ rows, scenario, priceCaseName, busy }: Props) {
                   <span className={styles.name}>{name}</span>
                 )}
               </td>
-              <td>{offerLabel(row)}</td>
+              <td>
+                {offerLabel(row)}
+                {ok && <SwitchMark result={ok} />}
+              </td>
               <td>
                 <SuitabilityBadge row={row} />
               </td>

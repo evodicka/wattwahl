@@ -117,5 +117,5 @@ zur Entscheidung:
   von drei Engines nachgewiesen (Chromium, WebKit).
 - **Ein zweiter offener Tab läuft nach einem Update mit altem Code weiter**
   (Architektur 11.3). Daten sind sicher, Neuladen behebt es.
-- **Die Reserve im Start-Bundle ist klein:** 247,1 von 250 KB gzip (Architektur 11), seit C2b (vorher 245,3).
+- **Die Reserve im Start-Bundle ist klein:** 250,7 von 255 KB gzip (Architektur 11), seit dem SoH-Plan C3b (vorher 247,1 bei 250 KB, davor 245,3).
 - **Q1 in Firefox am Desktop liegt bei 1,9 s von 2 s** (seit C2b, vorher 1,8 s).

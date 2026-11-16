@@ -1,12 +1,15 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { upgradeScenario, type Scenario } from '../../src/domain';
 
 // The scenario of the export of the published app (docs/acceptance), migrated
 // like an import does it. Test cases 21 to 26 of the specification use it.
 
-const EXPORT = new URL(
-  '../../docs/acceptance/eauto-export-2026-11-16-v2_3.json',
-  import.meta.url,
+// Relative to the working directory (the repository root under vitest): the
+// jsdom project has no file URL for `import.meta.url`.
+const EXPORT = resolve(
+  process.cwd(),
+  'docs/acceptance/eauto-export-2026-11-16-v2_3.json',
 );
 
 export function loadExportScenario(): Scenario {

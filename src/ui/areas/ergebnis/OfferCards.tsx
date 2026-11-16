@@ -8,6 +8,7 @@ import styles from './OfferCards.module.css';
 import {
   RowProblem,
   SuitabilityBadge,
+  SwitchMark,
   WarrantyBadge,
   evEndText,
   evKmText,
@@ -48,6 +49,7 @@ export function OfferCards({ rows, scenario }: Props) {
               <h3 className="h-heading">{title}</h3>
               <SuitabilityBadge row={row} />
             </div>
+            {ok && <SwitchMark result={ok} />}
             {ok && row.total !== null ? (
               <>
                 <div className={styles.total}>{formatEuro(row.total)}</div>

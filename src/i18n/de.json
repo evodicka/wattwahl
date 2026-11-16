@@ -420,6 +420,11 @@
     "sohReference": "SoH-Bezug der Eignungsprüfung",
     "sohReferenceEnd": "Ende der Vergleichsdauer",
     "sohReferenceStart": "Start",
+    "sohReferenceSwitchHint": "Im Modus „mit Wechsel“ prüft die App die Eignung zum jeweiligen Zeitpunkt.",
+    "sohPlanMode": "SoH-Plan",
+    "sohPlanModeFixed": "fest",
+    "sohPlanModeSwitch": "mit Wechsel",
+    "sohPlanModeHint": "Mit Wechsel fährt das E-Auto einen Weg, solange er geeignet ist, danach übernimmt die günstigste erlaubte Option.",
     "minReserve": "Kilometerreserve",
     "minReserveHint": "Zusätzliche einfache Weglänge, die der Akku noch schaffen muss. 0 km: keine Vorgabe.",
     "warrantyCutoff": "Stichtag der Garantieberechnung",
@@ -491,6 +496,7 @@
       "missing_one": "{{count}} Angabe fehlt: {{fields}}",
       "missing_other": "{{count}} Angaben fehlen: {{fields}}",
       "noDrive": "fährt nie",
+      "withSwitch": "mit Wechsel",
       "totalCase": "Gesamtkosten ({{case}})",
       "noTotal": "–",
       "evPerYear": "E-Auto pro Jahr",
@@ -509,6 +515,9 @@
       "bothReserve": "{{weekday}}, {{month}}: Reserve Weg A {{a}}, Weg B {{b}}. Beide Wege unter der Kilometerreserve von {{minReserve}}, es fehlen {{missing}}.",
       "strictReserve": "Weg {{way}} liegt im {{month}} unter der Kilometerreserve von {{minReserve}} (Reserve {{km}}, es fehlen {{missing}}). Der Verbrenner würde ihn übernehmen.",
       "coupling": "Jeder Weg geht bei bestem SoH, aber die Fahrten senken den SoH auf {{soh}} und die Reserve reicht dann nicht.",
+      "afterMonthsBoth": "Der letzte Weg kippt nach {{months}} Monaten.",
+      "afterMonthsStrict": "Weg {{way}} kippt nach {{months}} Monaten.",
+      "afterMonthsStart": "Schon am Start nicht geeignet.",
       "titleStrict": "Ungeeignet im Streng-Modus",
       "titleCoupling": "Ungeeignet durch Akkualterung"
     },
@@ -566,13 +575,20 @@
           "end": "Ende",
           "month": "Monat {{months}}",
           "valueText": "{{when}}, E-Auto-Kilometerstand {{km}}, SoH {{soh}}",
-          "hint": "Der Verlauf gilt bei diesem Plan, mit seinen E-Auto-Kilometern. Er sagt nicht, was geschieht, wenn man einen Weg, den der Plan dem Verbrenner gibt, doch mit dem E-Auto fährt."
+          "hint": "Der Verlauf gilt bei diesem Plan, mit seinen E-Auto-Kilometern. Er sagt nicht, was geschieht, wenn man einen Weg, den der Plan dem Verbrenner gibt, doch mit dem E-Auto fährt.",
+          "planState": "Plan zum Zeitpunkt {{when}}: das E-Auto fährt {{drives}} Einträge wie am Start, {{rests}} Einträge ruhen (der Verbrenner fährt), bei {{swapped}} Einträgen ist der Weg getauscht.",
+          "switchHint": "Der Plan mit Wechsel ist für die Optionsmenge am Start optimal, nicht für den zeitlichen Verlauf."
         },
         "limits": {
           "title": "Zeitgrenzen der Eignung",
           "none": "Alle Wege sind in allen Monaten bis zum Ende der Vergleichsdauer geeignet.",
           "until": "{{way}}, {{month}}: geeignet bis Monat {{months}}",
           "fromStart": "{{way}}, {{month}}: nicht geeignet oder weniger als einen Monat geeignet",
+          "switch": {
+            "ice": "{{way}}, {{month}}: E-Auto bis Monat {{months}}, danach Verbrenner",
+            "other": "{{way}}, {{month}}: E-Auto bis Monat {{months}}, danach der andere Weg",
+            "mixed": "{{way}}, {{month}}: E-Auto bis Monat {{months}}, danach Verbrenner oder der andere Weg"
+          },
           "others": "Alle anderen Zellen bleiben bis zum Ende der Vergleichsdauer geeignet."
         },
         "way": "Weg {{way}}",
@@ -587,6 +603,14 @@
         "legendBelowMinReserve": "unter der Kilometerreserve von {{value}}",
         "scrollLabel": "Heatmap der Reichweitenreserve, seitlich scrollbar"
       },
+      "switch": {
+        "title": "SoH-Plan „mit Wechsel“:",
+        "cheaper": "{{amount}} günstiger als der feste Plan.",
+        "onlySwitch": "Nur dieser Plan ist zulässig.",
+        "infeasible": "Nach {{months}} Monaten hat eine Gruppe keine erlaubte Option mehr. Es gilt der feste Plan.",
+        "notCheaper": "Er spart nichts (Mehrkosten {{amount}}). Es gilt der feste Plan.",
+        "fixedChosen": "Es gilt der feste Plan."
+      },
       "plan": {
         "title": "Zuordnungsplan",
         "subtitle": "Welches Auto fährt wohin, je Wochentag, Monat und Anwesenheitszustand · hervorgehoben: Winterwechsel",
@@ -600,6 +624,12 @@
         "evDrives": "E-Auto fährt zu {{name}}",
         "iceDrives": "Verbrenner fährt zu {{name}}, E-Auto ruht",
         "line": "{{who}}: {{what}}",
+        "switch": {
+          "drives": "E→{{way}}",
+          "rests": "E ruht",
+          "until": "bis M{{month}}",
+          "then": "dann {{what}}{{until}}"
+        },
         "scrollLabel": "Zuordnungsplan, seitlich scrollbar",
         "changeHidden": "Plan weicht vom Sommerplan ab"
       },
@@ -735,7 +765,7 @@
           "OPT_yearsToKmLimit": "Garantie-km ÷ K_EV",
           "OPT_timeline": "SoH(k(t)) mit k(t) = k₀ + K_EV · t / 12",
           "OPT_suitableUntil": "Monate, bis der SoH unter die Schwelle der Zelle fällt, abgerundet",
-          "OPT_switchEvent": "Zeitpunkt, zu dem der SoH die höchste Schwelle der gefahrenen Optionen unterschreitet (Umkehrung von F2), und die Rate K danach",
+          "OPT_switchEvent": "Zeitpunkt, zu dem der SoH die höchste Schwelle der gefahrenen Optionen unterschreitet, und die Rate K danach",
           "OPT_switchCost": "Menge der Option × Preisfaktor des Zeitfensters, je Phase"
         },
         "show": "Rechenweg anzeigen",

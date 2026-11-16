@@ -2,6 +2,12 @@ import { useTranslation } from 'react-i18next';
 import type { OkOfferResult, Scenario } from '../../domain';
 import { MONTH_KEYS } from '../../i18n';
 import { planView, warmestMonth, type PlanLine } from '../forms/planView';
+import {
+  entryKey,
+  switchChains,
+  wayOfChoice,
+  type SwitchChain,
+} from '../forms/switchView';
 import styles from './AssignmentGrid.module.css';
 import { PlanIcon, PlanLineGlyph, wayIcon } from './PlanIcons';
 
@@ -20,6 +26,7 @@ export default function AssignmentGrid({ result, scenario }: Props) {
     result.plan,
     warmestMonth(scenario.parameters.monthlyTempC),
   );
+  const chains = switchChains(result.planSwitch);
   const name = (way: 'a' | 'b') =>
     scenario.workplaces[way].name.trim() ||
     t('detail.reserve.way', { way: way.toUpperCase() });
@@ -35,6 +42,27 @@ export default function AssignmentGrid({ result, scenario }: Props) {
         : t('detail.plan.iceDrives', { name: name(line.target) });
     return t('detail.plan.line', { who, what });
   };
+
+  /** "E→A bis M30, dann E ruht": where the EV drives, each time as text (spec "Zuordnungsplan"). */
+  const where = (choice: SwitchChain['start']): string => {
+    const way = wayOfChoice(choice);
+    return way
+      ? t('detail.plan.switch.drives', { way: way.toUpperCase() })
+      : t('detail.plan.switch.rests');
+  };
+  const chainText = (chain: SwitchChain): string =>
+    [
+      `${where(chain.start)} ${t('detail.plan.switch.until', { month: Math.floor(chain.steps[0]?.atMonth ?? 0) })}`,
+      ...chain.steps.map((step, at) => {
+        const next = chain.steps[at + 1];
+        return t('detail.plan.switch.then', {
+          what: where(step.to),
+          until: next
+            ? ` ${t('detail.plan.switch.until', { month: Math.floor(next.atMonth) })}`
+            : '',
+        });
+      }),
+    ].join(', ');
 
   return (
     <div className="stack">
@@ -103,28 +131,50 @@ export default function AssignmentGrid({ result, scenario }: Props) {
                         </span>
                       </>
                     )}
-                    {month.lines.map((line) => (
-                      <span key={line.state} className={styles.line}>
-                        <PlanLineGlyph
-                          label={sentence(line)}
-                          icons={[
-                            ...line.present.map((way) => ({
-                              name: wayIcon(way),
-                            })),
-                            { name: 'arrow' as const, className: styles.arrow },
-                            {
-                              name:
-                                line.vehicle === 'ev'
-                                  ? ('bolt' as const)
-                                  : ('pump' as const),
-                              className:
-                                line.vehicle === 'ev' ? styles.ev : styles.ice,
-                            },
-                            { name: wayIcon(line.target) },
-                          ]}
-                        />
-                      </span>
-                    ))}
+                    {month.lines.map((line) => {
+                      const chain = chains.get(
+                        entryKey({
+                          weekday: day.weekday,
+                          month: month.month,
+                          state: line.state,
+                        }),
+                      );
+                      const text = chain ? chainText(chain) : null;
+                      return (
+                        <span key={line.state} className={styles.line}>
+                          <PlanLineGlyph
+                            label={
+                              text
+                                ? `${sentence(line)}, ${text}`
+                                : sentence(line)
+                            }
+                            icons={[
+                              ...line.present.map((way) => ({
+                                name: wayIcon(way),
+                              })),
+                              {
+                                name: 'arrow' as const,
+                                className: styles.arrow,
+                              },
+                              {
+                                name:
+                                  line.vehicle === 'ev'
+                                    ? ('bolt' as const)
+                                    : ('pump' as const),
+                                className:
+                                  line.vehicle === 'ev'
+                                    ? styles.ev
+                                    : styles.ice,
+                              },
+                              { name: wayIcon(line.target) },
+                            ]}
+                          />
+                          {text && (
+                            <small className={styles.switchText}>{text}</small>
+                          )}
+                        </span>
+                      );
+                    })}
                   </td>
                 ))}
               </tr>

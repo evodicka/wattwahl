@@ -73,6 +73,8 @@ export function OfferDetail({
         )}
       </Tile>
 
+      <SwitchComparison result={row.result} />
+
       <section className="stack">
         <div className="spread">
           <h3 className="h-title">{t('detail.reserve.title')}</h3>
@@ -132,5 +134,39 @@ export function OfferDetail({
         </Notice>
       </section>
     </>
+  );
+}
+
+/**
+ * Mode "mit Wechsel": what the plan with switch points costs more or less than
+ * the fixed plan with reference "Ende", or why the fixed plan is the result
+ * (spec "Angebotsvergleich").
+ */
+function SwitchComparison({ result }: { result: OkOfferResult }) {
+  const { t } = useTranslation('ergebnis');
+  const planSwitch = result.planSwitch;
+  if (!planSwitch) return null;
+  const { switchTargetCost: plan, fixedTargetCost: fixed } = planSwitch;
+  let text: string;
+  if (planSwitch.chosen === 'switch') {
+    text =
+      fixed === null || plan === null
+        ? t('detail.switch.onlySwitch')
+        : t('detail.switch.cheaper', { amount: formatEuro(fixed - plan) });
+  } else if (planSwitch.infeasibleAfterMonths !== null) {
+    text = t('detail.switch.infeasible', {
+      months: Math.floor(planSwitch.infeasibleAfterMonths),
+    });
+  } else if (plan !== null && fixed !== null) {
+    text = t('detail.switch.notCheaper', {
+      amount: formatEuro(Math.max(0, plan - fixed)),
+    });
+  } else {
+    text = t('detail.switch.fixedChosen');
+  }
+  return (
+    <p className="t-sm" data-testid="switch-comparison">
+      {t('detail.switch.title')} {text}
+    </p>
   );
 }

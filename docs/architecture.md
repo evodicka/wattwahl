@@ -509,7 +509,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 | Abbruch nur zwischen Angeboten | Bei sehr großen Angeboten läuft eine veraltete Rechnung zu Ende | Angebote sind klein genug, Messung in Q2. Bei Bedarf Abbruchpunkte zusätzlich je Rasterwert |
 | Safari löscht Daten nicht installierter Seiten nach etwa 7 Tagen | Verlust aller Szenarien auf dem iPhone | Installationshinweis beim ersten Start, Export-Erinnerung, `navigator.``storage.persist()` |
 | Eigene Potenzfunktion `detPow` weicht von `Math.pow` ab oder ist langsamer | Abweichung von den Handrechnungen, längere Rechenzeit | Property-Test gegen `Math.pow` mit relativer Toleranz 1e-12, Laufzeit in Q1 mitmessen |
-| Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (250 KB gzip für die Start-Chunks, 11.1) |
+| Bundle aus React, Visx, Zod und i18next ist am Handy groß | Langsamer Erststart | Diagramme einzeln nachladen, Bundle-Budget im CI prüfen (255 KB gzip für die Start-Chunks, 11.1) |
 | Wege, die erst später kippen, werden für die ganze Dauer ausgeschlossen (Modus `fixed`) | Ein Angebot kann ungeeignet sein oder Wege an den Verbrenner abgeben, obwohl der Weg anfangs fahrbar ist | Der Modus `switch` (ADR-19) ist die Abhilfe. Der Zeitverlauf (Zeitregler, Zeitgrenzen) zeigt, ab wann ein Weg kippt. Der Plan bleibt bewusst unverändert (ADR-18). Q1: höchstens D/12 + 2 Zeitpunkte je Angebot, bei D = 1.200 gut 100, ohne neue Optimierung |
 | Plan ist für die Optionsmenge am Start optimal (Modus `switch`) | Mit Kenntnis der späteren Wechsel hätte der Optimierer unter Umständen einen anderen, günstigeren Plan gewählt | Hinweis in Spezifikation und Oberfläche. Der feste Plan wird immer mitgerechnet, das Ergebnis ist nie schlechter als „fest“ (ADR-19) |
 | Q1 im Modus `switch`: Firefox liegt schon bei 94 % von 2 s | Zwei Pläne je Angebot und das größere Ergebnis (`planSwitch`) können die Grenze überschreiten | In C3b im Modus `switch` neu messen, der Preis-Regler eigens. Hebel aus 11.1 stehen bereit |
@@ -523,7 +523,7 @@ Das größte technische Risiko ist die Laufzeit der Optimierung am Handy, das gr
 
 **Bei G2 festgelegte Werte** (aus dem Benchmark, siehe 11.1):
 
-- Bundle-Budget im CI: 250 KB gzip für die Start-Chunks (Haupt-Bundle und Worker zusammen), Diagramme und andere nachgeladene Chunks zählen nicht. Die Prüfung steht seit S24 in `tests/build/bundle.test.ts` (Build im Produktionsmodus, gzip, Haupt-Bundle plus Worker). Gemessen: 245,3 KB, also 98 % des Budgets (Haupt-Bundle 204,6 KB, Worker 40,7 KB). Die Reserve ist klein, eine neue Bibliothek im Start-Bundle bricht die Pipeline. Der Wert bleibt, wie bei G2 festgelegt.
+- Bundle-Budget im CI: 255 KB gzip für die Start-Chunks (Haupt-Bundle und Worker zusammen), Diagramme und andere nachgeladene Chunks zählen nicht. Die Prüfung steht seit S24 in `tests/build/bundle.test.ts` (Build im Produktionsmodus, gzip, Haupt-Bundle plus Worker). Das Budget war bei G2 auf 250 KB festgelegt (damals 245,3 KB, Haupt-Bundle 204,6 KB, Worker 40,7 KB) und wurde mit dem SoH-Plan (C3b, ADR-19, vom Nutzer freigegeben) auf 255 KB angehoben, weil Simulation, Phasenkosten, Schema und Texte 250,7 KB brauchen (Haupt-Bundle 207,0 KB, Worker 43,6 KB), also 98 % des neuen Budgets. Die Reserve ist klein, eine neue Bibliothek im Start-Bundle bricht die Pipeline.
 - Anzahl der Fälle in Q4: 100.000 (Lauf etwa 2,3 s lokal, etwa 8 s im CI).
 - DP-Zelle: 1 km (`DP_CELL_KM`).
 
