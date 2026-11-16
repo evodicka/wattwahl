@@ -8,7 +8,7 @@ import { hashResult } from '../../src/core';
 import { resolvePrices } from '../../src/core/calc/prices';
 import { optimizeOffer } from '../../src/core/optimizer/optimize';
 import { buildProblem } from '../../src/core/optimizer/problem';
-import { q1Scenario } from '../fixtures/q1Scenario';
+import { Q1_SWITCH_PARAMETERS, q1Scenario } from '../fixtures/q1Scenario';
 import { Q1_PRICE_CASES, median, runQ1 } from './q1';
 
 // Q1 in Node (architecture 10, S11). `npm run bench` prints the numbers; the
@@ -19,7 +19,10 @@ const RUNS = 4;
 const round = (ms: number) => Math.round(ms * 10) / 10;
 
 it('Q1 in Node: 10 candidates with purchase and 4 leases, 3 price cases', () => {
-  const scenario = q1Scenario();
+  // Q1_PLAN=switch measures mode `switch` (C3b).
+  const scenario = q1Scenario(
+    process.env.Q1_PLAN === 'switch' ? Q1_SWITCH_PARAMETERS : {},
+  );
   const shared: number[] = [];
   let hash = '';
   for (let run = 0; run < RUNS; run++) {

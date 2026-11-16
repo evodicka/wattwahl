@@ -16,8 +16,14 @@ const round = (ms: number) => Math.round(ms * 10) / 10;
 const median = (values: number[]) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)] ?? 0;
 
+/** `PLAN=switch npm run bench:browser` measures mode `switch` (C3b). */
+const PAGE =
+  process.env.PLAN === 'switch'
+    ? '/bench/index.html?plan=switch'
+    : '/bench/index.html';
+
 async function measure(page: Page): Promise<Q1BenchResult> {
-  await page.goto('/bench/index.html');
+  await page.goto(PAGE);
   // The dev server may reload the page once after it has bundled the packages.
   await page.waitForFunction(() => 'runQ1Bench' in window);
   return page.evaluate(
@@ -51,7 +57,7 @@ test('Q1 with the CPU slowed down 4 times (phone approximation)', async ({
   browserName,
 }) => {
   test.skip(browserName !== 'chromium', 'CPU throttling needs CDP (Chromium)');
-  await page.goto('/bench/index.html');
+  await page.goto(PAGE);
   await page.waitForFunction(() => 'runQ1Bench' in window);
   const client = await page.context().newCDPSession(page);
   await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });

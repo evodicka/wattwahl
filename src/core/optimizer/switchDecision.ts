@@ -166,6 +166,26 @@ export function decideSwitch(
     };
   }
 
+  if (problem.solver.allowedSetIsConstant) {
+    // No threshold can be crossed, so the plan at the start is the fixed plan
+    // (up to ties inside the tie band, which never win) and nothing switches.
+    if (fixed.status === 'unsuitable') {
+      return { status: 'unsuitable', reason: fixed.reason };
+    }
+    return {
+      status: 'ok',
+      chosen: 'fixed',
+      fixed,
+      planSwitch: {
+        chosen: 'fixed',
+        switchTargetCost: fixed.targetCost,
+        fixedTargetCost: fixed.targetCost,
+        infeasibleAfterMonths: null,
+        events: [],
+      },
+    };
+  }
+
   const start = optimizeOffer(
     scenario,
     candidate,

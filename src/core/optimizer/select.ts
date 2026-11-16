@@ -22,7 +22,15 @@ export type OfferInput = Pick<
   'offerCost' | 'budgetKmPerYear' | 'strict' | 'reserveAtSoh'
 >;
 
-export type Solver = { solve: (offer: OfferInput, trace?: Trace) => Selection };
+export type Solver = {
+  solve: (offer: OfferInput, trace?: Trace) => Selection;
+  /**
+   * The set of allowed options is the same at every EV rate: no threshold lies
+   * between the SoH at the start and the lowest SoH any plan can reach. Then
+   * the SoH can never take an option away during the comparison.
+   */
+  allowedSetIsConstant: boolean;
+};
 
 type Table = { cost: Float64Array; km: Float64Array };
 
@@ -258,6 +266,9 @@ export function createSolver(
   }
 
   return {
+    allowedSetIsConstant: ctx.maskOfBucket.every(
+      (mask) => mask === ctx.maskOfBucket[0],
+    ),
     solve(offer, trace) {
       const result = attempt(offer, offer.strict, trace);
       if (result.status === 'unsuitable' && offer.strict) {
