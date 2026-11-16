@@ -1,13 +1,21 @@
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 import { buildId, contentSecurityPolicy } from './build/html';
 
+// The version of the release (package.json), shown in the area Szenarien und
+// Daten next to the build id (S25).
+const { version } = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string };
+
 // base is fixed to "/" because the app is served from the custom domain
 // https://wattwahl.evodicka.dev (architecture 7.2). Do not change it.
 export default defineConfig({
   base: '/',
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     react(),
     buildId(),
