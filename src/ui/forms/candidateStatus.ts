@@ -84,11 +84,15 @@ const KEYS = {
   card: {
     both: 'kandidaten:card.unsuitableBoth',
     strict: 'kandidaten:card.unsuitableStrict',
+    bothReserve: 'kandidaten:card.unsuitableBothReserve',
+    strictReserve: 'kandidaten:card.unsuitableStrictReserve',
     coupling: 'kandidaten:card.unsuitableCoupling',
   },
   table: {
     both: 'ergebnis:unsuitable.both',
     strict: 'ergebnis:unsuitable.strict',
+    bothReserve: 'ergebnis:unsuitable.bothReserve',
+    strictReserve: 'ergebnis:unsuitable.strictReserve',
     coupling: 'ergebnis:unsuitable.coupling',
   },
 } as const;
@@ -103,19 +107,37 @@ export function unsuitableText(
 ): string {
   const key = KEYS[variant];
   switch (reason.kind) {
-    case 'both':
-      return t(key.both, {
+    case 'both': {
+      const values = {
         weekday: t(`weekdays.${reason.weekday}`),
         month: month(reason.month),
         a: formatKm(reason.reserveKm.a),
         b: formatKm(reason.reserveKm.b),
+      };
+      if (reason.minReserveKm <= 0) return t(key.both, values);
+      return t(key.bothReserve, {
+        ...values,
+        minReserve: formatKm(reason.minReserveKm),
+        // The better way is the one that comes closest.
+        missing: formatKm(
+          reason.minReserveKm -
+            Math.max(reason.reserveKm.a, reason.reserveKm.b),
+        ),
       });
-    case 'strict':
-      return t(key.strict, {
+    }
+    case 'strict': {
+      const values = {
         way: reason.way.toUpperCase(),
         month: month(reason.month),
         km: formatKm(reason.reserveKm),
+      };
+      if (reason.minReserveKm <= 0) return t(key.strict, values);
+      return t(key.strictReserve, {
+        ...values,
+        minReserve: formatKm(reason.minReserveKm),
+        missing: formatKm(reason.minReserveKm - reason.reserveKm),
       });
+    }
     case 'coupling':
       return t(key.coupling, { soh: formatPercent(reason.soh * 100, 1) });
   }

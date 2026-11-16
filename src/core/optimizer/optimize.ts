@@ -83,14 +83,37 @@ export type OptimizerOutcome =
 
 type StrictReason = Extract<UnsuitableReason, { kind: 'strict' }>;
 
-/** The way and month with the least reserve at `soh`. */
-function worstPair(problem: Problem, soh: number): StrictReason {
+/**
+ * The way and month at `soh` that misses the Kilometerreserve by the most: the
+ * not suitable pair with the least reserve. A pair is judged by `suitable`,
+ * not by its reserve, because a way of 0 km has reserve 0 and is always
+ * suitable. Without a not suitable pair, the least reserve overall.
+ */
+function worstPair(
+  problem: Problem,
+  soh: number,
+  minReserveKm: number,
+): StrictReason {
   let worst: StrictReason | null = null;
+  let worstBlocked = false;
   for (const way of WAYS) {
     for (let month = 0; month < 12; month++) {
-      const reserveKm = problem.checkWayAt(way, month, soh).reserveKm;
-      if (!worst || reserveKm < worst.reserveKm) {
-        worst = { kind: 'strict', way, month, reserveKm, soh };
+      const check = problem.checkWayAt(way, month, soh);
+      const blocked = !check.suitable;
+      if (
+        !worst ||
+        (blocked && !worstBlocked) ||
+        (blocked === worstBlocked && check.reserveKm < worst.reserveKm)
+      ) {
+        worst = {
+          kind: 'strict',
+          way,
+          month,
+          reserveKm: check.reserveKm,
+          minReserveKm,
+          soh,
+        };
+        worstBlocked = blocked;
       }
     }
   }
@@ -102,24 +125,30 @@ function worstPair(problem: Problem, soh: number): StrictReason {
 function explain(
   problem: Problem,
   selection: Extract<Selection, { status: 'unsuitable' }>,
+  minReserveKm: number,
 ): UnsuitableReason {
   const soh = selection.bestSoh;
-  if (selection.cause === 'strict') return worstPair(problem, soh);
+  if (selection.cause === 'strict')
+    return worstPair(problem, soh, minReserveKm);
 
-  // The "both" state whose better way is the furthest below zero.
+  // The "both" state in which neither way is suitable and the better way
+  // misses the Kilometerreserve by the most.
   let worst: UnsuitableReason | null = null;
-  let worstBest = 0;
+  let worstBest = Infinity;
   problem.info.forEach((info) => {
     if (info.kind !== 'day' || info.state !== 'both') return;
-    const a = problem.checkWayAt('a', info.month, soh).reserveKm;
-    const b = problem.checkWayAt('b', info.month, soh).reserveKm;
-    if (Math.max(a, b) < worstBest) {
-      worstBest = Math.max(a, b);
+    const a = problem.checkWayAt('a', info.month, soh);
+    const b = problem.checkWayAt('b', info.month, soh);
+    if (a.suitable || b.suitable) return;
+    const best = Math.max(a.reserveKm, b.reserveKm);
+    if (best < worstBest) {
+      worstBest = best;
       worst = {
         kind: 'both',
         weekday: info.weekday,
         month: info.month,
-        reserveKm: { a, b },
+        reserveKm: { a: a.reserveKm, b: b.reserveKm },
+        minReserveKm,
         soh,
       };
     }
@@ -209,7 +238,7 @@ export function optimizeOffer(
   if (selection.status === 'unsuitable') {
     return {
       status: 'unsuitable',
-      reason: explain(problem, selection),
+      reason: explain(problem, selection, parameters.minReserveKm),
       remaining,
       budget,
     };

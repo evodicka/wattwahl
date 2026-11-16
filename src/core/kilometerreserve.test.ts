@@ -91,4 +91,96 @@ describe('C2b: the export of the published app', () => {
       expect(other.evOdometerEnd).toBeCloseTo(19000 + other.evKmPerYear * 8, 6);
     });
   });
+
+  describe('integration: the Kilometerreserve changes the plan', () => {
+    const withReserve = (
+      minReserveKm: number,
+      strictMode = false,
+    ): Scenario => ({
+      ...scenario,
+      parameters: { ...scenario.parameters, minReserveKm, strictMode },
+    });
+    const okOf = (sc: Scenario, name: string) => {
+      const result = computeOffer(sc, purchaseOf(sc, name), 'mid');
+      if (result.status !== 'ok') throw new Error(`${name}: ${result.status}`);
+      return result;
+    };
+    const monthsDriving = (result: ReturnType<typeof okOf>, choice: string) =>
+      new Set(
+        result.plan.filter((p) => p.choice === choice).map((p) => p.month),
+      );
+
+    it('R = 10: the Corsa 2023 drives fewer km and way A goes to the petrol car in winter', () => {
+      const plain = okOf(withReserve(0), 'Opel Corsa 2023');
+      const result = okOf(withReserve(10), 'Opel Corsa 2023');
+      expect(result.evKmPerYear).toBeLessThan(plain.evKmPerYear);
+      // January 2,5 km of reserve, as the user saw it: way A rests in winter.
+      const evA = monthsDriving(result, 'evA');
+      for (const winter of [0, 1, 11]) expect(evA.has(winter)).toBe(false);
+      expect(
+        plain.plan.some((p) => p.state === 'onlyA' && p.choice === 'rest'),
+      ).toBe(false);
+      expect(
+        result.plan.some(
+          (p) => p.state === 'onlyA' && p.month === 0 && p.choice === 'rest',
+        ),
+      ).toBe(true);
+    });
+
+    it('R = 10: the smallest reserve of the driven ways is never below R', () => {
+      for (const name of ['MG4 Urban', 'Opel Corsa 2023', 'Opel Corsa 2024']) {
+        const result = okOf(withReserve(10), name);
+        expect(result.minReserve?.reserveKm ?? 10).toBeGreaterThanOrEqual(10);
+      }
+    });
+
+    it('R = 10: January of way A is red and says "below the Kilometerreserve", the reserve shown is positive', () => {
+      const result = okOf(withReserve(10), 'Opel Corsa 2023');
+      const january = result.reserves.find(
+        (c) => c.way === 'a' && c.month === 0,
+      );
+      expect(january?.light).toBe('red');
+      expect(january?.belowMinReserve).toBe(true);
+      expect(january?.reserveKm).toBeGreaterThan(0);
+      expect(january?.reserveKm).toBeLessThan(10);
+    });
+
+    it('R = 10: a candidate with a large reserve (MG4) keeps its plan', () => {
+      const plain = okOf(withReserve(0), 'MG4 Urban');
+      const result = okOf(withReserve(10), 'MG4 Urban');
+      expect(result.plan).toEqual(plain.plan);
+      expect(result.costs).toEqual(plain.costs);
+      expect(result.reserves.every((c) => !c.belowMinReserve)).toBe(true);
+    });
+
+    it('R = 200: no way fits, the offer is unsuitable and the reason names R', () => {
+      const result = computeOffer(
+        withReserve(200),
+        purchaseOf(scenario, 'Opel Corsa 2023'),
+        'mid',
+      );
+      expect(result.status).toBe('unsuitable');
+      if (result.status !== 'unsuitable') return;
+      expect(result.reason.kind).toBe('both');
+      if (result.reason.kind !== 'both') return;
+      expect(result.reason.minReserveKm).toBe(200);
+      expect(
+        Math.max(result.reason.reserveKm.a, result.reason.reserveKm.b),
+      ).toBeLessThan(200);
+    });
+
+    it('strict mode with R = 40: the reason is the way and month that miss R', () => {
+      const result = computeOffer(
+        withReserve(40, true),
+        purchaseOf(scenario, 'Opel Corsa 2023'),
+        'mid',
+      );
+      expect(result.status).toBe('unsuitable');
+      if (result.status !== 'unsuitable') return;
+      expect(result.reason.kind).toBe('strict');
+      if (result.reason.kind !== 'strict') return;
+      expect(result.reason.minReserveKm).toBe(40);
+      expect(result.reason.reserveKm).toBeLessThan(40);
+    });
+  });
 });

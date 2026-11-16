@@ -315,6 +315,8 @@
       "copyName": "{{name}} (Kopie)",
       "unsuitableBoth": "{{weekday}}, {{month}}: beide Wege nicht fahrbar. Reserve Weg A {{a}}, Weg B {{b}}.",
       "unsuitableStrict": "Streng-Modus: Weg {{way}} im {{month}} nicht fahrbar, Reserve {{km}}.",
+      "unsuitableBothReserve": "{{weekday}}, {{month}}: beide Wege unter der Kilometerreserve von {{minReserve}}. Reserve Weg A {{a}}, Weg B {{b}}, es fehlen {{missing}}.",
+      "unsuitableStrictReserve": "Streng-Modus: Weg {{way}} im {{month}} unter der Kilometerreserve von {{minReserve}}, Reserve {{km}}, es fehlen {{missing}}.",
       "unsuitableCoupling": "Die Wege sind fahrbar, aber mit den E-Auto-Kilometern sinkt der Akku auf {{soh}} SoH und reicht dann nicht mehr.",
       "profileMissing": "Das Fahrprofil ist nicht vollständig, deshalb wird noch nicht gerechnet.",
       "toProfile": "Zum Fahrprofil",
@@ -504,6 +506,8 @@
     "unsuitable": {
       "both": "{{weekday}}, {{month}}: Reserve Weg A {{a}}, Weg B {{b}}. Beide Wege nicht fahrbar.",
       "strict": "Weg {{way}} ist im {{month}} nicht fahrbar (Reserve {{km}}). Der Verbrenner würde ihn übernehmen.",
+      "bothReserve": "{{weekday}}, {{month}}: Reserve Weg A {{a}}, Weg B {{b}}. Beide Wege unter der Kilometerreserve von {{minReserve}}, es fehlen {{missing}}.",
+      "strictReserve": "Weg {{way}} liegt im {{month}} unter der Kilometerreserve von {{minReserve}} (Reserve {{km}}, es fehlen {{missing}}). Der Verbrenner würde ihn übernehmen.",
       "coupling": "Jeder Weg geht bei bestem SoH, aber die Fahrten senken den SoH auf {{soh}} und die Reserve reicht dann nicht.",
       "titleStrict": "Ungeeignet im Streng-Modus",
       "titleCoupling": "Ungeeignet durch Akkualterung"
@@ -560,6 +564,9 @@
         "swipe": "Zum Ansehen seitlich wischen.",
         "asTable": "Als Tabelle lesen",
         "cell": "Weg {{way}}, {{month}}: {{km}}, {{pct}}, {{light}}",
+        "cellBelow": "Weg {{way}}, {{month}}: {{km}}, {{pct}}, {{light}}, unter der Kilometerreserve",
+        "belowMinReserve": "unter der Kilometerreserve",
+        "legendBelowMinReserve": "unter der Kilometerreserve von {{value}}",
         "scrollLabel": "Heatmap der Reichweitenreserve, seitlich scrollbar"
       },
       "plan": {
@@ -670,7 +677,7 @@
           "F3_u": "u = (obere − untere Ladegrenze) · (1 − Puffer)",
           "F3_phi": "φ = Σ d_i / (R*_i · SoH)",
           "F3_n": "n = 2 − z",
-          "F3_suitable": "geeignet ⇔ n · φ ≤ u",
+          "F3_suitable": "geeignet ⇔ Reserve ≥ R ⇔ (n + R / d) · φ ≤ u",
           "F3_reserveKm": "Reserve = d · (u / φ − n)",
           "F3_reservePct": "Reserve % = u / (n · φ) − 1",
           "F3_trafficLight": "grün ab Schwelle, gelb von 0 bis dahin, sonst rot",
@@ -696,7 +703,7 @@
           "F8_maintenance": "F_m · (m_EV · K_EV + m_ICE · K_ICE)",
           "F8_kIce": "K_ICE = Gesamtkilometer − K_EV",
           "F8_iceOdometer": "k_ICE,0 + K_ICE · D / 12",
-          "OPT_threshold": "kleinster SoH, ab dem die Option zulässig ist",
+          "OPT_threshold": "kleinster SoH, ab dem die Option zulässig ist: φ₁ · (n + R / d) / u",
           "OPT_optionSet": "zulässige Optionen am Rasterwert K",
           "OPT_remainingWarranty": "max(0, Garantie − Alter)",
           "OPT_budget": "B = min(Fahrzeug-km ÷ Jahre, Akku-km ÷ Jahre)",

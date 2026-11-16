@@ -447,6 +447,7 @@ function okResult(
         reserveKm: check.reserveKm,
         reservePct: check.reservePct,
         light: check.light,
+        belowMinReserve: check.belowMinReserve,
       });
     }
   }

@@ -72,17 +72,36 @@ export function capacityShare(
   return phi;
 }
 
-/** F3.suitable: n · φ ≤ u. */
+/**
+ * Trips counted with the Kilometerreserve added as a share of the way,
+ * n + R / d_w. A way of 0 km has no such share (no division by 0): it needs no
+ * reserve. With R = 0 this is n, bit for bit.
+ */
+function tripsWithReserve(
+  n: number,
+  wayKm: number,
+  minReserveKm: number,
+): number {
+  return wayKm === 0 ? n : n + minReserveKm / wayKm;
+}
+
+/**
+ * F3.suitable: (n + R / d_w) · φ ≤ u, the same as reserve in km ≥ R. A way of
+ * 0 km is always suitable.
+ */
 export function isSuitable(
   n: number,
   phi: number,
   u: number,
+  wayKm: number,
+  minReserveKm: number,
   trace?: Trace,
 ): boolean {
-  const suitable = n * phi <= u;
+  const suitable =
+    wayKm === 0 || tripsWithReserve(n, wayKm, minReserveKm) * phi <= u;
   trace?.add({
     formula: 'F3.suitable',
-    inputs: { n, phi, u },
+    inputs: { n, phi, u, minReserveKm, wayKm },
     value: suitable,
   });
   return suitable;
@@ -161,6 +180,11 @@ export type WayCheck = {
   reserveKm: number;
   reservePct: number;
   light: TrafficLight;
+  /**
+   * Not suitable although the reserve is not negative: it lies between 0 and
+   * the Kilometerreserve. The light is red then, and the cell says why.
+   */
+  belowMinReserve: boolean;
 };
 
 /** All of section 3 for one way, month and SoH. */
@@ -172,6 +196,8 @@ export function checkWay(
     u: number;
     chargesFreeAtWork: boolean;
     greenFromPct: number;
+    /** Kilometerreserve R in km. */
+    minReserveKm: number;
   },
   trace?: Trace,
 ): WayCheck {
@@ -183,25 +209,35 @@ export function checkWay(
     trace,
   );
   const reserve = reservePct(input.u, phi, n, trace);
-  const suitable = isSuitable(n, phi, input.u, trace);
+  const wayKm = sumRoads(input.distanceKm);
+  const suitable = isSuitable(
+    n,
+    phi,
+    input.u,
+    wayKm,
+    input.minReserveKm,
+    trace,
+  );
   // n·φ ≤ u and u/(n·φ) - 1 ≥ 0 differ by rounding at the boundary; the
   // suitability flag decides, so the light is red exactly when not suitable.
   const lightReserve = suitable
     ? Math.max(reserve, 0)
     : Math.min(reserve, -Number.MIN_VALUE);
+  const reserveInKm = reserveKm(wayKm, input.u, phi, n, trace);
   return {
     phi,
     n,
     suitable,
-    reserveKm: reserveKm(sumRoads(input.distanceKm), input.u, phi, n, trace),
+    reserveKm: reserveInKm,
     reservePct: reserve,
     light: trafficLight(lightReserve, input.greenFromPct, trace),
+    belowMinReserve: !suitable && input.minReserveKm > 0 && reserveInKm >= 0,
   };
 }
 
 /**
- * OPT.threshold: the lowest SoH at which the way is suitable, n · φ_1 / u with
- * φ_1 the capacity share at SoH 1. The optimizer uses it to find which options
+ * OPT.threshold: the lowest SoH at which the way is suitable,
+ * (n + R / d_w) · φ_1 / u with φ_1 the capacity share at SoH 1. The optimizer uses it to find which options
  * a given SoH permits. The value is not clamped: above 1 the way is never
  * suitable, below the minimum SoH it is always suitable.
  */
@@ -210,14 +246,19 @@ export function sohThreshold(
   checkRangeKm: PerRoad,
   n: number,
   u: number,
+  minReserveKm: number,
   trace?: Trace,
 ): number {
   // Untraced on purpose: only OPT.threshold belongs in the Rechenweg here.
   const phiAtFullSoh = capacityShare(distanceKm, checkRangeKm, 1);
-  const threshold = finiteRatio(n * phiAtFullSoh, u);
+  const wayKm = sumRoads(distanceKm);
+  const threshold = finiteRatio(
+    tripsWithReserve(n, wayKm, minReserveKm) * phiAtFullSoh,
+    u,
+  );
   trace?.add({
     formula: 'OPT.threshold',
-    inputs: { phiAtFullSoh, n, u },
+    inputs: { phiAtFullSoh, n, u, minReserveKm, wayKm },
     value: threshold,
   });
   return threshold;
