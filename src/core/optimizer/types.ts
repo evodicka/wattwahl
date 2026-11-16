@@ -72,4 +72,6 @@ export type Selection =
       cause: 'groups' | 'strict';
       /** Best SoH any plan can have (at the smallest possible EV km). */
       bestSoh: number;
+      /** The EV km per year behind `bestSoh` (the raster value at the fewest possible km). */
+      bestKmPerYear: number;
     };
