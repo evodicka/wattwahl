@@ -90,6 +90,7 @@ describe('S03: parameter list', () => {
   };
   const WORDS: Record<string, string | boolean> = {
     'Ende der Vergleichsdauer': 'end',
+    fest: 'fixed',
     'frei optimiert': 'optimized',
     aus: false,
     an: true,
@@ -107,7 +108,7 @@ describe('S03: parameter list', () => {
   }
 
   it('reads every row of the spec table', () => {
-    expect(specRows).toHaveLength(30);
+    expect(specRows).toHaveLength(31);
   });
 
   it.each(specRows)('%s', (label, standard, unit, hint) => {
@@ -470,7 +471,7 @@ describe('S03: no parallel type definitions (architecture 8.1)', () => {
     expect(objectTypes).toEqual([]);
   });
 
-  it('is schema version 3 since the Kilometerreserve (C2b)', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(3);
+  it('is schema version 4 since the SoH plan (C3b)', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(4);
   });
 });

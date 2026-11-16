@@ -212,6 +212,19 @@ describe('S04: plausibility warnings', () => {
     ]);
   });
 
+  it('C3b: the SoH plan has no plausibility warning, and the schema takes only fixed or switch', () => {
+    const scenario = exampleScenario();
+    for (const mode of ['fixed', 'switch'] as const) {
+      scenario.parameters.sohPlanMode = mode;
+      expect(checkWarnings(scenario)).toEqual([]);
+      expect(ScenarioSchema.safeParse(scenario).success).toBe(true);
+    }
+    const invalid = { ...scenario.parameters, sohPlanMode: 'maybe' };
+    expect(
+      ScenarioSchema.safeParse({ ...scenario, parameters: invalid }).success,
+    ).toBe(false);
+  });
+
   it('S04: a commute of exactly 300 km does not warn', () => {
     const scenario = exampleScenario();
     scenario.workplaces.b.commute = { city: 100, rural: 100, highway: 100 };

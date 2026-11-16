@@ -32,7 +32,13 @@ import {
   type PriceSelection,
   type ResolvedPrices,
 } from './calc/prices';
-import { monthsUntilSoh, sohAt, sohCurve, sohKEnd } from './calc/soh';
+import {
+  effectiveSohReference,
+  monthsUntilSoh,
+  sohAt,
+  sohCurve,
+  sohKEnd,
+} from './calc/soh';
 import {
   optimizeOffer,
   type OfferTerms,
@@ -505,7 +511,7 @@ function okResult(
   from = mark();
   const sohCheck = sohAt(
     curve,
-    parameters.sohReference === 'end' ? kEnd : candidate.mileageKm,
+    effectiveSohReference(parameters) === 'end' ? kEnd : candidate.mileageKm,
     trace,
   );
   link(from, 'F2.soh', 'sohCheck');
@@ -658,6 +664,7 @@ function okResult(
     reserves,
     minReserve,
     timeline,
+    planSwitch: null,
     warranty: {
       noWarranty: budget.noWarranty,
       remaining,

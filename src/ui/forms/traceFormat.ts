@@ -82,6 +82,8 @@ const KIND: Record<FormulaId, Kind> = {
   'OPT.yearsToKmLimit': 'years',
   'OPT.timeline': 'percentFraction',
   'OPT.suitableUntil': 'months',
+  'OPT.switchEvent': 'km',
+  'OPT.switchCost': 'euro',
 };
 
 const t = (key: string, options: Record<string, unknown> = {}): string =>

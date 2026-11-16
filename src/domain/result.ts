@@ -52,6 +52,8 @@ export const FORMULA_IDS = [
   'OPT.yearsToKmLimit',
   'OPT.timeline',
   'OPT.suitableUntil',
+  'OPT.switchEvent',
+  'OPT.switchCost',
 ] as const;
 
 export const FormulaIdSchema = z.enum(FORMULA_IDS);
@@ -101,6 +103,11 @@ export const UnsuitableReasonSchema = z.discriminatedUnion('kind', [
     /** The Kilometerreserve the ways were measured against (R, 0 if none). */
     minReserveKm: z.number(),
     soh: z.number(),
+    /**
+     * Mode `switch` only: whole months (rounded down) after which the last way
+     * tips, at the lowest possible EV rate (spec "Ungeeignet").
+     */
+    afterMonths: z.number().int().min(0).optional(),
   }),
   z.object({
     /** Strict mode: this way is not drivable in this month. */
@@ -110,6 +117,8 @@ export const UnsuitableReasonSchema = z.discriminatedUnion('kind', [
     reserveKm: z.number(),
     minReserveKm: z.number(),
     soh: z.number(),
+    /** Mode `switch` only: whole months after which the way tips, at the lowest possible EV rate. */
+    afterMonths: z.number().int().min(0).optional(),
   }),
   z.object({
     /**
@@ -131,6 +140,39 @@ export const PlanCellSchema = z.object({
   state: PresenceStateSchema,
   choice: PlanChoiceSchema,
 });
+
+/**
+ * The plan with switch points (spec "Plan mit Wechselzeitpunkt"), `null` in
+ * mode `fixed`. `events` is empty if the fixed plan was chosen.
+ */
+export const PlanSwitchSchema = z.object({
+  /** Which of the two compared plans the result follows. */
+  chosen: z.enum(['switch', 'fixed']),
+  /** Target cost of both plans; `null` if that plan is not admissible. */
+  switchTargetCost: z.number().nullable(),
+  fixedTargetCost: z.number().nullable(),
+  /** Months at which the switch plan ran out of options in a group, if it did. */
+  infeasibleAfterMonths: z.number().nullable(),
+  events: z.array(
+    z.object({
+      /** Exact time of the event in months (a float; the display rounds down). */
+      month: z.number(),
+      soh: z.number(),
+      /** The EV km per year after the event. */
+      evKmPerYear: z.number(),
+      entries: z.array(
+        z.object({
+          weekday: WeekdaySchema,
+          month: MonthSchema,
+          state: PresenceStateSchema,
+          from: PlanChoiceSchema,
+          to: PlanChoiceSchema,
+        }),
+      ),
+    }),
+  ),
+});
+export type PlanSwitch = z.infer<typeof PlanSwitchSchema>;
 
 /** Range reserve of one way in one month at the checked SoH (spec section 3). */
 export const ReserveCellSchema = z.object({
@@ -241,6 +283,7 @@ export const OfferResultSchema = z.discriminatedUnion('status', [
       belowMinReserve: true,
     }).nullable(),
     timeline: TimelineSchema,
+    planSwitch: PlanSwitchSchema.nullable(),
     warranty: z.object({
       /** Both warranties are expired: "ohne Garantie". */
       noWarranty: z.boolean(),

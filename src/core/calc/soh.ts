@@ -5,6 +5,16 @@ import { finiteRatio, fraction } from './units';
 // Spec "Berechnungslogik" section 2: battery ageing (SoH). All values are
 // fractions of the original capacity.
 
+/**
+ * The SoH reference the suitability check uses. Mode `switch` ignores the
+ * stored reference: the fixed plan it compares with always checks at the end
+ * (spec "Plan mit Wechselzeitpunkt", rule 7).
+ */
+export const effectiveSohReference = (
+  parameters: Pick<Parameters, 'sohReference' | 'sohPlanMode'>,
+): 'end' | 'start' =>
+  parameters.sohPlanMode === 'switch' ? 'end' : parameters.sohReference;
+
 export type SohCurve = {
   soh0: number;
   /** Odometer reading at which `soh0` applies (architecture 8.4, E3). */

@@ -27,7 +27,12 @@ import {
   mixWeightCold,
   roadRanges,
 } from '../calc/range';
-import { sohAt, sohCurve, sohKEnd } from '../calc/soh';
+import {
+  effectiveSohReference,
+  sohAt,
+  sohCurve,
+  sohKEnd,
+} from '../calc/soh';
 import {
   checkWay,
   sohThreshold,
@@ -320,7 +325,7 @@ export function buildProblem(
   const sohForKmPerYear = (kmPerYear: number): number =>
     sohAt(
       curve,
-      parameters.sohReference === 'end'
+      effectiveSohReference(parameters) === 'end'
         ? sohKEnd(candidate.mileageKm, kmPerYear, comparisonMonths)
         : candidate.mileageKm,
     );
