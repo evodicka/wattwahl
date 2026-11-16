@@ -1,8 +1,8 @@
 # Änderung: Kilometerreserve, Eignung im Zeitverlauf, E-Auto-Kilometerstand
 
-Nov 16, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Folgeversion nach dem Release-Kandidaten geplant
+Nov 16, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Folgeversion nach dem Release-Kandidaten geplant, C2a in Spezifikation, Architektur und Plan umgesetzt
 
-Auslöser ist die Nutzung der veröffentlichten App mit dem Szenario in `docs/acceptance/eauto-export-2026-11-16-v2_3.json` (drei Kandidaten, 96 Monate). Dort fährt das E-Auto die Strecke A (Schmidtbauer) in jedem Monat, obwohl die Reserve im Januar nur 2,5 km (Corsa 2023) bzw. 9,9 km (Corsa 2024) beträgt. Der Nutzer will eine feste Mindestreserve in km, ab der das E-Auto als ungeeignet gilt. Er will außerdem sehen, ab wann eine Strecke im Lauf der Vergleichsdauer ungeeignet wird, und im Angebotsvergleich neben dem Kilometerstand des Verbrenners auch den des E-Autos.
+Auslöser ist die Nutzung der veröffentlichten App mit dem Szenario in `docs/acceptance/eauto-export-2026-11-16-v2_3.json` (drei Kandidaten, 96 Monate). Dort fährt das E-Auto die Strecke A (Standort A) in jedem Monat, obwohl die Reserve im Januar nur 2,5 km (Corsa 2023) bzw. 9,9 km (Corsa 2024) beträgt. Der Nutzer will eine feste Mindestreserve in km, ab der das E-Auto als ungeeignet gilt. Er will außerdem sehen, ab wann eine Strecke im Lauf der Vergleichsdauer ungeeignet wird, und im Angebotsvergleich neben dem Kilometerstand des Verbrenners auch den des E-Autos.
 
 Dieses Dokument beschreibt drei Änderungen in einem Zug. Es ändert selbst noch nichts an Spezifikation, Architektur oder Code.
 
@@ -42,14 +42,14 @@ Heute wird die Eignung bei dem SoH am Ende der Vergleichsdauer geprüft (Schalte
 - Kilometerstand des E-Autos k(t) = Laufleistung des Kandidaten + K_EV · t / 12.
 - SoH(t) nach `F2.soh` an dieser Stelle.
 - Reserve in km und % und Ampel je Weg und Monat (24 Zellen) bei SoH(t), wie in Abschnitt 3, einschließlich Kilometerreserve.
-- Je Zelle zusätzlich `suitableForMonths`: die Monate ab Beginn, in denen die Zelle geeignet bleibt. `null` heißt „bis zum Ende geeignet“, `0` heißt „schon am Start ungeeignet“. Der Wert kommt direkt aus der SoH-Schwelle der Zelle, ohne Abtasten.
+- Je Zelle zusätzlich `suitableForMonths`: die Monate ab Beginn, in denen die Zelle geeignet bleibt. `null` heißt „bis zum Ende geeignet“, `0` heißt „weniger als ein voller Monat geeignet“ (schließt „schon am Start ungeeignet“ ein). Der Wert kommt direkt aus der SoH-Schwelle der Zelle, ohne Abtasten.
 
 **Modellgrenze:** Der Zeitverlauf rechnet mit den E-Auto-Kilometern des gewählten Plans. Ein Weg, der im Plan dem Verbrenner zugeteilt ist, würde bei E-Betrieb mehr Kilometer und damit einen niedrigeren SoH bedeuten. Der Verlauf sagt also „bei diesem Plan“, nicht „wenn man den Weg doch mit dem E-Auto fährt“. Das steht als Hinweis in der Oberfläche.
 
 **Darstellung** (Detailansicht Reichweitenreserve):
 
 - Unter der Heatmap ein Zeitregler (Start bis Ende, Schritte je Jahr), per Tastatur bedienbar und beschriftet. Er steht standardmäßig auf dem Zeitpunkt, bei dem die Eignung geprüft wird (heute: Ende, bei „Start“ der Start). Die Heatmap zeigt dann die Reserven zu diesem Zeitpunkt.
-- Eine Textliste der Zellen mit Zeitgrenze, etwa „Schmidtbauer, Januar: geeignet bis Monat 30“. Sie gibt dieselbe Information, die sonst nur die Farbe trägt.
+- Eine Textliste der Zellen mit Zeitgrenze, etwa „Standort A, Januar: geeignet bis Monat 30“. Sie gibt dieselbe Information, die sonst nur die Farbe trägt.
 - Die Ergebnistabelle ändert sich dadurch nicht.
 
 **Rechenweg:** Der Zeitverlauf bekommt eigene Formel-IDs `OPT.timeline` (ein Eintrag je Zeitpunkt mit Monat, Kilometerstand und SoH) und `OPT.suitableUntil` (ein Eintrag je Zelle mit Schwelle und Monaten). Die Reserven je Zeitpunkt werden ohne eigene Trace-Einträge berechnet und mit dem Eintrag des Zeitpunkts verlinkt (Q6), wie es `sohThreshold` heute bei den Teilformeln macht.
@@ -72,7 +72,7 @@ Die Testfälle 1 bis 19 bleiben unverändert.
 | Nr | Prüfung | Eingabe | Erwartet |
 | --- | --- | --- | --- |
 | 20 | Kilometerreserve | Testfall 1 (Reserve 31,1 km, n = 2) und Testfall 2 (Reserve 91,1 km, n = 1), jeweils mit R = 30 bzw. 90, dann R = 32 bzw. 92. Dritter Fall: Weg mit 0 km und R = 50 | R unter der Reserve: geeignet. R darüber: nicht geeignet, Ampel rot, angezeigte Reserve bleibt 31,1 km bzw. 91,1 km. Weg mit 0 km: geeignet. R = 0 gibt die Werte aus Testfall 1 und 2. |
-| 21 | Eignung im Zeitverlauf | Export `eauto-export-2026-11-16-v2_3.json`, Kandidat Corsa 2023 (SoH 95 % bei 19.000 km), Strecke A im Januar, K_EV = 19.055 km/Jahr. Erst R = 0, dann R = 10 km | R = 0: SoH-Schwelle 0,829 liegt unter der SoH-Untergrenze von 0,85, `suitableForMonths = null`. R = 10: Schwelle ca. 0,914, die Zelle kippt nach rund 30 Monaten (genauer Wert im Test aus dem Rechenkern). Der Zeitpunkt „Ende“ stimmt mit `sohCheck` und den heutigen `reserves` überein. |
+| 21 | Eignung im Zeitverlauf | Export `eauto-export-2026-11-16-v2_3.json`, Kandidat Corsa 2023 (SoH 95 % bei 19.000 km), Strecke A im Januar, K_EV = 19.055 km/Jahr. Erst R = 0, dann R = 10 km | R = 0: SoH-Schwelle 0,829 liegt unter der SoH-Untergrenze von 0,85, `suitableForMonths = null`. R = 10: Schwelle 0,914, die Zelle kippt nach 30,47 Monaten, also `suitableForMonths = 30`. Der Zeitpunkt „Ende“ stimmt mit `sohCheck` und den heutigen `reserves` überein. |
 | 22 | E-Auto-Kilometerstand | Derselbe Export, Kauf, K_EV = 19.055 km/Jahr, D = 96 | MG4 (neu): 152.442 km. Corsa 2023: 19.000 + 152.442 = 171.442 km. Verbrenner zum Vergleich: 120.000 + 23.430 = 143.430 km. |
 
 Die Rechnung im Testfall 21 mit R = 10 setzt einen festen Plan voraus. Beim Optimierer mit R = 10 ändert sich K_EV. Dafür gibt es einen zusätzlichen Integrationstest: Mit R = 10 sinken die E-Auto-Kilometer des Corsa 2023 gegenüber R = 0, und die Strecke A wird in den Wintermonaten dem Verbrenner zugeteilt. Die genauen Werte werden im Schritt aus dem Rechenkern übernommen. „Alle 19 Testfälle“ wird „Alle 22 Testfälle“.
@@ -124,3 +124,6 @@ Die Änderung läuft wie die Garantie-Änderung in zwei Schritten: C2a ändert S
 5. Zeitpunkte des Zeitverlaufs: jährlich bis D, dazu D selbst.
 6. Formel-IDs im Stil der bestehenden Optimierer-IDs (`OPT.threshold`, `OPT.budget`, `OPT.target`): `OPT.timeline` und `OPT.suitableUntil`. `F3.suitable` und `OPT.threshold` behalten ihre IDs, der Kilometerstand nutzt `F2.kEnd`. Die Reserven je Zeitpunkt haben keine eigenen Einträge, damit der Rechenweg bei langer Vergleichsdauer kurz bleibt.
 7. Einordnung: Folgeversion nach S25 und S26.
+8. `suitableForMonths` ist eine Anzahl ganzer Monate, im Kern abgerundet (bewusste Ausnahme von „gerundet wird nur in der Anzeige“, Q5 bleibt unberührt). Testfall 21 erwartet 30.
+9. Der Grund bei „ungeeignet“ nennt bei R > 0 die Kilometerreserve, die fehlende Menge ist R minus Reserve. Das gilt auch für den Grund im Streng-Modus.
+10. Die Schritte C2a und C2b stehen als Phase 7 im Implementierungsplan, ohne neues Tor. Der Zeitverlauf hat in Q6 eine Ausnahme (Kilometerstand und Reserven je Zeitpunkt sind über `OPT.timeline` verlinkt).
