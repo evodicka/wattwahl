@@ -8,8 +8,9 @@ import {
   leaseCost,
   purchaseCost,
 } from '../calc/costs';
+import { monthsUntilSoh } from '../calc/soh';
 import type { Trace } from '../trace';
-import { WAYS, type GroupInfo, type Problem } from './problem';
+import { WAYS, pairIndex, type GroupInfo, type Problem } from './problem';
 import type { Selection } from './types';
 import {
   isExpired,
@@ -50,6 +51,8 @@ export type OptimizerOutcome =
   | {
       status: 'ok';
       plan: PlanEntry[];
+      /** Index of the chosen option per group of `Problem.groups`, for the switch simulation. */
+      optionIndex: number[];
       /** Exact yearly EV km of the plan (K_EV). */
       evKmPerYear: number;
       /** Energy and maintenance over the comparison period. */
@@ -158,6 +161,41 @@ function explain(
   return worst ?? { kind: 'coupling', soh };
 }
 
+/**
+ * Mode `switch`: adds to the reason of the fixed plan after how many whole
+ * months the way (`both`: the last of the two) tips at the lowest possible EV
+ * rate, the rate behind `bestSoh` (spec "Ungeeignet"). Without a crossing
+ * inside the comparison there is no time to name.
+ */
+function withMonths(
+  problem: Problem,
+  reason: UnsuitableReason,
+  kmPerYear: number,
+): UnsuitableReason {
+  let threshold: number;
+  if (reason.kind === 'both') {
+    threshold = Math.min(
+      problem.thresholds[pairIndex('a', reason.month)] as number,
+      problem.thresholds[pairIndex('b', reason.month)] as number,
+    );
+  } else if (reason.kind === 'strict') {
+    threshold = problem.thresholds[
+      pairIndex(reason.way, reason.month)
+    ] as number;
+  } else {
+    return reason;
+  }
+  const months = monthsUntilSoh(
+    problem.curve,
+    problem.mileageKm,
+    kmPerYear,
+    threshold,
+  );
+  return months < problem.costInput.comparisonMonths
+    ? { ...reason, afterMonths: Math.floor(months) }
+    : reason;
+}
+
 /** Sums the yearly quantities of the chosen option of every group. */
 function sumQuantities(
   problem: Problem,
@@ -185,6 +223,12 @@ export function optimizeOffer(
   problem: Problem,
   offer: OfferTerms,
   trace?: Trace,
+  /**
+   * `end`: the plan of the mode `fixed` (SoH at the reference of the
+   * parameters, "Ende" in mode `switch`). `start`: plan P of the mode `switch`,
+   * every option checked at the SoH at the start.
+   */
+  plan: 'end' | 'start' = 'end',
 ): OptimizerOutcome {
   const { parameters } = scenario;
   const months = parameters.comparisonMonths;
@@ -223,7 +267,8 @@ export function optimizeOffer(
         )
       : 0;
 
-  const selection = problem.solver.solve(
+  const solver = plan === 'start' ? problem.startSolver() : problem.solver;
+  const selection = solver.solve(
     {
       offerCost:
         offer.kind === 'purchase'
@@ -236,15 +281,20 @@ export function optimizeOffer(
     trace,
   );
   if (selection.status === 'unsuitable') {
+    const reason = explain(problem, selection, parameters.minReserveKm);
     return {
       status: 'unsuitable',
-      reason: explain(problem, selection, parameters.minReserveKm),
+      reason:
+        parameters.sohPlanMode === 'switch' && plan === 'end'
+          ? withMonths(problem, reason, selection.bestKmPerYear)
+          : reason,
       remaining,
       budget,
     };
   }
   return {
     status: 'ok',
+    optionIndex: selection.optionIndex,
     plan: problem.groups.map((group, index) => {
       const option = group.options[selection.optionIndex[index] as number];
       if (!option) throw new RangeError(`Bad option for group ${group.key}.`);
