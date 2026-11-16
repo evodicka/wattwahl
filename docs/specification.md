@@ -44,7 +44,7 @@ Die folgenden Entscheidungen sind verbindlich und bilden die Grundlage aller wei
 | Ladefenster | 10–80 % überall (Heim und Arbeit), dazu ein einstellbarer Sicherheitspuffer in % und eine Kilometerreserve in km (Standard 0). |
 | Laden am Arbeitsplatz | Es wird immer auf 80 % geladen. Nur eine Strecke zählt gegen die Reichweite. Der Strom ist kostenlos. |
 | Laden zu Hause | Nur Strompreis, Ladung bis 80 %. Die Zusatzstrecke wird zu Hause geladen. Kein öffentliches Laden. |
-| Akkualterung | Linear über die Laufleistung bis 85 % SoH. Bei Gebrauchten optional ein bekannter SoH. |
+| Akkualterung | Linear über die Laufleistung bis 85 % SoH. Bei Gebrauchten optional ein bekannter SoH. Die Eignung wird bei einem SoH geprüft (Start oder Ende). Optional rechnet der Modus „mit Wechsel“ einen Plan, bei dem das E-Auto einen Weg fährt, solange er geeignet ist, und danach eine andere Option übernimmt. |
 | Verbrenner | Verbrauch je Straßenart in l/100 km, Benzinpreis als Spanne. Die aktuelle Laufleistung ist informativ, angezeigt wird die geplante Laufleistung am Ende der Vergleichsdauer. |
 | Preise | Benzin und Heimstrom je als Minimum, Mittel und Maximum plus jährliche Preissteigerung. |
 | Arbeitstage | Wochentage × 52 Wochen minus freie Tage je Arbeitsstätte. |
@@ -188,7 +188,7 @@ $$
 s = \frac{1 - SoH_{min}}{k_{SoH}}, \qquad SoH(k) = \max\left(\min(SoH_{min}, SoH_0),\ SoH_0 - s\,(k - k_0)\right)
 $$
 
-Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 − s · k). Die Kurve beginnt beim aktuellen Kilometerstand des Kandidaten (bei Neuwagen 0), ein bekannter SoH\_0 gilt an diesem Stand. Die Eignungsprüfung nutzt den SoH am Ende der Vergleichsdauer, k\_end = Kilometerstand + K\_EV · D/12 (umschaltbar auf Start). K\_EV sind die jährlichen E-Auto-Kilometer. Zusätzlich zeigt die Auswertung die Eignung zu weiteren Zeitpunkten mit SoH(k(t)) (Unterabschnitt Eignung im Zeitverlauf in Abschnitt 3).
+Ohne bekannten SoH gilt SoH\_0 = 1 bei k\_0 = 0, also SoH(k) = max(SoH\_min, 1 − s · k). Die Kurve beginnt beim aktuellen Kilometerstand des Kandidaten (bei Neuwagen 0), ein bekannter SoH\_0 gilt an diesem Stand. Die Eignungsprüfung nutzt den SoH am Ende der Vergleichsdauer, k\_end = Kilometerstand + K\_EV · D/12 (umschaltbar auf Start). K\_EV sind die jährlichen E-Auto-Kilometer. Im Modus „mit Wechsel“ gilt der SoH-Bezug nicht, die Eignung wird zum jeweiligen Zeitpunkt geprüft (Optimierung, Plan mit Wechselzeitpunkt). Zusätzlich zeigt die Auswertung die Eignung zu weiteren Zeitpunkten mit SoH(k(t)) (Unterabschnitt Eignung im Zeitverlauf in Abschnitt 3).
 
 ### 3. Eignung eines Wegs
 
@@ -218,15 +218,15 @@ d\_w ist die einfache Weglänge in km, R die Kilometerreserve (Parameter, Standa
 
 #### Eignung im Zeitverlauf
 
-Die Eignung wird bei einem SoH geprüft (Abschnitt 2). Weil der SoH nur sinkt, gilt „geeignet“ dann für die ganze Vergleichsdauer, und ein Weg, der erst später kippt, wird ganz ausgeschlossen. Der Plan bleibt in dieser Auswertung unverändert, sie erklärt nur, wann ein Weg kippt. Für die Zeitpunkte t = 0, 12, 24, … Monate bis D, und D selbst, wenn D kein Vielfaches von 12 ist, gilt:
+Die Eignung wird bei einem SoH geprüft (Abschnitt 2). Weil der SoH nur sinkt, gilt „geeignet“ dann für die ganze Vergleichsdauer, und im Modus „fest“ (Standard) wird ein Weg, der erst später kippt, ganz ausgeschlossen. Der Plan bleibt in dieser Auswertung unverändert, sie erklärt nur, wann ein Weg kippt. Der Modus „mit Wechsel“ nutzt dieses Wissen für den Plan (Optimierung, Plan mit Wechselzeitpunkt). Für die Zeitpunkte t = 0, 12, 24, … Monate bis D, und D selbst, wenn D kein Vielfaches von 12 ist, gilt:
 
-- Kilometerstand k(t) = Laufleistung des Kandidaten + K\_EV · t/12 und SoH(t) nach Abschnitt 2.
+- Kilometerstand k(t) = Laufleistung des Kandidaten + K\_EV · t/12 und SoH(t) nach Abschnitt 2. Im Modus „mit Wechsel“, wenn der Wechselplan gewählt ist, ist der Kilometerstand stückweise linear mit der Rate je Phase.
 - Reserve in km und %, Ampel und Kennzeichnung je Weg und Monat (24 Zellen) bei SoH(t), einschließlich der Kilometerreserve.
 - Je Zelle `suitableForMonths`: die ganzen Monate ab Beginn, in denen die Zelle geeignet bleibt, abgerundet. Der Wert folgt direkt aus der SoH-Schwelle der Zelle (Optimierung, Algorithmus, Schritt 1), ohne Abtasten. `null` heißt „bis zum Ende der Vergleichsdauer geeignet“ (auch wenn die Schwelle nie erreicht wird). `0` heißt „weniger als ein voller Monat geeignet“, das schließt „schon am Start ungeeignet“ ein. Der Zeitpunkt t = 0 der Heatmap zeigt den tatsächlichen Zustand am Start.
 
 Die Abrundung ist eine bewusste Ausnahme von „gerundet wird nur in der Anzeige“: `suitableForMonths` ist per Definition eine Anzahl ganzer Monate.
 
-**Modellgrenze:** Der Zeitverlauf rechnet mit den E-Auto-Kilometern des gewählten Plans. Ein Weg, der im Plan dem Verbrenner zugeteilt ist, würde bei E-Betrieb mehr Kilometer und damit einen niedrigeren SoH bedeuten. Der Verlauf sagt also „bei diesem Plan“, nicht „wenn man den Weg doch mit dem E-Auto fährt“.
+**Modellgrenze:** Der Zeitverlauf rechnet mit den E-Auto-Kilometern des gewählten Plans. Ein Weg, der im Plan dem Verbrenner zugeteilt ist, würde bei E-Betrieb mehr Kilometer und damit einen niedrigeren SoH bedeuten. Der Verlauf sagt also „bei diesem Plan“, nicht „wenn man den Weg doch mit dem E-Auto fährt“. Im Modus „mit Wechsel“ gilt das für den Plan mit den Wechseln. Die Kilometer verteilen sich gleichmäßig über das Jahr, ohne Saison im Kilometerstand.
 
 ### 4. Verbrauch und Energie
 
@@ -259,6 +259,8 @@ F_b = \sum_y q_y\,(1+g_b)^{y-1}, \qquad F_s = \sum_y q_y\,(1+g_s)^{y-1}, \qquad 
 $$
 
 g\_b und g\_s sind die jährlichen Preissteigerungen für Benzin und Strom. Kosten = Jahresmenge · Preis · F. Wartungskosten steigen nicht.
+
+Für ein Zeitfenster [t₁, t₂) in Monaten gelten dieselben Faktoren mit dem Anteil q\_y(t₁, t₂) = Länge des Schnitts von [t₁, t₂) und dem Jahr y, geteilt durch 12: F\_b(t₁, t₂) = Σ q\_y(t₁, t₂) · (1 + g\_b)^(y−1), F\_s entsprechend und F\_m(t₁, t₂) = (t₂ − t₁)/12. Die Faktoren über die ganze Dauer sind der Sonderfall [0, D). Ein Wechsel mitten im Jahr teilt den Anteil dieses Jahres genau. Die Faktoren der Fenster einer Zerlegung von [0, D) summieren sich zu den Faktoren über die ganze Dauer.
 
 ### 8. Gesamtkosten der Flotte über die Vergleichsdauer
 
@@ -295,6 +297,8 @@ Ein Angebot gilt als ungeeignet, wenn es einen Tagestyp mit dem Zustand „A und
 
 Optional kann der Streng-Modus eingeschaltet werden (Standard aus): Dann ist ein Angebot auch ungeeignet, wenn das E-Auto irgendeinen besuchten Weg in irgendeinem Monat nicht fahren kann, selbst wenn der Verbrenner ihn übernehmen könnte. Der Grund nennt dort Weg, Monat und bei R > 0 die Kilometerreserve.
 
+Im Modus „mit Wechsel“ gilt: Ungeeignet ist ein Angebot nur, wenn auch der feste Plan mit SoH-Bezug „Ende“ nicht zulässig ist. Scheitert nur der Wechselplan, weil es in einer Gruppe zu einem Zeitpunkt keine erlaubte Option mehr gibt, folgt das Ergebnis dem festen Plan. Der Grund „beide Wege“ nennt zusätzlich den Zeitpunkt, zu dem der letzte Weg kippt („nach N Monaten“, abgerundet). Der Streng-Modus prüft in diesem Modus über die Zeit: Kippt ein besuchter Weg innerhalb der Vergleichsdauer, ist das Angebot ungeeignet, der Grund nennt Weg, Monat und den Zeitpunkt des Kippens.
+
 ### Algorithmus
 
 Die SoH am Ende der Vergleichsdauer hängt von den E-Auto-Kilometern K\_EV ab, und diese hängen vom Plan ab. Die Kopplung wird exakt auf einem Kilometerraster aufgelöst (Standard 250 km pro Jahr).
@@ -304,9 +308,25 @@ Die SoH am Ende der Vergleichsdauer hängt von den E-Auto-Kilometern K\_EV ab, u
 3. Je Optionsmenge löst eine dynamische Programmierung (Rucksack über alle Tagestypen mit ihren Anwesenheitszuständen und die zwölf Zusatzstrecken-Monate) die minimalen variablen Kosten für jede E-Auto-Jahresstrecke K. Variable Kosten sind Energie beider Autos und Wartung.
 4. Zielkosten(K) = variable Kosten(K) + Anschaffung. Bei Leasing kommen Mehr- und Minderkilometer als Funktion von K dazu, und jede Stufe wird einzeln bewertet.
 5. Gewählt wird das K mit den kleinsten Zielkosten unter Beachtung des Garantie-Budgets (nächster Abschnitt). Bei Kostengleichheit (± 0,01 €) gewinnt die größere kleinste Reichweitenreserve über alle Wege und Monate, danach die kleinere E-Auto-Strecke.
-6. Das Ergebnis enthält den Plan je Tagestyp und Zustand, K\_EV, K\_ICE, die geplante Laufleistung des Verbrenners am Ende, SoH am Ende, die Kostenanteile, die Reserve je Weg und Monat, den Kilometerstand des E-Autos am Ende, den Zeitverlauf der Eignung sowie Warnungen.
+6. Das Ergebnis enthält den Plan je Tagestyp und Zustand, K\_EV, K\_ICE, die geplante Laufleistung des Verbrenners am Ende, SoH am Ende, die Kostenanteile, die Reserve je Weg und Monat, den Kilometerstand des E-Autos am Ende, den Zeitverlauf der Eignung, im Modus „mit Wechsel“ das Feld `planSwitch` (Unterabschnitt Plan mit Wechselzeitpunkt) sowie Warnungen.
 
 Die Optimierung läuft je Preisfall: Mittel, "E-Auto günstig" (Benzin Maximum, Strom Minimum) und "E-Auto ungünstig" (Benzin Minimum, Strom Maximum). Ein Regler-Szenario aus der Oberfläche erzeugt einen weiteren Lauf.
+
+### Plan mit Wechselzeitpunkt
+
+Der Parameter SoH-Plan (`fixed` oder `switch`, Standard `fixed`) schaltet auf „mit Wechsel“. Mit `fixed` bleibt alles wie oben beschrieben. Mit `switch` läuft der Optimierer mit der Optionsmenge am Start, danach rechnet eine Nachrechnung je Planeintrag den Wechselzeitpunkt aus. Das ist ein linearer Durchlauf über die Planeinträge (rund 260 Gruppen, höchstens 24 Wechselereignisse), kein zeitabhängiger Optimierer: Der SoH in einem Jahr hängt von den E-Auto-Kilometern der Jahre davor ab, ein exakter zeitabhängiger Plan bräuchte eine DP mit den kumulierten Kilometern als Zustand. Sei P der Plan, den der Optimierer mit der Optionsmenge am Start wählt (wie bei SoH-Bezug „Start“). Jede Option mit Bedarf an ein Paar (Weg, Monat) hat eine SoH-Schwelle (Schritt 1 des Algorithmus).
+
+1. **Ereignissimulation:** Alle Einträge laufen zunächst mit ihrer Option aus P. Daraus folgt k(t) = Laufleistung + K · t/12 mit der Rate K der Phase und SoH(t) nach Abschnitt 2. Das nächste Ereignis ist der Zeitpunkt, zu dem SoH(t) die höchste Schwelle der gerade gefahrenen Optionen unterschreitet. Er folgt aus der Umkehrung von Abschnitt 2 und wird als Gleitkomma-Monat gerechnet. Bis dahin ist K konstant.
+2. **Wechsel:** Zum Ereignis wechseln alle Einträge, deren Schwelle unterschritten ist, auf die günstigste Option derselben Gruppe, die beim aktuellen SoH noch erlaubt ist (Ausweichoption): bei einem Tag mit einem Arbeitsplatz „E ruht“, bei einem Tag mit beiden Arbeitsplätzen der andere Weg. Bei gleichen Kosten (± 0,01 €) gewinnt die Option mit der niedrigeren SoH-Schwelle, „E ruht“ hat keine Schwelle und gilt als beste, danach die feste Reihenfolge der Optionen. Mehrere Schwellen zum selben Zeitpunkt sind ein Ereignis. Danach gilt eine neue Rate K, und die Ausweichoption kann später selbst kippen. Die Zusatzstrecke hat keine Reichweitenprüfung und wechselt nie, ihr E-Anteil bleibt der aus P.
+3. **Keine Ausweichoption:** Fehlt in einer Gruppe innerhalb der Vergleichsdauer die letzte erlaubte Option, ist der Wechselplan nicht zulässig, und das Ergebnis folgt dem festen Plan (Schritt 7, Abschnitt Ungeeignet).
+4. **Kosten:** Energie und Wartung jedes Eintrags werden je Phase gerechnet: Menge der Option × Preisfaktor des Zeitfensters (Berechnungslogik, Abschnitt 7).
+5. **Kennzahlen:** K\_EV ist der Durchschnitt der Rate über die Vergleichsdauer, K\_ICE entsprechend. Kilometerstände und SoH am Ende folgen aus der Simulation (stückweise linear, nicht K\_EV · D/12). Bei gewähltem Wechselplan steht die Eignungsprüfung (SoH der Prüfung, Reserven, kleinste Reserve) auf dem SoH am Start, weil jeder Eintrag nur gefahren wird, solange er geeignet ist.
+6. **Leasing und Garantie:** Die Leasingstufe wird mit dem korrigierten K\_EV neu bewertet. Das Garantie-Budget gilt für den Optimierer für die Rate vor dem ersten Wechsel (konservativ), die Mehrkosten durch das Budget bleiben der Wert des Optimierers für P. Die Jahre bis zur Kilometergrenze nutzen die korrigierte Rate.
+7. **Nie schlechter als „fest“:** Die App rechnet beide Pläne, den Plan am Start (mit Wechsel) und den festen Plan mit SoH-Bezug „Ende“, unabhängig vom gespeicherten SoH-Bezug. Gewählt wird der zulässige Plan mit den kleineren Zielkosten, bei Gleichstand (± 0,01 €) der feste. Ist der feste Plan gewählt, sind alle Ergebnisfelder gleich denen des Modus „fest“ mit Bezug „Ende“, nur `planSwitch` unterscheidet sich.
+
+`planSwitch` ist im Modus `fixed` leer. Im Modus `switch` nennt es die Ereignisse (Monat, betroffene Einträge, Ausweichoption, neue Rate), die Zielkosten beider Pläne und den gewählten Plan.
+
+**Modellgrenze:** Der Plan P ist für die Optionsmenge am Start optimal, nicht für den zeitlichen Verlauf. Die Nachrechnung korrigiert seine Kosten, aber der Optimierer hätte mit Kenntnis der späteren Wechsel unter Umständen einen anderen Plan gewählt. Die Oberfläche weist darauf hin.
 
 ### Garantie-Budget
 
@@ -337,15 +357,15 @@ Die Ergebnisansicht zeigt für jedes Angebot die Gesamtkosten über die Vergleic
 | Ansicht | Inhalt | Darstellung |
 | --- | --- | --- |
 | Kostenvergleich | Gesamtkosten der Flotte über D, aufgeteilt in Anschaffung oder Leasing, Strom, Benzin, Wartung und Reifen | Gestapelte Balken je Angebot, aufsteigend sortiert. Ein Strich zeigt die Spanne von "E-Auto günstig" bis "E-Auto ungünstig". Daneben dieselben Werte als Tabelle. |
-| Reichweitenreserve | Reserve in km und % je Weg (A, B) und Monat, SoH zum gewählten Zeitpunkt, Zeitgrenzen der Eignung | Heatmap mit Ampelfarbe und Zahl in der Zelle, ein Kandidat per Auswahl. Unter der Heatmap ein Zeitregler (Start bis Ende, Schritte je Jahr, per Tastatur bedienbar und beschriftet), standardmäßig auf dem Zeitpunkt der Eignungsprüfung (Ende, bei „Start“ der Start). Dazu eine Textliste der Zellen mit Zeitgrenze, etwa „Standort A, Januar: geeignet bis Monat 30“. Hinweis: Der Verlauf gilt bei diesem Plan. Auf dem Handy horizontal scrollbar. |
-| Zuordnungsplan | Welches Auto fährt je Wochentag, Monat und Anwesenheitszustand zu welcher Arbeitsstätte | Raster Wochentag × Monat, je Zelle eine Zeile für beide, nur A und nur B, mit "E→A", "E→B" oder "E ruht". Winterwechsel sind hervorgehoben. |
+| Reichweitenreserve | Reserve in km und % je Weg (A, B) und Monat, SoH zum gewählten Zeitpunkt, Zeitgrenzen der Eignung | Heatmap mit Ampelfarbe und Zahl in der Zelle, ein Kandidat per Auswahl. Unter der Heatmap ein Zeitregler (Start bis Ende, Schritte je Jahr, per Tastatur bedienbar und beschriftet), standardmäßig auf dem Zeitpunkt der Eignungsprüfung (Ende, bei „Start“ der Start). Dazu eine Textliste der Zellen mit Zeitgrenze, etwa „Standort A, Januar: geeignet bis Monat 30“. Hinweis: Der Verlauf gilt bei diesem Plan. Im Modus „mit Wechsel“ zeigt der Regler zusätzlich, was der Plan zum gewählten Zeitpunkt tut (E-Auto fährt, E ruht, Weg getauscht), steht standardmäßig auf dem Start, und die Textliste nennt den Wechselmonat („Standort A, Januar: E-Auto bis Monat 30, danach Verbrenner“). Auf dem Handy horizontal scrollbar. |
+| Zuordnungsplan | Welches Auto fährt je Wochentag, Monat und Anwesenheitszustand zu welcher Arbeitsstätte | Raster Wochentag × Monat, je Zelle eine Zeile für beide, nur A und nur B, mit "E→A", "E→B" oder "E ruht". Winterwechsel sind hervorgehoben. Im Modus „mit Wechsel“ zeigt eine Zelle mit Wechsel beide Zustände und den Monat als Text („E→A bis M30, dann E ruht“). |
 | Garantie | Berechnete Restgarantie beider Garantien (Jahre und km), Jahresbudget in km, geplante E-Auto-Kilometer, Jahre bis zur Kilometergrenze gegenüber der Restgarantie | Kachel mit Ampel und Mehrkosten durch das Budget |
 | Rechenweg | Zwischenwerte je Angebot: Reichweiten je Monat, Verbrauch in kWh/100 km, Energie pro Tag, Jahresmengen, Preisfaktoren | Aufklappbar, jede Zahl mit Formelverweis |
 | Szenariovergleich | Gesamtkosten je Kandidat in zwei oder mehr Szenarien | Nebeneinanderliegende Balken je Kandidat |
 
 ### Ergebnistabelle
 
-Jede Zeile ist ein Angebot (Kauf oder Leasingstufe) mit diesen Spalten: Kandidat, Angebot, Eignung, Gesamtkosten (Mittel) mit Spanne, kleinste Reichweitenreserve in km und % (mit Weg und Monat) über die Wege, die das E-Auto im Plan fährt, also nie unter der Kilometerreserve (fährt es nie, steht dort kein Wert), E-Auto-Kilometer pro Jahr, geplanter Kilometerstand des E-Autos am Ende („E-Auto am Ende“, Laufleistung des Kandidaten + K\_EV · D/12, nur zur Anzeige, bei ungeeigneten Angeboten leer), geplante Laufleistung des Verbrenners am Ende der Vergleichsdauer, Garantie-Status (auch „ohne Garantie“). Ungeeignete Angebote stehen am Ende, ausgegraut, mit dem Grund. Klick auf eine Zeile öffnet die Detailansichten. Auf den Angebotskarten (Handy) steht „E-Auto am Ende“ als eigene Zeile.
+Jede Zeile ist ein Angebot (Kauf oder Leasingstufe) mit diesen Spalten: Kandidat, Angebot, Eignung, Gesamtkosten (Mittel) mit Spanne, kleinste Reichweitenreserve in km und % (mit Weg und Monat) über die Wege, die das E-Auto im Plan fährt, also nie unter der Kilometerreserve (fährt es nie, steht dort kein Wert), E-Auto-Kilometer pro Jahr, geplanter Kilometerstand des E-Autos am Ende („E-Auto am Ende“, Laufleistung des Kandidaten + K\_EV · D/12, nur zur Anzeige, bei ungeeigneten Angeboten leer), geplante Laufleistung des Verbrenners am Ende der Vergleichsdauer, Garantie-Status (auch „ohne Garantie“). Ungeeignete Angebote stehen am Ende, ausgegraut, mit dem Grund. Klick auf eine Zeile öffnet die Detailansichten. Auf den Angebotskarten (Handy) steht „E-Auto am Ende“ als eigene Zeile. Ein Angebot, dem der Wechselplan folgt und das mindestens ein Ereignis hat, trägt die Kennzeichnung „mit Wechsel“ (Text). Die Mehr- oder Minderkosten gegenüber „fest“ stehen in der Detailansicht.
 
 ### Preis-Simulation
 
@@ -485,6 +505,7 @@ Jeder Parameter ist in der Oberfläche änderbar. "Platzhalter" heißt: Der Wert
 | SoH-Untergrenze | 85 | % |  |
 | Kilometer bis zur SoH-Untergrenze | 200.000 | km | Platzhalter |
 | SoH-Bezug der Eignungsprüfung | Ende der Vergleichsdauer | Auswahl | Alternative: Start |
+| SoH-Plan | fest | Auswahl | Alternative: mit Wechsel. Im Modus „mit Wechsel“ wird der SoH-Bezug ignoriert und in der Oberfläche deaktiviert. Keine Plausibilitätswarnung |
 | Kilometerreserve | 0 | km | ≥ 0, zusätzliche einfache Weglänge, Platzhalter. Warnung ab 100 km, blockiert nicht |
 | Ladewirkungsgrad | 90 | % | Platzhalter, Verluste zwischen Netz und Akku |
 | Bezugstemperatur kalt | −10 | °C | Schema der EV Database, Platzhalter |
@@ -539,12 +560,18 @@ Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Re
 | 20 | Kilometerreserve | Testfall 1 (Reserve 31,1 km, n = 2) und Testfall 2 (Reserve 91,1 km, n = 1), jeweils mit R = 30 bzw. 90, dann R = 32 bzw. 92. Dritter Fall als Unit-Test der Eignungsfunktionen, nicht als Szenario: Weg mit 0 km und R = 50 | R unter der Reserve: geeignet. R darüber: nicht geeignet, Ampel rot, angezeigte Reserve bleibt 31,1 km bzw. 91,1 km. Weg mit 0 km: geeignet. R = 0 gibt die Werte aus Testfall 1 und 2. |
 | 21 | Eignung im Zeitverlauf | Export `eauto-export-2026-11-16-v2_3.json`, Kandidat Corsa 2023 (SoH 95 % bei 19.000 km), Strecke A im Januar, K\_EV = 19.055 km/Jahr, fester Plan. Erst R = 0, dann R = 10 km | R = 0: SoH-Schwelle 0,829 liegt unter der SoH-Untergrenze von 0,85, `suitableForMonths = null`. R = 10: Schwelle 0,914, die Zelle kippt nach 30,47 Monaten, also `suitableForMonths = 30`. Der Zeitpunkt „Ende“ stimmt mit `sohCheck` und den heutigen `reserves` überein. |
 | 22 | E-Auto-Kilometerstand | Derselbe Export, Kauf, K\_EV = 19.055 km/Jahr, D = 96 | MG4 (neu): 152.442 km. Corsa 2023: 19.000 + 152.442 = 171.442 km. Verbrenner zum Vergleich: 120.000 + 23.430 = 143.430 km. |
+| 23 | Wechselzeitpunkt | Export `eauto-export-2026-11-16-v2_3.json`, Corsa 2023, R = 10 km, fester Plan mit K\_EV = 19.055 km/Jahr (wie Testfall 21), Unit-Test der Simulation. Eintrag Mittwoch, Januar, nur A besetzt (3,5 Tage) | Das erste Ereignis ist der Wechsel bei 30,47 Monaten (Schwelle 0,914), er betrifft nur Strecke A im Januar. Andere Zellen kippen bei unveränderter Rate frühestens bei 37,86 Monaten (Februar, Dezember), nach dem Wechsel sinkt die Rate, und diese Zeitpunkte verschieben sich. Ausweichoption des Eintrags: „E ruht“. Kosten des Eintrags: Phase 1 (E-Auto, 30,47 Monate) 67,47 €, Phase 2 (Verbrenner, 65,53 Monate) 264,84 €, zusammen 332,30 €. Zum Vergleich: E-Auto die ganze Dauer 212,58 €, Verbrenner die ganze Dauer 387,97 € (Preissteigerung 0 %, D = 96). |
+| 24 | Kein Ereignis | Derselbe Export mit R = 0 | Alle 24 Schwellen des Corsa 2023 (höchste 0,829, Strecke A im Januar) liegen unter der SoH-Untergrenze 0,85, es gibt kein Ereignis. Das Ergebnis im Modus „mit Wechsel“ stimmt mit dem im Modus „fest“ und Bezug „Ende“ überein, bis auf `planSwitch`. |
+| 25 | Nie schlechter | Derselbe Export mit R = 10, alle drei Kandidaten und Angebote | Die Zielkosten im Modus „mit Wechsel“ sind je Angebot kleiner oder gleich denen im Modus „fest“ mit Bezug „Ende“. Mindestens ein Angebot ist günstiger. Die genauen Werte werden bei der Umsetzung aus dem Rechenkern übernommen. |
+| 26 | Zusammenlegung der Phasen | Ein Eintrag mit Wechsel zum Zeitpunkt 0 und einer mit Wechsel zum Ende, Preissteigerungen 0 und 3 %, D = 48 | Wechsel zum Zeitpunkt 0 gibt die Kosten der Ausweichoption, Wechsel zum Ende die Kosten der Ausgangsoption. Mit Steigerung 0 % sind die Phasenkosten proportional zur Dauer. Mit 3 % ist F\_s = 4,1836 über die ganze Dauer, 2,0300 für [0; 24) und 2,1536 für [24; 48), die Summe ist wieder 4,1836. |
 
 Die Rechnung im Testfall 21 mit R = 10 setzt einen festen Plan voraus. Beim Optimierer mit R = 10 ändert sich K\_EV. Dafür gibt es einen zusätzlichen Integrationstest: Mit R = 10 sinken die E-Auto-Kilometer des Corsa 2023 gegenüber R = 0, und die Strecke A wird in den Wintermonaten dem Verbrenner zugeteilt. Die genauen Werte werden bei der Umsetzung aus dem Rechenkern übernommen.
 
+Zu den Testfällen 23 bis 26 gibt es Integrationstests: Im Modus „fest“ sind alle Zahlen der Testfälle 1 bis 22 bitgleich. Fehlt in einer Gruppe eine Ausweichoption, folgt das Ergebnis dem festen Plan, und das Angebot ist nur ungeeignet, wenn auch dieser scheitert (Grund mit Zeitpunkt). Ist der feste Plan gewählt, stimmen alle Felder bis auf `planSwitch` mit dem Modus „fest“ und Bezug „Ende“ überein. Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab.
+
 ### Abnahmekriterien
 
-- Alle 22 Testfälle bestehen automatisiert.
+- Alle 26 Testfälle bestehen automatisiert.
 - Die App läuft nach der Installation auf dem Home-Bildschirm offline und behält ihre Daten nach Neustart des Geräts.
 - Desktop (1280 px), Tablet (820 px hochkant und 1024 px quer) und Handy (390 px Breite) zeigen alle Bereiche ohne abgeschnittene Eingabefelder.
 - Die Leistungswerte aus dem Abschnitt Nicht-funktionale Anforderungen sind gemessen und erreicht.
@@ -552,7 +579,7 @@ Die Rechnung im Testfall 21 mit R = 10 setzt einen festen Plan voraus. Beim Opti
 
 ## Risiken, Grenzen und Entscheidungen
 
-Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschnitte oben eingearbeitet. Die Garantie-Änderung nach dem Design-Review ist am 14.11.2026 und die Kilometerreserve am 16.11.2026 entschieden und ebenfalls eingearbeitet.
+Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschnitte oben eingearbeitet. Die Garantie-Änderung nach dem Design-Review ist am 14.11.2026 und die Kilometerreserve und der SoH-Plan am 16.11.2026 entschieden und ebenfalls eingearbeitet.
 
 | Punkt | Entscheidung | Wirkung |
 | --- | --- | --- |
@@ -567,6 +594,7 @@ Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschni
 | Abgelaufene Garantie | Fließt nicht ins Budget ein, Hinweis „ohne Garantie“ | Kein Rechenfehler bei berechneter Restgarantie 0 |
 | Restgarantie (14.11.2026) | Der Nutzer trägt die normale Garantie ein, die App berechnet die Restgarantie zu einem Stichtag. Der Stichtag ist ein Parameter, die Erstzulassung Pflicht bei gebraucht. Die Ableitung gilt auch für Leasingangebote | Dasselbe Szenario liefert auch später dasselbe Ergebnis. Gebrauchte ohne Erstzulassung sind unvollständig |
 | Kilometerreserve (16.11.2026) | Feste Mindestreserve R in km (zusätzliche einfache Weglänge, Standard 0). Ein Weg mit einer Reserve unter R ist ungeeignet und rot, es gibt keine eigene gelbe Stufe. Warnung ab 100 km. Der Zeitverlauf ist reine Anzeige, `suitableForMonths` in ganzen Monaten abgerundet | Der Verbrenner übernimmt dort, wo der Weg ungeeignet ist. Zu große R kann Angebote ausschließen. Der Plan ändert sich durch den Zeitverlauf nicht |
+| SoH-Plan (16.11.2026) | Parameter „SoH-Plan“ (fest oder mit Wechsel, Standard fest). Im Modus „mit Wechsel“ fährt das E-Auto einen Weg, solange er geeignet ist, danach übernimmt die günstigste erlaubte Option derselben Gruppe. Die App rechnet auch den festen Plan mit Bezug „Ende“ und wählt den günstigeren. Scheitert nur der Wechselplan, gilt der feste. Der Streng-Modus prüft über die Zeit | Ein Weg, der erst spät kippt, wird nicht mehr für die ganze Dauer ausgeschlossen. Das Ergebnis ist nie schlechter als „fest“. Der Plan ist für die Optionsmenge am Start optimal |
 | Ladedauer zu Hause | Nicht geprüft, als Modellgrenze dokumentiert | Siehe Grenzen des Modells |
 
 ### Grenzen des Modells
@@ -577,7 +605,9 @@ Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschni
 - **Heim-Ladezeit:** Die Eignung setzt voraus, dass das E-Auto jede Nacht wieder 80 % erreicht. Bei schwacher Heimladeleistung kann der Plan zu optimistisch sein.
 - **Laufleistung am Stichtag:** Die Restkilometer rechnen mit der eingetragenen Laufleistung. Liegt der Stichtag in der Zukunft, etwa beim geplanten Kauf, gilt die Laufleistung als Stand an diesem Tag.
 - **Zeitverlauf bei geplanten Kilometern:** Die Eignung im Zeitverlauf rechnet mit den E-Auto-Kilometern des gewählten Plans, nicht mit denen, die ein Weg bei E-Betrieb hätte.
-- **Später kippende Wege:** Ein Weg, der erst im Lauf der Vergleichsdauer ungeeignet wird, ist für die ganze Dauer ausgeschlossen. Der Plan wechselt nicht über die Zeit, die Auswertung zeigt nur, wann der Weg kippt.
+- **Später kippende Wege:** Im Modus „fest“ ist ein Weg, der erst im Lauf der Vergleichsdauer ungeeignet wird, für die ganze Dauer ausgeschlossen. Der Plan wechselt nicht über die Zeit, die Auswertung zeigt nur, wann der Weg kippt. Der Modus „mit Wechsel“ ist die Abhilfe.
+- **Plan für die Optionsmenge am Start:** Im Modus „mit Wechsel“ ist der Plan für die Optionsmenge am Start optimal, nicht für den zeitlichen Verlauf. Die Nachrechnung korrigiert die Kosten, aber mit Kenntnis der späteren Wechsel hätte der Optimierer unter Umständen einen anderen Plan gewählt. Ein SoH-Einfluss auf Kosten (Mehrverbrauch, Restwert, SoH-Garantie) ist nicht modelliert.
+- **Gleichmäßige Kilometer:** Die Wechselzeitpunkte und der Zeitverlauf rechnen mit gleichmäßigen Kilometern über das Jahr, ohne Saison im Kilometerstand.
 - **Konstante Jahre:** Mengen, Plan und Preissteigerung gelten für jedes Jahr gleich. Änderungen im Fahrprofil während der Haltedauer werden nicht abgebildet.
 - **Kosten nicht vollständig:** Versicherung, Kfz-Steuer, Förderung, THG-Quote, Wallbox, Überführung und Zulassung sind nicht enthalten. Die Gesamtkosten taugen für den Vergleich der Kandidaten, nicht als absolute Betriebskosten.
 - **Leasing-Fortschreibung:** Weicht die Leasingdauer von der Vergleichsdauer ab, wird mit gleichen Konditionen hochgerechnet oder gekürzt.
