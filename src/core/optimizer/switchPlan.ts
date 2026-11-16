@@ -217,8 +217,6 @@ export type PhaseFigures = {
   perPhase: { electricity: number; petrol: number }[];
   /** Time-weighted average of the rates: K_EV. */
   evKmPerYear: number;
-  /** Time-weighted average of the petrol km: K_ICE. */
-  iceKmPerYear: number;
   /** Odometer of the EV at the end of the comparison. */
   evOdometerEnd: number;
 };
@@ -238,17 +236,14 @@ export function phaseFigures(
   let electricity = 0;
   let petrol = 0;
   let evMonthKm = 0;
-  let iceMonthKm = 0;
   const perPhase: PhaseFigures['perPhase'] = [];
   for (const phase of phases) {
     let gridKwh = 0;
     let litres = 0;
-    let iceKm = 0;
     phase.optionIndex.forEach((choice, group) => {
       const option = optionsOf(problem, group)[choice] as Option;
       gridKwh += option.quantities?.gridKwh ?? 0;
       litres += option.quantities?.litres ?? 0;
-      iceKm += option.quantities?.iceKm ?? 0;
     });
     const months = phase.toMonth - phase.fromMonth;
     const electricityPart = energyCost(
@@ -275,14 +270,12 @@ export function phaseFigures(
     petrol += petrolPart;
     perPhase.push({ electricity: electricityPart, petrol: petrolPart });
     evMonthKm += phase.evKmPerYear * months;
-    iceMonthKm += iceKm * months;
   }
   return {
     electricity,
     petrol,
     perPhase,
     evKmPerYear: evMonthKm / total,
-    iceKmPerYear: iceMonthKm / total,
     evOdometerEnd: problem.mileageKm + evMonthKm / 12,
   };
 }

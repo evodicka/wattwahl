@@ -186,6 +186,10 @@ export function decideSwitch(
     };
   }
 
+  // Plan P is chosen by the solver inside the warranty budget (at its start
+  // rate), so the budget needs no second look in the comparison: both targets
+  // are plans the budget allows, the switch target only re-prices P's own
+  // quantities per phase.
   const start = optimizeOffer(
     scenario,
     candidate,
@@ -230,13 +234,13 @@ export function decideSwitch(
     };
   }
   if (
-    fixedTargetCost !== null &&
-    !(candidatePlan.target < fixedTargetCost - TIE_BAND)
+    fixed.status === 'ok' &&
+    !(candidatePlan.target < fixed.targetCost - TIE_BAND)
   ) {
     return {
       status: 'ok',
       chosen: 'fixed',
-      fixed: fixed as Ok,
+      fixed,
       planSwitch: {
         chosen: 'fixed',
         switchTargetCost: candidatePlan.target,

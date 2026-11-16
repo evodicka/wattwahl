@@ -721,6 +721,10 @@ function okResult(
 
   // Warranty: the remaining warranties, the budget, and the years to each
   // running warranty's km limit.
+  // The budget, `budgetExtraCost` and `budgetExceeded` stay the values of the
+  // optimizer's run for plan P: the budget holds the rate before the first
+  // switch (conservative, spec "Leasing und Garantie"), and the extra cost is
+  // not recomputed (decision 22 of docs/change-soh-plan.md).
   const { remaining, budget } = outcome;
   // The plan with switch points has its own rate, so the years to the km limit
   // are computed again; the optimizer's entries of plan P stay unlinked.
