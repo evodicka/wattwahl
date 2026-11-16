@@ -119,6 +119,32 @@ test.describe('S20: detail view', () => {
       .toBeGreaterThan(0);
   });
 
+  test('the time slider moves with the keyboard and the heatmap follows (C2b)', async ({
+    page,
+  }) => {
+    await seedScenario(page);
+    await openDetail(page);
+    const slider = page.getByRole('slider', { name: 'Zeitpunkt' });
+    await expect(slider).toBeVisible();
+    // The check is made at the end of the comparison, so the slider starts there.
+    await expect(
+      page.getByText(/SoH am Ende der Vergleichsdauer/),
+    ).toBeVisible();
+    await slider.focus();
+    await page.keyboard.press('Home');
+    await expect(page.getByText(/SoH am Start/)).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByText(/SoH nach 12 Monaten/)).toBeVisible();
+    await expect(slider).toHaveAttribute('aria-valuetext', /^Monat 12, /);
+    await page.keyboard.press('End');
+    await expect(
+      page.getByText(/SoH am Ende der Vergleichsdauer/),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Zeitgrenzen der Eignung' }),
+    ).toBeVisible();
+  });
+
   test('another offer can be chosen', async ({ page }) => {
     await seedScenario(page);
     await openDetail(page);

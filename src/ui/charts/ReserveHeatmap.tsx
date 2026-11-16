@@ -181,10 +181,10 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
         </div>
         <p className="t-sm muted">{t('detail.reserve.time.hint')}</p>
       </div>
-      <section aria-labelledby={`${sliderId}-limits`} className="stack">
-        <h4 className="t-label" id={`${sliderId}-limits`}>
-          {t('detail.reserve.limits.title')}
-        </h4>
+      {/* A plain container, not a named section: a section with aria-labelledby
+          crashes Firefox's axe run in this view (architecture 11.2). */}
+      <div className="stack">
+        <h4 className="t-label">{t('detail.reserve.limits.title')}</h4>
         {limits.length === 0 ? (
           <p className="t-sm">{t('detail.reserve.limits.none')}</p>
         ) : (
@@ -210,7 +210,7 @@ export default function ReserveHeatmap({ result, scenario }: Props) {
             )}
           </>
         )}
-      </section>
+      </div>
       <details className={styles.alt}>
         <summary>{t('detail.reserve.asTable')}</summary>
         <ul>
