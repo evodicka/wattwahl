@@ -2,7 +2,7 @@
 
 Nov 14, 2026 · @Eduard Vodicka
 
-Wattwahl entsteht in 36 Schritten über zehn Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4, die Änderungsschritte C1a und C1b (Phase 3b) die Folgeversion mit C2a und C2b (Phase 7) und die Folgeversion mit C3a und C3b (Phase 8). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
+Wattwahl entsteht in 38 Schritten über elf Phasen: 26 Umsetzungsschritte S01 bis S26, vier Design-Schritte D1 bis D4, die Änderungsschritte C1a und C1b (Phase 3b) die Folgeversion mit C2a und C2b (Phase 7) die Folgeversion mit C3a und C3b (Phase 8) und die Folgeversion mit C4a und C4b (Phase 9). Rechenkern und Claude Design laufen parallel, die Oberfläche wird erst nach der Design-Freigabe gebaut. Grundlage sind die Doc und die Doc. Dieser Plan legt nur Reihenfolge, Umfang und Prüfung fest, das Wie steht in den beiden Dokumenten.
 
 ## Arbeitsweise
 
@@ -34,7 +34,7 @@ Zwei Punkte legt der Nutzer fest, bevor Schritt S01 beginnt. Beide sind später 
 
 Nach Phase 0 starten drei Spuren gleichzeitig: Rechenkern, Design und App-Infrastruktur. In der App-Infrastruktur beginnt zunächst nur S15, Speicher und Worker (S12 bis S14) folgen nach der Änderung C1a und C1b (Phase 3b). Die Oberfläche beginnt erst, wenn das Design freigegeben (G3) und der Worker angebunden ist (S14).
 
-**Fahrplan · 3 Spuren, 10 Phasen, 4 Freigaben**
+**Fahrplan · 3 Spuren, 11 Phasen, 4 Freigaben**
 
 ```mermaid
 flowchart TD
@@ -82,18 +82,19 @@ flowchart TD
     G4{"G4 Abnahme"}
     P7["<b>Phase 7 · Folgeversion</b><br/>C2a Spezifikation und Architektur<br/>C2b Umsetzung: Kilometerreserve"]
     P8["<b>Phase 8 · Folgeversion</b><br/>C3a Spezifikation und Architektur<br/>C3b Umsetzung: SoH-Plan"]
+    P9["<b>Phase 9 · Folgeversion</b><br/>C4a Spezifikation und Architektur<br/>C4b Umsetzung: Leasing ausblenden"]
 
     core --> P5
     design --> P5
     app --> P5
-    P5 --> P6 --> G4 --> P7 --> P8
+    P5 --> P6 --> G4 --> P7 --> P8 --> P9
 
     classDef gate fill:#fdf0d5,stroke:#d97706,stroke-width:2px,color:#1a1a1a
     classDef cd fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1a1a1a
     classDef agent fill:#ffffff,stroke:#6b7280,stroke-width:1.5px,color:#1a1a1a
     class G1,G2,G3,G4 gate
     class D2,D3 cd
-    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6,P7,P8 agent
+    class P0,P1,P2,S11,D1,D4,P3b,S1213,S14,S15,P5,P6,P7,P8,P9 agent
 ```
 
 *Legende: Raute (orange) = Freigabe durch den Nutzer · blau = Ausführung in Claude Design · weiß = Ausführung durch Agenten.*
@@ -779,3 +780,46 @@ In dieser Reihenfolge, jeweils mit eigenen Tests:
 - axe-Prüfung für Zeitregler, Zuordnungsraster und Kennzeichnung, Q5 gleicher Hash in drei Engines. Kein bestehender Test wird abgeschwächt.
 
 **Voraussetzung:** C3a
+
+## Phase 9 – Folgeversion: Leasingangebote ausblenden
+
+Die Ergebnisansicht wird mit vielen Leasingstufen unübersichtlich. Die Folgeversion bekommt im Kopf der Ergebnisseite einen Schalter „Leasing anzeigen“. Er gehört zum Szenario (Feld `includeLeaseOffers`, Standard `true`), ausgeblendete Leasingangebote werden nicht gerechnet. Beschreibung, Testfall 27, Migration, betroffene Stellen und Entscheidungen: `docs/change-leasing-ausblenden.md`. Die Aufteilung folgt Phase 8: C4a ändert nur Dokumente, C4b setzt um. **Abweichend von den früheren Folgeversionen** liegen C4a und C4b auf demselben Branch, und die Freigabe von C4a erfolgt mündlich im Chat, nicht durch ein Zusammenführen. C4b beginnt erst nach dieser Freigabe.
+
+### C4a · Leasing ausblenden: Spezifikation, Architektur und Plan
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+- Spezifikation und Architektur an allen Dokument-Stellen der Tabelle „Betroffene Stellen“ in `docs/change-leasing-ausblenden.md` ändern. Neue ADR-20.
+- Testfall 27 in die Spezifikation übernehmen, dazu diesen Plan ergänzen.
+- Kein Code, keine Tests.
+
+**Validierung**
+
+- Jede Zeile der Tabelle „Betroffene Stellen“, die ein Dokument nennt, ist einer Änderung zugeordnet, ohne Lücke.
+- Keine Stelle nennt noch „26 Testfälle“ (Suche, ausgenommen die Historie in Q3).
+- Der Nutzer liest die Änderung gegen und gibt sie im Chat frei. Das ist die Freigabe für C4b.
+
+**Voraussetzung:** C3b
+
+### C4b · Leasing ausblenden: Umsetzung
+
+**Ausführung:** Agent
+
+**Aufgaben**
+
+In dieser Reihenfolge, jeweils mit eigenen Tests:
+
+- Schema: `includeLeaseOffers`, `CURRENT_SCHEMA_VERSION = 5`, Migration v4 → v5, Beispieldatei `scenario.v5.json`, Standardwert in `createScenarioTemplate`. Mit „Ja“ bleibt alles bitgleich.
+- `listScenarioOffers` in `src/domain/offerId.ts`. Worker (`compute`, `compare`), `resultRows`, `candidateStatus` und `comparisonView` nutzen sie. Die Vollständigkeitsprüfung in `compute.ts` ignoriert ausgeblendete Leasingstufen.
+- Oberfläche: Schalter im Kopf der Ergebnisseite (sichtbar bei vorhandenen Leasingstufen oder bei ausgeblendetem Leasing), Hinweis „N Leasingangebote ausgeblendet“, Hinweis an der Kandidatenkarte, Texte.
+- E2E-Test in `e2e/ergebnis.spec.ts`, Abnahmepunkt in `docs/acceptance-checklist.md`.
+
+**Validierung**
+
+- Testfälle 1 bis 26 und der Hash Q5 bleiben mit „Ja“ bitgleich, Testfall 27 besteht.
+- Der Worker liefert bei „Nein“ keine Leasingergebnisse (auch nicht in `compare`), die Detailroute eines ausgeblendeten Angebots leitet um, der Schalter bleibt sichtbar, solange Leasing ausgeblendet ist.
+- Kein bestehender Test wird abgeschwächt, Lint, Typen und Abdeckungsgrenzen bleiben grün.
+
+**Voraussetzung:** C4a

@@ -94,6 +94,7 @@ Ein Szenario bündelt alle Eingaben und ist die kleinste speicher- und vergleich
 | Arbeitsstätten | genau 2 Objekte (A und B) | Pflicht |
 | Zusatzstrecke | 1 Objekt | Pflicht, darf 0 sein |
 | Parameter | Objekt, siehe Parameterliste | Standardwerte vorbelegt |
+| Leasingangebote berücksichtigen | Ja oder Nein | Standard Ja. Bei Nein rechnet und zeigt die App je Kandidat nur das Kaufangebot, die Leasingstufen bleiben erfasst. Der Schalter steht im Kopf der Ergebnisseite. |
 | Kandidaten | 0 bis n Objekte | Berechnung ab 1 Kandidat |
 
 ### Bestandsfahrzeug (Verbrenner)
@@ -361,11 +362,13 @@ Die Ergebnisansicht zeigt für jedes Angebot die Gesamtkosten über die Vergleic
 | Zuordnungsplan | Welches Auto fährt je Wochentag, Monat und Anwesenheitszustand zu welcher Arbeitsstätte | Raster Wochentag × Monat, je Zelle eine Zeile für beide, nur A und nur B, mit "E→A", "E→B" oder "E ruht". Winterwechsel sind hervorgehoben. Im Modus „mit Wechsel“ zeigt eine Zelle mit Wechsel beide Zustände und den Monat als Text („E→A bis M30, dann E ruht“). |
 | Garantie | Berechnete Restgarantie beider Garantien (Jahre und km), Jahresbudget in km, geplante E-Auto-Kilometer, Jahre bis zur Kilometergrenze gegenüber der Restgarantie | Kachel mit Ampel und Mehrkosten durch das Budget |
 | Rechenweg | Zwischenwerte je Angebot: Reichweiten je Monat, Verbrauch in kWh/100 km, Energie pro Tag, Jahresmengen, Preisfaktoren | Aufklappbar, jede Zahl mit Formelverweis |
-| Szenariovergleich | Gesamtkosten je Kandidat in zwei oder mehr Szenarien | Nebeneinanderliegende Balken je Kandidat |
+| Szenariovergleich | Gesamtkosten je Kandidat in zwei oder mehr Szenarien | Nebeneinanderliegende Balken je Kandidat. Jedes Szenario zeigt seine Angebote nach seinem Schalter „Leasing anzeigen“, Leasingbalken erscheinen nur für Szenarien, die Leasing zeigen. |
 
 ### Ergebnistabelle
 
 Jede Zeile ist ein Angebot (Kauf oder Leasingstufe) mit diesen Spalten: Kandidat, Angebot, Eignung, Gesamtkosten (Mittel) mit Spanne, kleinste Reichweitenreserve in km und % (mit Weg und Monat) über die Wege, die das E-Auto im Plan fährt, also nie unter der Kilometerreserve (fährt es nie, steht dort kein Wert), E-Auto-Kilometer pro Jahr, geplanter Kilometerstand des E-Autos am Ende („E-Auto am Ende“, Laufleistung des Kandidaten + K\_EV · D/12, nur zur Anzeige, bei ungeeigneten Angeboten leer), geplante Laufleistung des Verbrenners am Ende der Vergleichsdauer, Garantie-Status (auch „ohne Garantie“). Ungeeignete Angebote stehen am Ende, ausgegraut, mit dem Grund. Klick auf eine Zeile öffnet die Detailansichten. Auf den Angebotskarten (Handy) steht „E-Auto am Ende“ als eigene Zeile. Ein Angebot, dem der Wechselplan folgt und das mindestens ein Ereignis hat, trägt die Kennzeichnung „mit Wechsel“ (Text). Die Mehr- oder Minderkosten gegenüber „fest“ stehen in der Detailansicht.
+
+Im Kopf der Ergebnisseite schaltet „Leasing anzeigen“ alle Leasingangebote des Szenarios aus und ein (Feld „Leasingangebote berücksichtigen“). Der Schalter steht nur, wenn ein Kandidat Leasingstufen hat oder Leasing ausgeblendet ist. Ausgeblendete Angebote werden nicht gerechnet und haben keine Zeile, keine Karte und keine Detailansicht. Unter der Tabelle steht „N Leasingangebote ausgeblendet“. Ein unvollständiges Leasingangebot blockiert bei ausgeblendetem Leasing den Kandidaten nicht.
 
 ### Preis-Simulation
 
@@ -396,6 +399,7 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 - Ein neuer Kandidat startet aus einer leeren Vorlage. "Duplizieren" kopiert einen vorhandenen Kandidaten, zum Beispiel für eine andere Ausstattungsvariante.
 - Auf dem Handy führt das Formular in Schritten (Allgemein, Akku und Reichweite, Garantie, Leasing). Auf dem Desktop stehen alle Gruppen untereinander.
 - Ungeeignete oder unvollständige Kandidaten bleiben in der Liste und zeigen den Grund auf der Karte.
+- Bei ausgeblendetem Leasing beurteilt der Status nur die sichtbaren Angebote, und die Zahl der Leasingangebote auf der Karte trägt den Hinweis „ausgeblendet“.
 - Alle Parameter sind in der Oberfläche änderbar. Geänderte Standardwerte sind markiert.
 - Der Stichtag der Garantieberechnung ist beim Anlegen eines Szenarios mit dem aktuellen Monat vorbelegt. „Zurücksetzen“ setzt den aktuellen Monat. Als geändert markiert ist der Stichtag nur, wenn der Nutzer ihn selbst gesetzt hat, nicht weil der Anlagemonat vergangen ist. Duplizieren, Import und „Als Szenario speichern“ übernehmen den Stichtag unverändert.
 
@@ -564,14 +568,15 @@ Die Rechenbeispiele sind von Hand nachgerechnet und dienen als Unit-Tests des Re
 | 24 | Kein Ereignis | Derselbe Export mit R = 0 | Alle 24 Schwellen des Corsa 2023 (höchste 0,829, Strecke A im Januar) liegen unter der SoH-Untergrenze 0,85, es gibt kein Ereignis. Das Ergebnis im Modus „mit Wechsel“ stimmt mit dem im Modus „fest“ und Bezug „Ende“ überein, bis auf `planSwitch`. |
 | 25 | Nie schlechter | Derselbe Export mit R = 10, alle drei Kandidaten und Angebote | Die Zielkosten im Modus „mit Wechsel“ sind je Angebot kleiner oder gleich denen im Modus „fest“ mit Bezug „Ende“. Mindestens ein Angebot ist günstiger. Werte des Rechenkerns (Preisfall Mittel, Kauf): Opel Corsa 2023 27.007,35 € gegen 27.998,83 € (K\_EV 17.027 gegen 15.131 km/Jahr), Opel Corsa 2024 30.137,42 € gegen 30.496,83 €, MG4 Urban unverändert (28.163,65 €). |
 | 26 | Zusammenlegung der Phasen | Ein Eintrag mit Wechsel zum Zeitpunkt 0 und einer mit Wechsel zum Ende, Preissteigerungen 0 und 3 %, D = 48 | Wechsel zum Zeitpunkt 0 gibt die Kosten der Ausweichoption, Wechsel zum Ende die Kosten der Ausgangsoption. Mit Steigerung 0 % sind die Phasenkosten proportional zur Dauer. Mit 3 % ist F\_s = 4,1836 über die ganze Dauer, 2,0300 für [0; 24) und 2,1536 für [24; 48), die Summe ist wieder 4,1836. |
+| 27 | Leasing ausgeblendet | Export `eauto-export-2026-11-16-v2_3.json`, „Leasingangebote berücksichtigen“ = Nein | Der Rechenkern liefert je Kandidat nur das Kaufangebot, kein Schlüssel enthält `:lease:`. Jedes Kaufergebnis ist in allen Zahlen gleich dem bei „Ja“. Die Ergebnistabelle hat nur Kaufzeilen, der Hinweis nennt die Zahl der Leasingstufen. |
 
 Die Rechnung im Testfall 21 mit R = 10 setzt einen festen Plan voraus. Beim Optimierer mit R = 10 ändert sich K\_EV. Dafür gibt es einen zusätzlichen Integrationstest: Mit R = 10 sinken die E-Auto-Kilometer des Corsa 2023 gegenüber R = 0, und die Strecke A wird in den Wintermonaten dem Verbrenner zugeteilt. Die genauen Werte werden bei der Umsetzung aus dem Rechenkern übernommen.
 
-Zu den Testfällen 23 bis 26 gibt es Integrationstests: Im Modus „fest“ sind alle Zahlen der Testfälle 1 bis 22 bitgleich. Fehlt in einer Gruppe eine Ausweichoption, folgt das Ergebnis dem festen Plan, und das Angebot ist nur ungeeignet, wenn auch dieser scheitert (Grund mit Zeitpunkt). Ist der feste Plan gewählt, stimmen alle Felder bis auf `planSwitch` mit dem Modus „fest“ und Bezug „Ende“ überein. Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab.
+Zum Testfall 27 prüft ein Integrationstest, dass die Migration v4 → v5 alle Ergebnisse und den Hash gleich lässt und dass die Detailroute eines ausgeblendeten Angebots umleitet. Zu den Testfällen 23 bis 26 gibt es Integrationstests: Im Modus „fest“ sind alle Zahlen der Testfälle 1 bis 22 bitgleich. Fehlt in einer Gruppe eine Ausweichoption, folgt das Ergebnis dem festen Plan, und das Angebot ist nur ungeeignet, wenn auch dieser scheitert (Grund mit Zeitpunkt). Ist der feste Plan gewählt, stimmen alle Felder bis auf `planSwitch` mit dem Modus „fest“ und Bezug „Ende“ überein. Das Ergebnis hängt nicht von der Reihenfolge der Einträge ab.
 
 ### Abnahmekriterien
 
-- Alle 26 Testfälle bestehen automatisiert.
+- Alle 27 Testfälle bestehen automatisiert.
 - Die App läuft nach der Installation auf dem Home-Bildschirm offline und behält ihre Daten nach Neustart des Geräts.
 - Desktop (1280 px), Tablet (820 px hochkant und 1024 px quer) und Handy (390 px Breite) zeigen alle Bereiche ohne abgeschnittene Eingabefelder.
 - Die Leistungswerte aus dem Abschnitt Nicht-funktionale Anforderungen sind gemessen und erreicht.
@@ -595,6 +600,7 @@ Alle offenen Punkte sind im Review vom 13.11.2026 entschieden und in die Abschni
 | Restgarantie (14.11.2026) | Der Nutzer trägt die normale Garantie ein, die App berechnet die Restgarantie zu einem Stichtag. Der Stichtag ist ein Parameter, die Erstzulassung Pflicht bei gebraucht. Die Ableitung gilt auch für Leasingangebote | Dasselbe Szenario liefert auch später dasselbe Ergebnis. Gebrauchte ohne Erstzulassung sind unvollständig |
 | Kilometerreserve (16.11.2026) | Feste Mindestreserve R in km (zusätzliche einfache Weglänge, Standard 0). Ein Weg mit einer Reserve unter R ist ungeeignet und rot, es gibt keine eigene gelbe Stufe. Warnung ab 100 km. Der Zeitverlauf ist reine Anzeige, `suitableForMonths` in ganzen Monaten abgerundet | Der Verbrenner übernimmt dort, wo der Weg ungeeignet ist. Zu große R kann Angebote ausschließen. Der Plan ändert sich durch den Zeitverlauf nicht |
 | SoH-Plan (16.11.2026) | Parameter „SoH-Plan“ (fest oder mit Wechsel, Standard fest). Im Modus „mit Wechsel“ fährt das E-Auto einen Weg, solange er geeignet ist, danach übernimmt die günstigste erlaubte Option derselben Gruppe. Die App rechnet auch den festen Plan mit Bezug „Ende“ und wählt den günstigeren. Scheitert nur der Wechselplan, gilt der feste. Der Streng-Modus prüft über die Zeit | Ein Weg, der erst spät kippt, wird nicht mehr für die ganze Dauer ausgeschlossen. Das Ergebnis ist nie schlechter als „fest“. Der Plan ist für die Optionsmenge am Start optimal |
+| Leasingangebote ausblenden (17.11.2026) | Feld „Leasingangebote berücksichtigen“ im Szenario (Standard Ja), Schalter auf der Ergebnisseite. Bei Nein werden Leasingangebote nicht gerechnet und nicht gezeigt, die Stufen bleiben erfasst | Übersichtliche Ergebnisansicht bei vielen Leasingstufen. Der Szenariovergleich zeigt Leasing nur für Szenarien, die es zeigen |
 | Ladedauer zu Hause | Nicht geprüft, als Modellgrenze dokumentiert | Siehe Grenzen des Modells |
 
 ### Grenzen des Modells
