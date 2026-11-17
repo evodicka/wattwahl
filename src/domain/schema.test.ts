@@ -471,7 +471,7 @@ describe('S03: no parallel type definitions (architecture 8.1)', () => {
     expect(objectTypes).toEqual([]);
   });
 
-  it('is schema version 4 since the SoH plan (C3b)', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(4);
+  it('is schema version 5 since hiding lease offers (C4b)', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(5);
   });
 });

@@ -1,4 +1,4 @@
-import { listOffers, type Scenario } from '../../domain';
+import { listScenarioOffers, type Scenario } from '../../domain';
 import type { Results } from './resultRows';
 
 /** One scenario's results in the price case "Mittel". */
@@ -45,7 +45,7 @@ export function comparisonRows(scenarios: ComparedScenario[]): ComparisonRow[] {
   const rows = new Map<string, ComparisonRow>();
   scenarios.forEach(({ scenario, results }, column) => {
     for (const candidate of scenario.candidates) {
-      for (const offer of listOffers(candidate)) {
+      for (const offer of listScenarioOffers(scenario, candidate)) {
         const tier =
           offer.kind === 'lease'
             ? (candidate.leaseTiers.find((t) => t.id === offer.leaseTierId)

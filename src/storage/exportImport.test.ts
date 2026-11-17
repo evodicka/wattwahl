@@ -171,6 +171,23 @@ describe('S13: TC14 (unit part) export, empty database, import', () => {
       });
     }
   });
+
+  it('C4b: a v4 export file imports with the lease offers shown', async () => {
+    const v4 = JSON.parse(
+      readFileSync(
+        new URL('../domain/__fixtures__/scenario.v4.json', import.meta.url),
+        'utf8',
+      ),
+    ) as { data: unknown };
+    const parsed = await parseImport(
+      fileOf(envelope([v4.data], { schemaVersion: 4 })),
+      { now: () => NOW },
+    );
+    expect(parsed.status).toBe('ok');
+    if (parsed.status === 'ok') {
+      expect(parsed.scenarios[0]?.includeLeaseOffers).toBe(true);
+    }
+  });
 });
 
 describe('S13: Q7 (unit part) a broken file changes nothing', () => {

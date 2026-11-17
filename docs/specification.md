@@ -368,7 +368,7 @@ Die Ergebnisansicht zeigt für jedes Angebot die Gesamtkosten über die Vergleic
 
 Jede Zeile ist ein Angebot (Kauf oder Leasingstufe) mit diesen Spalten: Kandidat, Angebot, Eignung, Gesamtkosten (Mittel) mit Spanne, kleinste Reichweitenreserve in km und % (mit Weg und Monat) über die Wege, die das E-Auto im Plan fährt, also nie unter der Kilometerreserve (fährt es nie, steht dort kein Wert), E-Auto-Kilometer pro Jahr, geplanter Kilometerstand des E-Autos am Ende („E-Auto am Ende“, Laufleistung des Kandidaten + K\_EV · D/12, nur zur Anzeige, bei ungeeigneten Angeboten leer), geplante Laufleistung des Verbrenners am Ende der Vergleichsdauer, Garantie-Status (auch „ohne Garantie“). Ungeeignete Angebote stehen am Ende, ausgegraut, mit dem Grund. Klick auf eine Zeile öffnet die Detailansichten. Auf den Angebotskarten (Handy) steht „E-Auto am Ende“ als eigene Zeile. Ein Angebot, dem der Wechselplan folgt und das mindestens ein Ereignis hat, trägt die Kennzeichnung „mit Wechsel“ (Text). Die Mehr- oder Minderkosten gegenüber „fest“ stehen in der Detailansicht.
 
-Im Kopf der Ergebnisseite schaltet „Leasing anzeigen“ alle Leasingangebote des Szenarios aus und ein (Feld „Leasingangebote berücksichtigen“). Der Schalter steht nur, wenn ein Kandidat Leasingstufen hat oder Leasing ausgeblendet ist. Ausgeblendete Angebote werden nicht gerechnet und haben keine Zeile, keine Karte und keine Detailansicht. Unter der Tabelle steht „N Leasingangebote ausgeblendet“. Ein unvollständiges Leasingangebot blockiert bei ausgeblendetem Leasing den Kandidaten nicht.
+Im Kopf der Ergebnisseite schaltet „Leasing anzeigen“ alle Leasingangebote des Szenarios aus und ein (Feld „Leasingangebote berücksichtigen“). Der Schalter steht nur im Vergleich (nicht in der Detailansicht), und nur, wenn ein Kandidat Leasingstufen hat oder Leasing ausgeblendet ist. Ausgeblendete Angebote werden nicht gerechnet und haben keine Zeile, keine Karte und keine Detailansicht. Unter der Tabelle steht „N Leasingangebote ausgeblendet“. Ein unvollständiges Leasingangebot blockiert bei ausgeblendetem Leasing den Kandidaten nicht.
 
 ### Preis-Simulation
 
@@ -399,7 +399,7 @@ Die Oberfläche ist eine einzige Anwendung mit fünf Bereichen, die am Desktop a
 - Ein neuer Kandidat startet aus einer leeren Vorlage. "Duplizieren" kopiert einen vorhandenen Kandidaten, zum Beispiel für eine andere Ausstattungsvariante.
 - Auf dem Handy führt das Formular in Schritten (Allgemein, Akku und Reichweite, Garantie, Leasing). Auf dem Desktop stehen alle Gruppen untereinander.
 - Ungeeignete oder unvollständige Kandidaten bleiben in der Liste und zeigen den Grund auf der Karte.
-- Bei ausgeblendetem Leasing beurteilt der Status nur die sichtbaren Angebote, und die Zahl der Leasingangebote auf der Karte trägt den Hinweis „ausgeblendet“.
+- Bei ausgeblendetem Leasing beurteilt der Status nur die sichtbaren Angebote, und die Zahl der Leasingangebote in der Zusammenfassung der Liste trägt den Hinweis „ausgeblendet“.
 - Alle Parameter sind in der Oberfläche änderbar. Geänderte Standardwerte sind markiert.
 - Der Stichtag der Garantieberechnung ist beim Anlegen eines Szenarios mit dem aktuellen Monat vorbelegt. „Zurücksetzen“ setzt den aktuellen Monat. Als geändert markiert ist der Stichtag nur, wenn der Nutzer ihn selbst gesetzt hat, nicht weil der Anlagemonat vergangen ist. Duplizieren, Import und „Als Szenario speichern“ übernehmen den Stichtag unverändert.
 

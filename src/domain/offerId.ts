@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Candidate } from './schema';
+import type { Candidate, Scenario } from './schema';
 
 // Offers have no UUID of their own (architecture 8.1): the id is derived from
 // the candidate and, for a lease, from the UUID of its lease tier.
@@ -60,4 +60,19 @@ export function listOffers(
       leaseTierId: tier.id,
     })),
   ];
+}
+
+/**
+ * The offers of a candidate in a scenario: all of them, or only the purchase
+ * offer while the scenario hides its lease offers. The one place that decides
+ * which offers exist, so the worker and the views agree.
+ */
+export function listScenarioOffers(
+  scenario: Pick<Scenario, 'includeLeaseOffers'>,
+  candidate: Parameters<typeof listOffers>[0],
+): Offer[] {
+  const offers = listOffers(candidate);
+  return scenario.includeLeaseOffers
+    ? offers
+    : offers.filter((offer) => offer.kind === 'purchase');
 }

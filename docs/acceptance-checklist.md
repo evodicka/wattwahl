@@ -1,6 +1,6 @@
 # Wattwahl – Checkliste zur Abnahme am Gerät (S26)
 
-Stand: Release-Kandidat `1.0.0-rc.2` (mit Kilometerreserve, C2b, und SoH-Plan, C3b) · Freigabe G4 · Grundlage: Architektur 8.13,
+Stand: Release-Kandidat `1.0.0-rc.2` (mit Kilometerreserve, C2b, SoH-Plan, C3b, und Leasing ausblenden, C4b) · Freigabe G4 · Grundlage: Architektur 8.13,
 Spezifikation „Abnahmekriterien“
 
 Diese Checkliste prüft, was nur am echten Gerät prüfbar ist. Alles andere läuft
@@ -115,6 +115,22 @@ beim Einlesen auf Version 4 gebracht). Kilometerreserve auf **10 km** setzen.
       Grund nennt, nach wie vielen Monaten der letzte Weg kippt. Danach SoH-Plan
       wieder auf „fest“ und Kilometerreserve auf **0 km**.
 
+## 7. Leasing ausblenden (Folgeversion C4b)
+
+Diese Punkte gelten für die Folgeversion nach C3b, auf dem Handy mit dem Szenario
+aus `docs/acceptance/eauto-export-2026-11-16-v2_3.json` (Datei einlesen, sie wird
+beim Einlesen auf Version 5 gebracht).
+
+- [ ] Im Kopf des Ergebnisses steht unter dem Preisfall der Schalter **Leasing
+      anzeigen** (Standard „An“, der Zustand steht als Wort, nicht nur als Knopf).
+- [ ] Auf „Aus“ gestellt, verschwinden alle Leasingangebote sofort aus Tabelle bzw.
+      Karten und aus dem Kostendiagramm. Darunter steht **„N Leasingangebote
+      ausgeblendet“**. Die Seite scrollt nicht seitwärts.
+- [ ] Unter „Kandidaten“ steht in der Zusammenfassung „… Leasingangebote,
+      ausgeblendet“. Nach dem Neuladen der App bleibt die Einstellung erhalten.
+- [ ] Wieder auf „An“ gestellt, kommen alle Leasingangebote zurück, die Zahlen der
+      Kaufangebote sind unverändert.
+
 ## Ergebnis
 
 | Kriterium | Gerät | Bestanden | Bemerkung |
@@ -128,6 +144,7 @@ beim Einlesen auf Version 4 gebracht). Kilometerreserve auf **10 km** setzen.
 | Export und Import, gleiche Ergebnisse | Handy → Desktop | ☐ | |
 | Kilometerreserve, Zeitregler, „E-Auto am Ende“ (Abschnitt 5) | Handy | ☐ | |
 | SoH-Plan „mit Wechsel“, Zeitregler, Kennzeichnung (Abschnitt 6) | Handy | ☐ | |
+| Leasing ausblenden, Hinweis, Neuladen (Abschnitt 7) | Handy | ☐ | |
 
 **Fehler:** Was nicht besteht, wird als neuer Schritt nach dem Schema des
 Implementierungsplans geplant. Reicht die Zeit bei Q1 nicht, ist der erste Hebel

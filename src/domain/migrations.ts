@@ -176,11 +176,22 @@ export function v3ToV4(data: unknown): unknown {
   return { ...data, parameters: { ...data.parameters, sohPlanMode: 'fixed' } };
 }
 
+/**
+ * v4 -> v5, hide lease offers (docs/change-leasing-ausblenden.md): every
+ * scenario gets `includeLeaseOffers = true`, today's behaviour, so all results
+ * and the result hash stay the same.
+ */
+export function v4ToV5(data: unknown): unknown {
+  if (!isObject(data)) return data;
+  return { ...data, includeLeaseOffers: true };
+}
+
 /** Steps keyed by the version they start from. */
 export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = {
   1: v1ToV2,
   2: v2ToV3,
   3: v3ToV4,
+  4: v4ToV5,
 };
 
 export const migrate = createMigrator(MIGRATIONS, CURRENT_SCHEMA_VERSION);

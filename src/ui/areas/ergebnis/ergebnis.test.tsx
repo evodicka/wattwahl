@@ -383,3 +383,78 @@ describe('S19: review findings', () => {
     );
   });
 });
+
+describe('C4b: hiding the lease offers', () => {
+  const leaseSwitch = () => screen.queryByRole('switch', { name: /Leasing/ });
+
+  it('the switch hides the lease rows at once, names how many are hidden, and saves the choice', async () => {
+    const app = await open('/ergebnis');
+    expect(bodyRows()).toHaveLength(5);
+    const toggle = leaseSwitch();
+    if (!toggle) throw new Error('no switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByText(/ausgeblendet/)).toBeNull();
+
+    fireEvent.click(toggle);
+    // The results still hold the lease results: the view filters by itself.
+    expect(bodyRows()).toHaveLength(4);
+    expect(
+      screen
+        .getByRole('switch', { name: /Leasing/ })
+        .getAttribute('aria-checked'),
+    ).toBe('false');
+    expect(screen.getByText('1 Leasingangebot ausgeblendet')).toBeTruthy();
+    expect(
+      app.store.getState().scenario.byId[scenarioWithFour().id],
+    ).toMatchObject({
+      includeLeaseOffers: false,
+    });
+
+    fireEvent.click(screen.getByRole('switch', { name: /Leasing/ }));
+    expect(bodyRows()).toHaveLength(5);
+    expect(screen.queryByText(/ausgeblendet/)).toBeNull();
+  });
+
+  it('has no switch without lease tiers, unless the lease offers are hidden', async () => {
+    const scenario = scenarioWithFour();
+    scenario.candidates = scenario.candidates.map((c) => ({
+      ...c,
+      leaseTiers: [],
+    }));
+    await open('/ergebnis', scenario);
+    expect(leaseSwitch()).toBeNull();
+  });
+
+  it('keeps the switch while hidden, even after the last tier is gone', async () => {
+    const scenario = scenarioWithFour();
+    scenario.includeLeaseOffers = false;
+    scenario.candidates = scenario.candidates.map((c) => ({
+      ...c,
+      leaseTiers: [],
+    }));
+    await open('/ergebnis', scenario);
+    expect(leaseSwitch()?.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('has no switch in a detail view, hiding the leases would take the open offer away', async () => {
+    const scenario = scenarioWithFour();
+    const purchase = Object.keys(computeResults(scenario))[0];
+    if (!purchase) throw new Error('no offer');
+    await open(`/ergebnis/${encodeURIComponent(purchase)}`, scenario);
+    expect(leaseSwitch()).toBeNull();
+  });
+
+  it('the detail route of a hidden lease offer leads back to the comparison', async () => {
+    const scenario = scenarioWithFour();
+    const lease = Object.keys(computeResults(scenario)).find((id) =>
+      id.includes(':lease:'),
+    );
+    if (!lease) throw new Error('no lease offer');
+    const hidden = { ...scenario, includeLeaseOffers: false };
+    const app = await renderApp(`/ergebnis/${encodeURIComponent(lease)}`, {
+      scenarios: [hidden],
+    });
+    await act(async () => app.worker.finish(computeResults(scenario)));
+    expect(app.router.state.location.pathname).toBe('/ergebnis');
+  });
+});

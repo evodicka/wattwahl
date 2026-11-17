@@ -1,6 +1,6 @@
 import { Trace, computeOffer } from '../../src/core';
 import {
-  listOffers,
+  listScenarioOffers,
   parseOfferId,
   type TraceEntry,
   type OfferResult,
@@ -16,7 +16,7 @@ export function computeResults(
 ): Record<string, Partial<Record<PriceCase, OfferResult>>> {
   const results: Record<string, Partial<Record<PriceCase, OfferResult>>> = {};
   for (const candidate of scenario.candidates) {
-    for (const offer of listOffers(candidate)) {
+    for (const offer of listScenarioOffers(scenario, candidate)) {
       results[offer.offerId] = {};
       const cases: PriceCase[] = options.sliderPrices
         ? ['mid', 'evFavorable', 'evUnfavorable', 'slider']

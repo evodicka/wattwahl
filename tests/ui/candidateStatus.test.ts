@@ -30,6 +30,22 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
     expect(status.best.costs.total).toBe(Math.min(...costs));
   });
 
+  it('C4b: with lease offers hidden only the purchase decides, even on results that still hold leases', () => {
+    const scenario = exampleScenario();
+    const [candidate] = scenario.candidates;
+    if (!candidate) throw new Error('no candidate');
+    const stale = computeResults(scenario);
+    const purchase = stale[`${candidate.id}:purchase`]?.mid;
+    if (purchase?.status !== 'ok') throw new Error('purchase not ok');
+    const status = candidateStatus(candidate, 0, stale, {
+      includeLeaseOffers: false,
+    });
+    if (status.kind !== 'suitable' && status.kind !== 'tight') {
+      throw new Error('expected a suitable status');
+    }
+    expect(status.best.offerId).toBe(`${candidate.id}:purchase`);
+  });
+
   it('without results the card has no status yet', () => {
     const scenario = exampleScenario();
     const [candidate] = scenario.candidates;

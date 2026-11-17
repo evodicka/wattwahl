@@ -9,6 +9,7 @@ import {
   upgradeScenario,
   v2ToV3,
   v3ToV4,
+  v4ToV5,
 } from './migrations';
 
 /** Month of the migration, as src/storage would pass it. */
@@ -226,7 +227,7 @@ describe('C1b: migration v1 -> v2 (warranty from first registration)', () => {
       km: 60000 + 80000,
     });
     expect(candidate?.warrantyNeedsReview).toBe(false);
-    const { data, schemaVersion } = readFixture('scenario.v4.json');
+    const { data, schemaVersion } = readFixture('scenario.v5.json');
     expect(schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     expect(scenario).toEqual({
       ...(data as object),
@@ -339,11 +340,10 @@ describe('C2b: migration v2 -> v3 (Kilometerreserve)', () => {
 describe('C3b: migration v3 -> v4 (SoH plan)', () => {
   const v3 = () => readFixture('scenario.v3.json');
 
-  it('C3b: the v3 example migrates to exactly the v4 example file', () => {
-    const result = upgradeScenario(deepFreeze(v3()), CONTEXT);
-    if (result.status !== 'ok') throw new Error(`not ok: ${result.status}`);
-    expect(result.migrated).toBe(true);
-    expect(result.scenario).toEqual(readFixture('scenario.v4.json').data);
+  it('C3b: the v3 example migrates by the v4 step to the v4 example file', () => {
+    expect(v3ToV4(deepFreeze(v3().data))).toEqual(
+      readFixture('scenario.v4.json').data,
+    );
   });
 
   it("C3b: it sets sohPlanMode = 'fixed' and changes nothing else", () => {
@@ -364,5 +364,36 @@ describe('C3b: migration v3 -> v4 (SoH plan)', () => {
   it('C3b: data without the v3 shape passes through untouched', () => {
     expect(v3ToV4('nothing')).toBe('nothing');
     expect(v3ToV4({ parameters: 3 })).toEqual({ parameters: 3 });
+  });
+});
+
+describe('C4b: migration v4 -> v5 (hide lease offers)', () => {
+  const v4 = () => readFixture('scenario.v4.json');
+
+  it('C4b: the v4 example migrates to exactly the v5 example file', () => {
+    const result = upgradeScenario(deepFreeze(v4()), CONTEXT);
+    if (result.status !== 'ok') throw new Error(`not ok: ${result.status}`);
+    expect(result.migrated).toBe(true);
+    expect(result.scenario).toEqual(readFixture('scenario.v5.json').data);
+  });
+
+  it('C4b: it sets includeLeaseOffers = true and changes nothing else', () => {
+    const { data } = v4();
+    const migrated = v4ToV5(data) as Record<string, unknown>;
+    const { includeLeaseOffers, ...rest } = migrated;
+    expect(includeLeaseOffers).toBe(true);
+    expect(rest).toEqual(data);
+  });
+
+  it('C4b: the step does not change its input', () => {
+    const { data } = v4();
+    const snapshot = structuredClone(data);
+    v4ToV5(deepFreeze(data));
+    expect(data).toEqual(snapshot);
+  });
+
+  it('C4b: data without an object passes through untouched', () => {
+    expect(v4ToV5('nothing')).toBe('nothing');
+    expect(v4ToV5(null)).toBeNull();
   });
 });

@@ -284,6 +284,8 @@
       "candidates_other": "{{count}} Kandidaten",
       "leases_one": "{{count}} Leasingangebot",
       "leases_other": "{{count}} Leasingangebote",
+      "leasesHidden_one": "{{count}} Leasingangebot, ausgeblendet",
+      "leasesHidden_other": "{{count}} Leasingangebote, ausgeblendet",
       "live": "Ergebnisse rechnen live neu"
     },
     "new": "Neuer Kandidat",
@@ -509,6 +511,12 @@
       "noValue": "–"
     },
     "offersHeading": "Angebote nach Kosten",
+    "leaseSwitch": {
+      "label": "Leasing anzeigen",
+      "hint": "Aus: Leasingangebote werden nicht gerechnet und nicht gezeigt."
+    },
+    "leaseHidden_one": "{{count}} Leasingangebot ausgeblendet",
+    "leaseHidden_other": "{{count}} Leasingangebote ausgeblendet",
     "unsuitable": {
       "both": "{{weekday}}, {{month}}: Reserve Weg A {{a}}, Weg B {{b}}. Beide Wege nicht fahrbar.",
       "strict": "Weg {{way}} ist im {{month}} nicht fahrbar (Reserve {{km}}). Der Verbrenner würde ihn übernehmen.",

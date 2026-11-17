@@ -1,6 +1,6 @@
 import { ComputeCache, Trace, computeOffer, hashResult } from '../core';
 import {
-  listOffers,
+  listScenarioOffers,
   parseOfferId,
   type OfferResult,
   type PriceCase,
@@ -96,7 +96,7 @@ export function createCoreEndpoint(
       : [...BASE_PRICE_CASES];
     const results: OfferResults = {};
     for (const candidate of scenario.candidates) {
-      for (const offer of listOffers(candidate)) {
+      for (const offer of listScenarioOffers(scenario, candidate)) {
         await yieldToEventLoop();
         if (generation < latestGeneration) {
           return { status: 'superseded', generation };
@@ -143,7 +143,7 @@ export function createCoreEndpoint(
     const compareCache = new ComputeCache();
     const results: OfferResults = {};
     for (const candidate of scenario.candidates) {
-      for (const offer of listOffers(candidate)) {
+      for (const offer of listScenarioOffers(scenario, candidate)) {
         await yieldToEventLoop();
         results[offer.offerId] = {
           mid: computeOffer(scenario, offer, 'mid', { cache: compareCache }),

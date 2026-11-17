@@ -1,5 +1,5 @@
 import {
-  listOffers,
+  listScenarioOffers,
   type OfferResult,
   type OkOfferResult,
   type PriceCase,
@@ -57,7 +57,7 @@ export function resultRows(
   const rows: ResultRow[] = [];
   scenario.candidates.forEach((candidate, index) => {
     const own = `candidates[${index}]`;
-    for (const offer of listOffers(candidate)) {
+    for (const offer of listScenarioOffers(scenario, candidate)) {
       const byCase = results[offer.offerId];
       const result = byCase?.[priceCase];
       if (!result) continue;

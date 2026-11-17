@@ -97,3 +97,19 @@ describe('S22: comparisonRows', () => {
     expect(onlyA.every((r) => r.difference === null)).toBe(true);
   });
 });
+
+describe('C4b: comparisonRows with lease offers hidden', () => {
+  it('each scenario follows its own switch, so a lease row has a cell only where leases show', () => {
+    const a = named(exampleScenario(), ID_A, 'A');
+    const b = {
+      ...named(exampleScenario(), ID_B, 'B'),
+      includeLeaseOffers: false,
+    };
+    const rows = comparisonRows([compared(a), compared(b)]);
+    const lease = rows.find((row) => row.leaseTierKm !== null);
+    expect(lease?.cells[0]).not.toBeNull();
+    expect(lease?.cells[1]).toBeNull();
+    const purchase = rows.find((row) => row.leaseTierKm === null);
+    expect(purchase?.cells.every((cell) => cell !== null)).toBe(true);
+  });
+});

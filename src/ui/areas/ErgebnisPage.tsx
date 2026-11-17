@@ -8,7 +8,14 @@ import {
   useAppDispatch,
   useAppSelector,
 } from '../../state';
-import { Button, EmptyState, Notice, SegmentedControl } from '../components';
+import {
+  Button,
+  EmptyState,
+  Notice,
+  SegmentedControl,
+  Switch,
+} from '../components';
+import { useScenarioEditor } from '../forms/scenarioForm';
 import { resultRows } from '../forms/resultRows';
 import { ChartSuspense, CostBars } from '../charts/lazy';
 import { useIsDesktop } from '../layout/useIsDesktop';
@@ -38,6 +45,7 @@ export function ErgebnisPage() {
   const status = useAppSelector((state) => state.result.status);
   const priceCase = useAppSelector((state) => state.ui.priceCase);
   const sliderPrices = useAppSelector((state) => state.ui.sliderPrices);
+  const { set } = useScenarioEditor();
 
   if (!scenario) return <AreaHead title={t('title')} />;
 
@@ -92,6 +100,16 @@ export function ErgebnisPage() {
       : []),
   ];
 
+  // The switch is there while a lease tier exists, or while the lease offers
+  // are hidden, so they always come back.
+  const leaseTiers = scenario.candidates.reduce(
+    (n, candidate) => n + candidate.leaseTiers.length,
+    0,
+  );
+  // Not in a detail view: hiding the leases would take the open offer away.
+  const showLeaseSwitch =
+    !offerId && (leaseTiers > 0 || !scenario.includeLeaseOffers);
+
   const priceCaseName = options.find((o) => o.value === shown)?.label ?? '';
 
   // Only a computed offer has a detail view. Wait for a finished run before
@@ -117,6 +135,16 @@ export function ErgebnisPage() {
           onChange={(value) => dispatch(priceCaseSet(value))}
           full={!desktop}
         />
+        {showLeaseSwitch && (
+          <Switch
+            label={t('leaseSwitch.label')}
+            hint={t('leaseSwitch.hint')}
+            checked={scenario.includeLeaseOffers}
+            onChange={(value) => set('includeLeaseOffers', value)}
+            onText={c('yesNo.on')}
+            offText={c('yesNo.off')}
+          />
+        )}
       </div>
     </div>
   );
@@ -217,6 +245,11 @@ export function ErgebnisPage() {
             />
           ) : (
             <OfferCards rows={rows} scenario={scenario} />
+          )}
+          {!scenario.includeLeaseOffers && leaseTiers > 0 && (
+            <p className="t-sm muted">
+              {t('leaseHidden', { count: leaseTiers })}
+            </p>
           )}
         </section>
       )}

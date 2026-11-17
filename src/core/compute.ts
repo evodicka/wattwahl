@@ -210,10 +210,11 @@ export function computeOffer(
   }
   if (
     offer.kind === 'lease' &&
-    !stored.leaseTiers.some((tier) => tier.id === offer.leaseTierId)
+    (!scenario.includeLeaseOffers ||
+      !stored.leaseTiers.some((tier) => tier.id === offer.leaseTierId))
   ) {
     throw new RangeError(
-      `The candidate has no lease tier ${offer.leaseTierId}.`,
+      `The scenario has no lease offer for tier ${offer.leaseTierId}.`,
     );
   }
   let selection: PriceSelection;
@@ -239,12 +240,16 @@ export function computeOffer(
 
   // Everything this offer needs: the driving profile and parameters, and the
   // candidate with all its lease tiers (spec: one gap blocks the candidate).
+  // Hidden lease offers are not part of the scenario, so they block nothing.
+  const subject = scenario.includeLeaseOffers
+    ? stored
+    : { ...stored, leaseTiers: [] };
   const scenarioCheck = cache
     ? cache.checkScenario(scenario)
     : ScenarioComputeSchema.safeParse(scenario);
   const candidateCheck = cache
-    ? cache.checkCandidate(scenario, stored)
-    : CandidateComputeSchema.safeParse(stored);
+    ? cache.checkCandidate(scenario, subject)
+    : CandidateComputeSchema.safeParse(subject);
   const issues = [
     ...issuesOf(scenarioCheck),
     ...issuesOf(candidateCheck, `candidates[${index}]`),
