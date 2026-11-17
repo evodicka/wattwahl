@@ -1,7 +1,8 @@
 import {
-  listOffers,
+  listScenarioOffers,
   type Candidate,
   type OkOfferResult,
+  type Scenario,
   type UnsuitableReason,
 } from '../../domain';
 import { MONTH_KEYS, formatKm, formatPercent, i18n } from '../../i18n';
@@ -29,14 +30,16 @@ export type CandidateStatus =
  * cheapest suitable offer decides; a yellow smallest reserve is "knapp".
  * Without a suitable offer an incomplete one wins over an unsuitable one,
  * because the missing fields must be filled in before anything else counts.
+ * Hidden lease offers do not count, even if the results still hold them.
  */
 export function candidateStatus(
   candidate: Candidate,
   index: number,
   results: Results | undefined,
+  scenario: Pick<Scenario, 'includeLeaseOffers'> = { includeLeaseOffers: true },
 ): CandidateStatus {
   const own = `candidates[${index}]`;
-  const found = listOffers(candidate).flatMap((offer) => {
+  const found = listScenarioOffers(scenario, candidate).flatMap((offer) => {
     const result = results?.[offer.offerId]?.mid;
     return result ? [result] : [];
   });

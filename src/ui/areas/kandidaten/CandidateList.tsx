@@ -34,7 +34,9 @@ export function CandidateList() {
   );
   const summary = [
     t('summary.candidates', { count: scenario.candidates.length }),
-    t('summary.leases', { count: leases }),
+    t(scenario.includeLeaseOffers ? 'summary.leases' : 'summary.leasesHidden', {
+      count: leases,
+    }),
     t('summary.live'),
   ].join(c('separator'));
 
@@ -72,7 +74,7 @@ export function CandidateList() {
                 key={candidate.id}
                 candidate={candidate}
                 scenario={scenario}
-                status={candidateStatus(candidate, index, results)}
+                status={candidateStatus(candidate, index, results, scenario)}
                 onEdit={() => void navigate(`/kandidaten/${candidate.id}`)}
                 onDuplicate={() =>
                   dispatch(

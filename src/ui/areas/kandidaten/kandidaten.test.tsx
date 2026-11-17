@@ -1,4 +1,10 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  within,
+} from '@testing-library/react';
 import type { RouteObject } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -438,5 +444,19 @@ describe('S18: error boundary of the area', () => {
       screen.getByRole('heading', { level: 1, name: 'Parameter' }),
     ).toBeTruthy();
     vi.restoreAllMocks();
+  });
+});
+
+describe('C4b: lease offers hidden', () => {
+  it('the list says that the lease offers are hidden', async () => {
+    await open('/kandidaten', exampleScenario());
+    expect(screen.getByText(/1 Leasingangebot(?!,)/)).toBeTruthy();
+    expect(screen.queryByText(/ausgeblendet/)).toBeNull();
+    cleanup();
+    await open('/kandidaten', {
+      ...exampleScenario(),
+      includeLeaseOffers: false,
+    });
+    expect(screen.getByText(/1 Leasingangebot, ausgeblendet/)).toBeTruthy();
   });
 });

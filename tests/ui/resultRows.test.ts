@@ -83,6 +83,18 @@ describe('S19: rows of the result table', () => {
   });
 });
 
+describe('C4b: rows of the result table with lease offers hidden', () => {
+  it('leaves out the lease rows at once, even from results that still hold them', () => {
+    const scenario = scenarioWithFour();
+    const stale = computeResults(scenario);
+    const hidden = { ...scenario, includeLeaseOffers: false };
+    const rows = resultRows(hidden, stale, 'mid');
+    expect(rows.map((r) => r.leaseTierKm)).toEqual(rows.map(() => null));
+    expect(rows).toHaveLength(4);
+    expect(resultRows(scenario, stale, 'mid')).toHaveLength(5);
+  });
+});
+
 describe('S19: warranty column', () => {
   const ok = (
     base: OkOfferResult,

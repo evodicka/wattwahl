@@ -1,6 +1,6 @@
 # Änderung: Leasingangebote ausblenden
 
-Nov 17, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 9 nach C3b geplant, C4a in Spezifikation, Architektur und Plan umgesetzt
+Nov 17, 2026 · Eduard Vodicka · Status: Entscheidungen getroffen, als Phase 9 nach C3b geplant, C4a in Spezifikation, Architektur und Plan umgesetzt, C4b im Code umgesetzt
 
 Auslöser ist die Übersichtlichkeit der Ergebnisansicht. Mit mehreren Kandidaten und je bis zu vier Leasingstufen stehen in der Ergebnistabelle schnell mehr Leasing- als Kaufangebote. Der Nutzer will die Leasingangebote mit einem Schalter auf der Ergebnisseite ausblenden. Ausgeblendete Angebote braucht die App nicht zu rechnen.
 
@@ -30,11 +30,11 @@ Hinweis: Auch `sohPlanMode` gilt je Szenario (er liegt in `scenario.parameters`)
 ## Darstellung
 
 - **Ergebniskopf:** Ein Schalter „Leasing anzeigen“ neben der Auswahl des Preisfalls. Er ändert das Szenario (Autosave, Neuberechnung wie bei jeder Eingabe).
-- **Sichtbarkeit:** Der Schalter erscheint, wenn mindestens ein Kandidat eine Leasingstufe hat oder wenn Leasing gerade ausgeblendet ist. So kommt man auch zurück, wenn die letzten Stufen gelöscht wurden.
+- **Sichtbarkeit:** Der Schalter steht nur im Vergleich, nicht in der Detailansicht eines Angebots (Ausblenden würde das offene Angebot wegnehmen). Er erscheint, wenn mindestens ein Kandidat eine Leasingstufe hat oder wenn Leasing gerade ausgeblendet ist. So kommt man auch zurück, wenn die letzten Stufen gelöscht wurden.
 - **Hinweis:** Bei ausgeblendetem Leasing steht unter der Tabelle (Karten auf dem Handy) „N Leasingangebote ausgeblendet“. N zählt die Leasingstufen aller Kandidaten.
 - **Sofort statt nach der Rechnung:** Die Ansichten filtern selbst nach dem Feld. Beim Umschalten verschwinden Leasingzeilen sofort, auch wenn das letzte Ergebnis noch alte Leasingergebnisse enthält.
 - **Detailroute:** `#/ergebnis/<offerId>` eines ausgeblendeten Leasingangebots hat keine Zeile und leitet auf `#/ergebnis` um (bestehende Regel für unbekannte Angebote).
-- **Kandidatenseite:** Der Status eines Kandidaten beurteilt nur die sichtbaren Angebote. Ist das Kaufangebot ungeeignet und nur Leasing geeignet, zeigt die Karte bei ausgeblendetem Leasing „ungeeignet“. Damit das nicht überrascht, steht an der Zahl der Leasingangebote der Hinweis „ausgeblendet“.
+- **Kandidatenseite:** Der Status eines Kandidaten beurteilt nur die sichtbaren Angebote. Ist das Kaufangebot ungeeignet und nur Leasing geeignet, zeigt die Karte bei ausgeblendetem Leasing „ungeeignet“. Damit das nicht überrascht, trägt die Zahl der Leasingangebote in der Zusammenfassung der Liste den Hinweis „ausgeblendet“.
 - **Szenariovergleich:** Jedes Szenario gilt mit seinem eigenen Schalter. Die Zuordnung der Angebote erfolgt wie bisher über Kandidatenname und Angebotsart. Leasingzeilen erscheinen dann nur für ein Szenario, das Leasing zeigt, so wie ein Angebot, das es nur in einem Szenario gibt.
 
 ## Testfälle
@@ -70,8 +70,8 @@ Die Schemaversion steigt auf 5, weil ein neues Pflichtfeld dazukommt. Der Migrat
 | `src/worker/endpoint.ts` | `compute` und `compare` rechnen nur die Angebote aus `listScenarioOffers`. |
 | `src/core/compute.ts` | Prüfung der Vollständigkeit: ein unvollständiges Leasingangebot blockiert den Kandidaten nur, wenn Leasing berücksichtigt wird. |
 | `src/ui/forms/resultRows.ts`, `candidateStatus.ts`, `comparisonView.ts` | Aufzählung über `listScenarioOffers`. |
-| `src/ui/areas/ErgebnisPage.tsx`, `ergebnis/ResultTable.tsx`, `OfferCards.tsx` | Schalter im Kopf, Hinweis „N Leasingangebote ausgeblendet“. |
-| `src/ui/areas/kandidaten/CandidateCard.tsx`, `src/i18n/de.json` | Hinweis „ausgeblendet“, neue Texte. |
+| `src/ui/areas/ErgebnisPage.tsx` | Schalter im Kopf des Vergleichs (nicht in der Detailansicht), Hinweis „N Leasingangebote ausgeblendet“. |
+| `src/ui/areas/kandidaten/CandidateList.tsx`, `src/i18n/de.json` | Hinweis „ausgeblendet“ an der Zahl der Leasingangebote in der Zusammenfassung der Liste, neue Texte. |
 | `docs/implementation_plan.md` | Phase 9 mit C4a und C4b, Schrittzahl, Fahrplan-Diagramm. |
 | `tests/fixtures`, `e2e`, `docs/acceptance-checklist.md` | Feld ergänzen, neue Tests, Abnahmepunkt für den Schalter. |
 

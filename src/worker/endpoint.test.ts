@@ -100,6 +100,27 @@ describe('S14: worker endpoint', () => {
     );
   });
 
+  it('C4b: compute and compare leave out lease offers of a scenario that hides them', async () => {
+    const api = createCoreEndpoint();
+    const scenario = { ...exampleScenario(), includeLeaseOffers: false };
+    const computed = await api.compute({ generation: 1, scenario });
+    if (computed.status !== 'done') throw new Error('expected a finished run');
+    const compared = await api.compare({ scenario });
+    const purchases = scenario.candidates.map(
+      (candidate) => `${candidate.id}:purchase`,
+    );
+    expect(Object.keys(computed.results).sort()).toEqual(purchases.sort());
+    expect(Object.keys(compared.results).sort()).toEqual(purchases.sort());
+    const shown = await api.compute({
+      generation: 2,
+      scenario: exampleScenario(),
+    });
+    if (shown.status !== 'done') throw new Error('expected a finished run');
+    for (const offerId of purchases) {
+      expect(computed.results[offerId]).toEqual(shown.results[offerId]);
+    }
+  });
+
   it('a run overtaken by a newer generation ends with "superseded"', async () => {
     const api = createCoreEndpoint();
     const scenario = q1Scenario();

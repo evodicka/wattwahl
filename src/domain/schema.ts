@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Version of the stored scenario format (architecture 8.2). */
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 /** Longest comparison period in months (spec "Parameterliste"): 100 years. */
 export const MAX_COMPARISON_MONTHS = 1200;
@@ -220,6 +220,8 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     workplaces: z.object({ a: Workplace, b: Workplace }),
     extraMileage: ExtraMileage,
     parameters: Parameters,
+    /** Hide lease offers (docs/change-leasing-ausblenden.md): `false` leaves only the purchase offers, which are then the only ones computed. */
+    includeLeaseOffers: z.boolean(),
     candidates: z.array(Candidate),
   });
 

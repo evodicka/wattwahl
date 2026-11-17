@@ -213,6 +213,36 @@ test.describe('S19: accessibility (Q10)', () => {
   });
 });
 
+test.describe('C4b: hiding the lease offers', () => {
+  test('the switch leaves only the purchase rows, survives a reload and brings the leases back', async ({
+    page,
+  }) => {
+    await seedScenario(page);
+    await open(page, '/ergebnis');
+    await expect(table(page).getByRole('row')).toHaveCount(3);
+
+    const toggle = page.getByRole('switch', { name: /Leasing anzeigen/ });
+    await toggle.click();
+    await expect(table(page).getByRole('row')).toHaveCount(2);
+    await expect(
+      table(page).getByRole('row', { name: /Modell A Kauf/ }),
+    ).toBeVisible();
+    await expect(page.getByText('1 Leasingangebot ausgeblendet')).toBeVisible();
+
+    // The autosave writes after 300 ms of quiet; the choice belongs to the scenario.
+    await page.waitForTimeout(600);
+    await page.reload();
+    await expect(table(page).getByRole('row')).toHaveCount(2);
+    await expect(
+      page.getByRole('switch', { name: /Leasing anzeigen/ }),
+    ).toHaveAttribute('aria-checked', 'false');
+
+    await page.getByRole('switch', { name: /Leasing anzeigen/ }).click();
+    await expect(table(page).getByRole('row')).toHaveCount(3);
+    await expect(page.getByText(/ausgeblendet/)).toHaveCount(0);
+  });
+});
+
 // Screenshots for the comparison with D5, M8, T2 and T4 (chromium only,
 // screenshots/s19/, ignored by git).
 test.describe('S19: screenshots', () => {

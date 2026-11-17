@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 5,
+  "data": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "name": "Example v2",
+    "iceVehicle": {
+      "name": "Example petrol car",
+      "consumptionLPer100Km": {
+        "city": 8,
+        "rural": 6,
+        "highway": 7
+      },
+      "mileageKm": 120000,
+      "maintenancePerKm": 0.04,
+      "petrolPrice": {
+        "min": 1.7,
+        "mid": 1.9,
+        "max": 2.1
+      },
+      "petrolEscalationPct": 0
+    },
+    "workplaces": {
+      "a": {
+        "name": "Workplace A",
+        "commute": {
+          "city": 10,
+          "rural": 15,
+          "highway": 35
+        },
+        "weekdays": ["mon", "tue", "wed", "thu", "fri"],
+        "freeDaysPerYear": 30,
+        "chargesFreeAtWork": false
+      },
+      "b": {
+        "name": "Workplace B",
+        "commute": {
+          "city": 5,
+          "rural": 20,
+          "highway": 25
+        },
+        "weekdays": ["tue", "thu"],
+        "freeDaysPerYear": 10,
+        "chargesFreeAtWork": true
+      }
+    },
+    "extraMileage": {
+      "kmPerMonth": {
+        "city": 50,
+        "rural": 100,
+        "highway": 150
+      }
+    },
+    "parameters": {
+      "comparisonMonths": 48,
+      "chargeLowerPct": 10,
+      "chargeUpperPct": 80,
+      "safetyBufferPct": 10,
+      "sohMinPct": 85,
+      "kmToSohMin": 200000,
+      "sohReference": "end",
+      "sohPlanMode": "fixed",
+      "minReserveKm": 0,
+      "chargingEfficiencyPct": 90,
+      "tempColdC": -10,
+      "tempMildC": 23,
+      "monthlyTempC": [1, 2, 5, 9, 14, 17, 19, 19, 15, 10, 5, 2],
+      "coldReserveK": 5,
+      "highwayDiscountPct": 12,
+      "trafficLightGreenFromPct": 15,
+      "depreciationPctPerYear": 15,
+      "evMaintenancePerKm": 0.02,
+      "electricityPrice": {
+        "min": 0.25,
+        "mid": 0.3,
+        "max": 0.35
+      },
+      "electricityEscalationPct": 0,
+      "workWeeksPerYear": 52,
+      "extraMileageMode": "optimized",
+      "extraMileageFixedEvSharePct": null,
+      "extraMileageStepPct": 10,
+      "strictMode": false,
+      "warrantyBudgetAsTarget": true,
+      "kmGridPerYear": 250,
+      "warrantyReferenceMonth": {
+        "month": 11,
+        "year": 2026
+      },
+      "warrantyReferenceMonthSetByUser": false
+    },
+    "includeLeaseOffers": true,
+    "candidates": [
+      {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "name": "Example EV",
+        "note": "The v1 example migrated in November 2026",
+        "condition": "used",
+        "purchasePrice": 40000,
+        "firstRegistration": {
+          "month": 3,
+          "year": 2023
+        },
+        "mileageKm": 80000,
+        "netCapacityKwh": 60,
+        "rangeKm": {
+          "city": {
+            "mild": 420,
+            "cold": 300
+          },
+          "highway": {
+            "mild": 300,
+            "cold": 220
+          },
+          "combined": {
+            "mild": 360,
+            "cold": 260
+          }
+        },
+        "sohKnownPct": 92,
+        "vehicleWarranty": {
+          "years": 3.6666666666666665,
+          "km": 80000
+        },
+        "batteryWarranty": {
+          "years": 6.666666666666666,
+          "km": 140000
+        },
+        "warrantyNeedsReview": false,
+        "depreciationPctPerYear": null,
+        "maintenancePerKm": null,
+        "leaseTiers": [
+          {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "tierKmPerYear": 15000,
+            "monthlyRate": 399,
+            "termMonths": 36,
+            "downPayment": 2000,
+            "extraKmPrice": 0.08,
+            "underKmRefund": 0.04
+          }
+        ]
+      }
+    ]
+  }
+}

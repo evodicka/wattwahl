@@ -431,6 +431,28 @@ describe('S10: incomplete candidates', () => {
     }
   });
 
+  it('C4b: an incomplete lease tier does not block the purchase offer while lease offers are hidden', () => {
+    const scenario = exampleScenario();
+    const candidate = first(scenario.candidates);
+    first(candidate.leaseTiers).monthlyRate = null;
+    scenario.includeLeaseOffers = false;
+    const purchase = first(listOffers(candidate));
+    expect(computeOffer(scenario, purchase, 'mid').status).toBe('ok');
+    // The offer of a hidden lease does not exist in this scenario.
+    const lease = at(listOffers(candidate), 1);
+    expect(() => computeOffer(scenario, lease, 'mid')).toThrow(RangeError);
+  });
+
+  it('C4b: the purchase result is the same with lease offers hidden', () => {
+    const shown = exampleScenario();
+    const hidden = exampleScenario();
+    hidden.includeLeaseOffers = false;
+    const purchase = first(listOffers(first(shown.candidates)));
+    expect(computeOffer(hidden, purchase, 'mid')).toEqual(
+      computeOffer(shown, purchase, 'mid'),
+    );
+  });
+
   it('S10: a gap in the driving profile blocks every candidate and names the field', () => {
     const scenario = exampleScenario();
     scenario.candidates.push({

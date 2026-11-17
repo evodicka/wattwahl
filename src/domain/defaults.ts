@@ -346,6 +346,7 @@ export function createScenarioTemplate(input: {
       warrantyReferenceMonth: { ...input.currentMonth },
       warrantyReferenceMonthSetByUser: false,
     },
+    includeLeaseOffers: true,
     candidates: [],
   };
   for (const entry of PARAMETER_DEFAULTS) {
