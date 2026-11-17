@@ -220,7 +220,10 @@ function buildEntities<const Strict extends boolean>(strict: Strict) {
     workplaces: z.object({ a: Workplace, b: Workplace }),
     extraMileage: ExtraMileage,
     parameters: Parameters,
-    /** Hide lease offers (docs/change-leasing-ausblenden.md): `false` leaves only the purchase offers, which are then the only ones computed. */
+    /**
+     * Hide lease offers (docs/change-leasing-ausblenden.md): `false` leaves
+     * only the purchase offers, which are then the only ones computed.
+     */
     includeLeaseOffers: z.boolean(),
     candidates: z.array(Candidate),
   });

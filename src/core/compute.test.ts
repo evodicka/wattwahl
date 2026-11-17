@@ -443,6 +443,30 @@ describe('S10: incomplete candidates', () => {
     expect(() => computeOffer(scenario, lease, 'mid')).toThrow(RangeError);
   });
 
+  it('C4b: the purchase result is the same with several lease tiers, shown or hidden', () => {
+    const shown = exampleScenario();
+    const candidate = first(shown.candidates);
+    const tier = first(candidate.leaseTiers);
+    candidate.leaseTiers = [
+      tier,
+      {
+        ...tier,
+        id: '00000000-0000-4000-8000-0000000000c1',
+        tierKmPerYear: 10000,
+      },
+      {
+        ...tier,
+        id: '00000000-0000-4000-8000-0000000000c2',
+        tierKmPerYear: 25000,
+      },
+    ];
+    const hidden = { ...shown, includeLeaseOffers: false };
+    const purchase = first(listOffers(candidate));
+    expect(computeOffer(hidden, purchase, 'mid')).toEqual(
+      computeOffer(shown, purchase, 'mid'),
+    );
+  });
+
   it('C4b: the purchase result is the same with lease offers hidden', () => {
     const shown = exampleScenario();
     const hidden = exampleScenario();

@@ -36,7 +36,7 @@ export function candidateStatus(
   candidate: Candidate,
   index: number,
   results: Results | undefined,
-  scenario: Pick<Scenario, 'includeLeaseOffers'> = { includeLeaseOffers: true },
+  scenario: Pick<Scenario, 'includeLeaseOffers'>,
 ): CandidateStatus {
   const own = `candidates[${index}]`;
   const found = listScenarioOffers(scenario, candidate).flatMap((offer) => {

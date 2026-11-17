@@ -241,6 +241,7 @@ export function computeOffer(
   // Everything this offer needs: the driving profile and parameters, and the
   // candidate with all its lease tiers (spec: one gap blocks the candidate).
   // Hidden lease offers are not part of the scenario, so they block nothing.
+  // The copy is new on every call: the cache keys on the candidate id.
   const subject = scenario.includeLeaseOffers
     ? stored
     : { ...stored, leaseTiers: [] };
