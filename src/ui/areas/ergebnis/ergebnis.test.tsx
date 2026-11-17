@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exampleScenario } from '../../../../tests/fixtures/exampleScenario';
 import { scenarioWithFour } from '../../../../tests/fixtures/fourCandidates';
 import { computeResults } from '../../../../tests/fixtures/offerResults';
@@ -413,6 +413,21 @@ describe('C4b: hiding the lease offers', () => {
     fireEvent.click(screen.getByRole('switch', { name: /Leasing/ }));
     expect(bodyRows()).toHaveLength(5);
     expect(screen.queryByText(/ausgeblendet/)).toBeNull();
+  });
+
+  it('showing the leases again adds their rows only when their results arrive', async () => {
+    const scenario = { ...scenarioWithFour(), includeLeaseOffers: false };
+    const app = await open('/ergebnis', scenario);
+    expect(bodyRows()).toHaveLength(4);
+    fireEvent.click(screen.getByRole('switch', { name: /Leasing/ }));
+    // No lease results yet: no row, no empty cells.
+    expect(bodyRows()).toHaveLength(4);
+    // The compute follows after the debounce of the input (8.5).
+    await vi.waitFor(() => expect(app.worker.computes).toHaveLength(2));
+    await act(async () =>
+      app.worker.finish(computeResults(scenarioWithFour())),
+    );
+    expect(bodyRows()).toHaveLength(5);
   });
 
   it('has no switch without lease tiers, unless the lease offers are hidden', async () => {

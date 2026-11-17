@@ -14,6 +14,7 @@ import { computeResults } from '../fixtures/offerResults';
 
 // S18: the status of a candidate card and the names of missing fields.
 
+const SHOWN = { includeLeaseOffers: true };
 const ID_B = '00000000-0000-4000-8000-0000000000b2';
 
 describe('S18: candidate status from the results (price case "Mittel")', () => {
@@ -21,7 +22,12 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
     const scenario = exampleScenario();
     const [candidate] = scenario.candidates;
     if (!candidate) throw new Error('no candidate');
-    const status = candidateStatus(candidate, 0, computeResults(scenario));
+    const status = candidateStatus(
+      candidate,
+      0,
+      computeResults(scenario),
+      SHOWN,
+    );
     expect(['suitable', 'tight']).toContain(status.kind);
     if (status.kind !== 'suitable' && status.kind !== 'tight') return;
     const costs = Object.values(computeResults(scenario)).flatMap((byCase) =>
@@ -50,7 +56,7 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
     const scenario = exampleScenario();
     const [candidate] = scenario.candidates;
     if (!candidate) throw new Error('no candidate');
-    expect(candidateStatus(candidate, 0, undefined)).toEqual({
+    expect(candidateStatus(candidate, 0, undefined, SHOWN)).toEqual({
       kind: 'pending',
     });
   });
@@ -73,8 +79,10 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
     const [first, second] = scenario.candidates;
     if (!first || !second) throw new Error('missing candidates');
 
-    expect(candidateStatus(first, 0, results).kind).not.toBe('incomplete');
-    const status = candidateStatus(second, 1, results);
+    expect(candidateStatus(first, 0, results, SHOWN).kind).not.toBe(
+      'incomplete',
+    );
+    const status = candidateStatus(second, 1, results, SHOWN);
     expect(status).toMatchObject({ kind: 'incomplete', profileMissing: false });
     if (status.kind !== 'incomplete') return;
     expect(
@@ -87,7 +95,12 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
     scenario.iceVehicle = { ...scenario.iceVehicle, maintenancePerKm: null };
     const [candidate] = scenario.candidates;
     if (!candidate) throw new Error('no candidate');
-    const status = candidateStatus(candidate, 0, computeResults(scenario));
+    const status = candidateStatus(
+      candidate,
+      0,
+      computeResults(scenario),
+      SHOWN,
+    );
     expect(status).toEqual({
       kind: 'incomplete',
       missing: [],
@@ -114,6 +127,7 @@ describe('S18: candidate status from the results (price case "Mittel")', () => {
       scenario.candidates[0] ?? candidate,
       0,
       computeResults(scenario),
+      SHOWN,
     );
     expect(status.kind).toBe('unsuitable');
     if (status.kind !== 'unsuitable') return;
@@ -164,12 +178,17 @@ describe('S18: aggregation over the offers of a candidate', () => {
           : cell,
       ),
     };
-    const status = candidateStatus(candidate, 0, {
-      ...results,
-      [purchase.offerId]: { mid: yellow },
-      // The cheaper lease must not decide here.
-      [setup().lease.offerId]: {},
-    });
+    const status = candidateStatus(
+      candidate,
+      0,
+      {
+        ...results,
+        [purchase.offerId]: { mid: yellow },
+        // The cheaper lease must not decide here.
+        [setup().lease.offerId]: {},
+      },
+      SHOWN,
+    );
     expect(status.kind).toBe('tight');
   });
 
@@ -177,10 +196,15 @@ describe('S18: aggregation over the offers of a candidate', () => {
     const { candidate, purchase, lease, results } = setup();
     const leaseMid = results[lease.offerId]?.mid;
     if (!leaseMid) throw new Error('no lease result');
-    const status = candidateStatus(candidate, 0, {
-      [purchase.offerId]: results[purchase.offerId] ?? {},
-      [lease.offerId]: { mid: incomplete(leaseMid) },
-    });
+    const status = candidateStatus(
+      candidate,
+      0,
+      {
+        [purchase.offerId]: results[purchase.offerId] ?? {},
+        [lease.offerId]: { mid: incomplete(leaseMid) },
+      },
+      SHOWN,
+    );
     expect(status.kind === 'suitable' || status.kind === 'tight').toBe(true);
   });
 
@@ -189,10 +213,15 @@ describe('S18: aggregation over the offers of a candidate', () => {
     const purchaseMid = results[purchase.offerId]?.mid;
     const leaseMid = results[lease.offerId]?.mid;
     if (!purchaseMid || !leaseMid) throw new Error('no results');
-    const status = candidateStatus(candidate, 0, {
-      [purchase.offerId]: { mid: unsuitable(purchaseMid) },
-      [lease.offerId]: { mid: incomplete(leaseMid) },
-    });
+    const status = candidateStatus(
+      candidate,
+      0,
+      {
+        [purchase.offerId]: { mid: unsuitable(purchaseMid) },
+        [lease.offerId]: { mid: incomplete(leaseMid) },
+      },
+      SHOWN,
+    );
     expect(status.kind).toBe('incomplete');
   });
 
@@ -213,10 +242,15 @@ describe('S18: aggregation over the offers of a candidate', () => {
         soh: 90,
       },
     } as OfferResult;
-    const status = candidateStatus(candidate, 0, {
-      [lease.offerId]: { mid: leaseReason },
-      [purchase.offerId]: { mid: unsuitable(purchaseMid) },
-    });
+    const status = candidateStatus(
+      candidate,
+      0,
+      {
+        [lease.offerId]: { mid: leaseReason },
+        [purchase.offerId]: { mid: unsuitable(purchaseMid) },
+      },
+      SHOWN,
+    );
     expect(status).toMatchObject({
       kind: 'unsuitable',
       reason: { kind: 'coupling' },
@@ -228,9 +262,17 @@ describe('S18: aggregation over the offers of a candidate', () => {
     const base = results[purchase.offerId];
     if (!base?.mid) throw new Error('no result');
     expect(
-      candidateStatus(candidate, 0, {
-        [purchase.offerId]: { evFavorable: base.mid, evUnfavorable: base.mid },
-      }),
+      candidateStatus(
+        candidate,
+        0,
+        {
+          [purchase.offerId]: {
+            evFavorable: base.mid,
+            evUnfavorable: base.mid,
+          },
+        },
+        SHOWN,
+      ),
     ).toEqual({ kind: 'pending' });
   });
 
